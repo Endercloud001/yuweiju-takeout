@@ -1,0 +1,130 @@
+.dish-card {
+  background: #fff;
+  border-radius: 14rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 14rpx rgba(0, 0, 0, 0.06);
+}
+
+.dish-image {
+  width: 100%;
+  height: 150rpx;
+  display: block;
+}
+
+.dish-body {
+  padding: 14rpx;
+}
+
+.dish-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.dish-name {
+  font-size: 28rpx;
+  color: #222;
+  font-weight: 600;
+}
+
+.dish-price {
+  font-size: 30rpx;
+  color: #6e1d20;
+  font-weight: 600;
+}
+
+.dish-flavors {
+  display: flex;
+  gap: 8rpx;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-bottom: 10rpx;
+}
+
+.flavor-tag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  background: #f4efef;
+  color: #7d6a6a;
+  min-height: 44rpx;
+  line-height: 1.1;
+  padding: 0 14rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  border: 1rpx solid transparent;
+  white-space: nowrap;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.flavor-tag.active {
+  color: #6e1d20;
+  background: #fbe9e9;
+  border-color: rgba(110, 29, 32, 0.35);
+}
+
+.dish-qty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10rpx;
+}
+
+.qty-label {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.qty-ops {
+  display: flex;
+  align-items: center;
+}
+
+.qty-btn {
+  width: 50rpx;
+  height: 50rpx;
+  line-height: 50rpx;
+  border-radius: 8rpx;
+  background: #f3f3f3;
+  font-size: 28rpx;
+}
+
+.qty-value {
+  width: 56rpx;
+  text-align: center;
+  font-size: 24rpx;
+}
+
+.dish-actions {
+  display: flex;
+  gap: 10rpx;
+}
+
+.ghost-btn,
+.primary-btn {
+  flex: 1;
+  height: 58rpx;
+  line-height: 58rpx;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+}
+
+.ghost-btn {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.primary-btn {
+  background: #6e1d20;
+  color: #fff;
+}
+
+.added-status {
+  text-align: center;
+  color: #2f8f56;
+  font-size: 24rpx;
+  padding: 8rpx 0 2rpx;
+}

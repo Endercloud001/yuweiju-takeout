@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/web/thymeleaf/layout"
+      layout:decorate="layout">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+    <title>管理员 列表</title>
+    <script>
+        function del(id) {
+            if(confirm("确定删除吗")){
+                $.ajax({
+                    type: "GET",
+                    url: "delete?id="+id,
+                    success: function (data) {
+                        alert(data.message);
+                        if(data.success){
+                            location.href="list";
+                        }
+                    },
+                    error: function () {
+                        alert("请求服务器失败，请检查Java控制台报错!");
+                    }
+                });
+            }
+        }
+    </script>
+</head>
+
+<body data-theme="default">
+<div layout:fragment="content">
+
+    <div class="container-fluid">
+
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-header"><h4>管理员 列表</h4></div>
+
+                    <div class="card-body">
+                        <form class="form-inline" action="/admin/list" method="get">
+                            <!--分页必填的两个值-->
+                            <input type="hidden" name="current" th:value="${pager.getPageIndex() }"/>
+                            <input type="hidden" name="limit" th:value="${pager.getPageSize() }"/>
+                            <div class="row">
+                                <div class="form-group">
+                                    <label class="">用户名</label>
+                                    <input th:value="${username}" maxlength="20" class="form-control" name="username"
+                                           placeholder="请输入用户名">
+                                </div>
+                                <div class="form-group">
+                                    <label class="">姓名</label>
+                                    <input th:value="${name}" maxlength="12" class="form-control" name="name"
+                                           placeholder="请输入姓名">
+                                </div>
+
+                                <div class="form-group">
+                                    <button class="btn btn-primary" type="submit">查 询</button>
+                                </div>
+
+                                <div th:if="${ session.user.role == 'admin'  }" class="form-group clearfix">
+                                    <a class="btn btn-success" href="edit">新增</a>
+                                </div>
+
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>用户名</th>
+                                        <th>姓名</th>
+                                        <th>电话</th>
+                                        <th>创建时间</th>
+                                        <th>操作</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="i,s : ${ adminList }">
+                                        <th scope="row" th:text="${s.count}"></th>
+                                        <td th:text="${ i.username }"></td>
+                                        <td th:text="${ i.name }"></td>
+                                        <td th:text="${ i.tele }"></td>
+                                        <td th:text="${#dates.format( i.createtime ,'yyyy-MM-dd HH:mm:ss')}"></td>
+                                        <td>
+                                            <a th:href="${ 'detail?id='+ i.id}" class="btn btn-xs btn-success">查看</a>
+                                            <a th:if="${ session.user.role == 'admin'  }" th:href="${'edit?id=' + i.id}"
+                                               class="btn btn-xs btn-primary">编辑</a>
+                                            <button type="button" th:if="${session.user.role == 'admin'  }"
+                                                    th:onclick="del([[${i.id}]])" class="btn btn-xs btn-danger">删除
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </form>
+                        <div th:insert="~{_pager_footer::pagebar(pager=${pager},formId='page_form')}"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
+

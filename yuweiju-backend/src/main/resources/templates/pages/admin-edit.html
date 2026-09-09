@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/web/thymeleaf/layout"
+      layout:decorate="layout">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+    <title>管理员 编辑页</title>
+    <script>
+        $(document).ready(function() {
+            var options = {
+                beforeSubmit:  ()=>{return true},
+                success: function (data) {
+                    //请求成功后回调，首先弹出成功消息，然后跳转到列表页
+                    alert(data.message);
+                    if (data.success) {
+                        window.location.href = "list";
+                    }
+                }
+            };
+            $('#editForm').ajaxForm(options).submit(function(){return false;});
+        });
+    </script>
+</head>
+
+<body data-theme="default">
+<div layout:fragment="content">
+    <div class="container-fluid">
+
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-header"><h4>管理员修改</h4></div>
+                    <div class="card-body">
+                        <form autocomplete="off" id="editForm" class="form-horizontal" action="/admin/save"
+                              method="post">
+                            <input type="hidden" name="id" th:value="${ item?.id }">
+                            <div class="form-group">
+                                <label class="control-label col-lg-3 col-xs-3">用户名</label>
+                                <div class="col-lg-3 col-xs-9">
+                                    <input required readonly maxlength="20" class="form-control w200"
+                                           type="text" name="username" placeholder="请输入用户名"
+                                           th:value="${ item.username }">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label col-lg-3 col-xs-3">密码</label>
+                                <div class="col-lg-3 col-xs-9">
+                                    <input maxlength="20" class="form-control w200" type="password"
+                                           name="password" placeholder="请输入密码"
+                                           th:value="${ item.password }">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label col-lg-3 col-xs-3">姓名</label>
+                                <div class="col-lg-3 col-xs-9">
+                                    <input required maxlength="12" class="form-control w200"
+                                           type="text" name="name" placeholder="请输入姓名"
+                                           th:value="${ item.name }">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label col-lg-3 col-xs-3">电话</label>
+                                <div class="col-lg-3 col-xs-9">
+                                    <input maxlength="11" class="form-control w200"
+                                           type="text" name="tele" placeholder="请输入电话"
+                                           th:value="${ item.tele }">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label col-lg-3 col-xs-3">创建时间</label>
+                                <div class="col-lg-3 col-xs-9">
+                                    <input readonly class="w200 form-control js-datetimepicker" type="text"
+                                           autocomplete="off" name="createtime" placeholder="请选择创建时间"
+                                           th:value="${#dates.format(item.createtime ,'yyyy-MM-dd HH:mm:ss')}"
+                                           data-side-by-side="true" data-locale="zh-cn"
+                                           data-format="YYYY-MM-DD HH:mm:ss"/>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-lg-3 col-xs-6 col-xs-offset-3">
+                                    <input class="btn btn-primary" type="submit" value="保存">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+<script src="/static/assets/js/bootstrap-datetimepicker/moment.min.js"></script>
+<script src="/static/assets/js/bootstrap-datetimepicker/bootstrap-datetimepicker.min.js"></script>
+<script src="/static/assets/js/bootstrap-datetimepicker/locale/zh-cn.js"></script>
+</body>
+</html>
+

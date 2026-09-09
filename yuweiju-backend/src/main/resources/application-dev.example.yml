@@ -1,0 +1,56 @@
+sky:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    host: localhost
+    port: 3306
+    database: yuweiju
+    username: root
+    password: "REPLACE_ME"
+  alioss:
+    endpoint: oss-cn-shanghai.aliyuncs.com
+    access-key-id: "REPLACE_ME"
+    access-key-secret: "REPLACE_ME"
+    bucket-name: java-learning-endercloud
+    default-image-prefix: ""
+    dish-default-image-prefix: ""
+    setmeal-default-image-prefix: ""
+    public-base-url: https://java-learning-endercloud.oss-cn-shanghai.aliyuncs.com
+    max-list-count: 100
+    allowed-extensions:
+      - jpg
+      - jpeg
+      - png
+      - webp
+    private-bucket: false
+    signed-url-expire-seconds: 300
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
+  jwt:
+    admin-secret-key: "REPLACE_ME"
+    admin-ttl: 72000000
+    admin-token-name: token
+    user-secret-key: "REPLACE_ME"
+    user-ttl: 72000000
+    user-token-name: authentication
+  wechat:
+    appid: wxae391a56de2e89f0
+    secret: "REPLACE_ME"
+    mchid: 1561414331
+    mchSerialNo: 4B3B3DC35414AD50B1B755BAF8DE9CC7CF407606
+    privateKeyFilePath: D:\apiclient_key.pem
+    apiV3Key: "REPLACE_ME"
+    weChatPayCertFilePath: D:\wechatpay_166D96F876F45C7D07CE98952A96EC980368ACFC.pem
+    notifyUrl: https://www.weixin.qq.com/wxpay/pay.php
+    refundNotifyUrl: https://www.weixin.qq.com/wxpay/pay.php
+  shop:
+    address: 无锡市滨湖区学府立交桥博大欢乐颐小区南侧20米无锡江南大悦城
+  baidu-map:
+    ak: "REPLACE_ME"
+  qweather:
+    api-host: ${QWEATHER_API_HOST:https://jc67cf742g.re.qweatherapi.com}
+    project-id: ${QWEATHER_PROJECT_ID:3F87MAWCP3}
+    credential-id: ${QWEATHER_CREDENTIAL_ID:C45F5WEWJ3}
+    private-key: ${QWEATHER_PRIVATE_KEY:}
+    fail-fast: ${QWEATHER_FAIL_FAST:true}

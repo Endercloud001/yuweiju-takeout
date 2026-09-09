@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<!--
+带有分页条数下拉框
+可手动输入页数
+一页只能存在一个分页组件
+ -->
+<th:block th:fragment="pagebar">
+    <style>
+        .pager-box {
+            width: 100%;
+            height: 50px;
+            background-color: white;
+            padding: 0 10px;
+            box-sizing:border-box;
+        }
+
+        /*左边*/
+        .pager-box-l {
+            float: left;
+        }
+
+        .pager-box-l span {
+            line-height: 50px;
+        }
+
+        /*右边*/
+        .pager-box-r {
+            float: right;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .pager-items {
+        }
+
+        .pager-items .pager-item {
+            background-color: rgba(248, 248, 248, .9);
+            border-radius: 3px;
+            color: black;
+            padding: 10px;
+            line-height: 50px;
+            border: none;
+            outline: none;
+        }
+
+        .pager-items a:hover {
+            background-color: rgba(0, 0, 0, .2);
+        }
+
+        .pager-items .pager-active {
+            background-color: rgb(0, 115, 220);
+            color: white;
+        }
+
+        #pagerPageSizeInput {
+            width: 50px;
+            height: 30px;
+            text-align: center;
+            background-color: rgba(255, 255, 255, .8);
+            border: solid 1px rgba(0, 0, 0, .2);
+            outline: none;
+        }
+    </style>
+    <div class="pager-box">
+        <div class="pager-box-l">
+            <div class="pager-items">
+                <a class="pager-item" href="javascript:void(0);">共[[${pager.itemCount}]]条</a>
+            </div>
+        </div>
+        <div class="pager-box-r">
+            <div class="pager-items">
+                <select class="pager-item" id="pagerPageSize">
+                    <option th:if="${pager.pageSizeOptions.contains(pager.pageSize) == false}"
+                            th:value="${pager.pageSize}">[[${pager.pageSize}]] 条/页
+                    </option>
+                    <option th:each="op : ${pager.pageSizeOptions}"
+                            th:selected="${pager.pageSize == op}"
+                            th:value="${op}">
+                        [[${op}]] 条/页
+                    </option>
+                </select>
+                <a class="pager-item" href="javascript:void(0);" th:if="${pager.isFirst}">最前页</a>
+                <a class="pager-item" href="javascript:void(0);" th:if="${pager.isFirst}">上一页</a>
+                <a class="pager-item" href="javascript:pagerComponentGotoPage(1)" title="最前页"
+                   th:unless="${pager.isFirst}">最前页</a>
+                <a class="pager-item" th:href="${'javascript:pagerComponentGotoPage(' + (pager.pageIndex - 1) + ')'}"
+                   title="上一页" th:unless="${pager.isFirst}">上一页</a>
+                <a class="pager-item" th:href="${'javascript:pagerComponentGotoPage(' + (pager.pageStart - 1) + ')'}"
+                   th:title="${'第'+(pager.pageStart - 1)+'页'}" th:if="${pager.hasLessStart}">...</a>
+                <th:block th:each="i:${#numbers.sequence(pager.pageStart,pager.pageEnd)}">
+                    <a class="pager-item pager-active" href="javascript:void(0);" th:if="${i==pager.pageIndex}"
+                       th:text="${i}"></a>
+                    <a class="pager-item" th:href="${'javascript:pagerComponentGotoPage(' + i + ')'}"
+                       th:title="${'第'+ i +'页'}" th:unless="${i==pager.pageIndex}" th:text="${i}"></a>
+                </th:block>
+                <a class="pager-item" th:href="${'javascript:pagerComponentGotoPage(' + (pager.pageEnd + 1) + ')'}"
+                   th:title="${'第'+(pager.pageEnd + 1)+'页'}" th:if="${pager.hasGreaterEnd}">...</a>
+                <a class="pager-item" href="javascript:void(0);" th:if="${pager.isLast}">下一页</a>
+                <a class="pager-item" href="javascript:void(0);" th:if="${pager.isLast}">最末页</a>
+                <a class="pager-item" th:href="${'javascript:pagerComponentGotoPage(' + (pager.pageIndex + 1) + ')'}"
+                   title="下一页" th:unless="${pager.isLast}">下一页</a>
+                <a class="pager-item" th:href="${'javascript:pagerComponentGotoPage(' + (pager.pageCount) + ')'}"
+                   title="最末页" th:unless="${pager.isLast}">最末页</a>
+                <span class="pager-item">前往 <input id="pagerPageSizeInput" type="number"/> 页</span>
+            </div>
+        </div>
+    </div>
+    <script th:inline="javascript">
+        //普通提交
+        var formId = [[${formId}]];//表单ID
+
+        //提交的分页参数名
+        var currentParamName = 'current'
+        var pageSizeName = 'limit'
+
+        //依赖jq
+        jQuery.prototype.serializeObject = function () {
+            var obj = new Object();
+            $.each(this.serializeArray(), function (index, param) {
+                if (!(param.name in obj)) {
+                    obj[param.name] = param.value;
+                }
+            });
+            return obj;
+        };
+
+        //分页总数
+        var pageCount = [[${pager.pageCount}]];
+        //手动选中分页大小 select事件
+        document.getElementById("pagerPageSize").onchange = function () {
+            if (this.value !== '') {
+                let current = this.value;
+                window.location.href = `javascript:pagerComponentGotoPage(1,${current})`
+            }
+        }
+        //手动输入页码,回车触发查询事件
+        var EnterKeyUpEventHandling = false;
+        document.addEventListener('keyup', function (e) {
+            if (!EnterKeyUpEventHandling && e.key === "Enter" && e.target.id === 'pagerPageSizeInput')//判断输入是否是Enter
+            {
+                EnterKeyUpEventHandling = true;
+                console.log('addEventListener')
+                let index = document.getElementById("pagerPageSizeInput").value;
+                if (index <= 0) {
+                    index = 1;
+                }
+                if (index > pageCount) {
+                    index = pageCount
+                }
+                pagerComponentGotoPage(index)
+                //防止一次按下执行过多次
+                setTimeout(function () {
+                    EnterKeyUpEventHandling = false;
+                }, 800);
+            }
+        })
+
+        //执行分页
+        function pagerComponentGotoPage(pageNo, size = 0) {
+            if (size === 0) {
+                size = document.getElementById('pagerPageSize').value
+            }
+
+            //需要再分页前执行自己的函数，请自己重写方法beforePage
+            if (typeof (window.beforePage) == "function") {
+                beforePage();
+            }
+
+            {
+                var form = $("#" + formId);
+                $("input[name="+currentParamName+"]", $(form)).val(pageNo);
+                $("input[name="+pageSizeName+"]", $(form)).val(size);
+                $(form).submit();
+            }
+        }
+
+    </script>
+</th:block>
+</html>

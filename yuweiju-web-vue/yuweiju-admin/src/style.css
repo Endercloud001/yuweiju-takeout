@@ -1,0 +1,125 @@
+@import './assets/fonts/misans.css';
+
+@font-face {
+  font-family: '喜鹊招牌体';
+  src: url('./assets/fonts/喜鹊招牌体(简+繁体).ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: '汉仪尚巍手书';
+  src: url('./assets/fonts/汉仪尚巍手书简.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: '喜鹊聚珍体 regular';
+  src: url('./assets/fonts/喜鹊聚珍体 regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Franklin Gothic Demi';
+  src: url('./assets/fonts/Franklin Gothic Demi.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+
+  --app-primary: #6e1d20;
+  --app-bg: #f0ebde;
+  --app-bg-alt: #eee6dc;
+  --app-bg-elevated: #fafafa;
+  --app-text: rgba(14, 16, 27, 0.92);
+  --app-text-secondary: rgba(46, 52, 58, 0.75);
+  --app-border: rgba(14, 16, 27, 0.1);
+  --app-shadow: 0 10px 30px rgba(14, 16, 27, 0.08);
+  --app-radius: 14px;
+  --app-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.28'/%3E%3C/svg%3E");
+  --app-font-brand: '喜鹊招牌体', '汉仪尚巍手书', '小米兰亭 Pro DemiBold', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --app-font-sidebar: '喜鹊聚珍体 regular', var(--app-font-brand);
+  --app-font-text: 'MiSans', '小米兰亭 Pro DemiBold', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+  --panel-radius: 16px;
+  --panel-bg: rgba(255, 255, 255, 0.6);
+  --panel-border: rgba(14, 16, 27, 0.08);
+  --panel-shadow: 0 10px 30px rgba(14, 16, 27, 0.06);
+  --panel-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 0 0 1px rgba(14, 16, 27, 0.03);
+
+  --el-color-primary: var(--app-primary);
+  --el-color-success: #1aa86b;
+  --el-color-warning: #d98b2b;
+  --el-color-danger: #d94a2b;
+  --el-color-info: #4a8fa3;
+  --el-border-radius-base: 10px;
+  --el-font-size-base: 14px;
+  --el-text-color-regular: var(--app-text);
+  --el-text-color-secondary: var(--app-text-secondary);
+  --el-bg-color: var(--app-bg-elevated);
+  --el-bg-color-page: var(--app-bg);
+  --el-border-color: var(--app-border);
+  --el-fill-color-light: rgba(255, 255, 255, 0.65);
+  --el-fill-color-lighter: rgba(255, 255, 255, 0.46);
+}
+
+
+
+body {
+  margin: 0;
+  font-family: var(--app-font-text);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--app-text);
+  background:
+    radial-gradient(1200px 520px at 10% -10%, rgba(110, 29, 32, 0.12), transparent 62%),
+    radial-gradient(900px 540px at 100% 0%, rgba(74, 143, 163, 0.12), transparent 58%),
+    var(--app-noise),
+    var(--app-bg);
+  background-blend-mode: normal, normal, multiply, normal;
+}
+
+#app {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  text-align: initial;
+  border-inline: none;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.el-card {
+  border-radius: var(--app-radius);
+  border-color: var(--app-border);
+}
+
+.el-table {
+  border-radius: var(--app-radius);
+  overflow: hidden;
+}
+
+.el-descriptions__header {
+  margin-bottom: 10px;
+}
+
+.app-card {
+  border-radius: var(--app-radius);
+  box-shadow: var(--app-shadow);
+}
+
+@media print {
+  body {
+    background: #fff !important;
+  }
+}

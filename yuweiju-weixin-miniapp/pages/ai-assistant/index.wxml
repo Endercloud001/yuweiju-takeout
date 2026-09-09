@@ -1,0 +1,42 @@
+﻿<view class="ai-page">
+  <view class="ai-header">
+    <text class="ai-title">AI 智能助手</text>
+    <text class="ai-subtitle">同一用户对话每日清空一次</text>
+  </view>
+
+  <scroll-view class="ai-list" scroll-y="true" scroll-with-animation="true" scroll-top="{{scrollTop}}">
+    <view class="ai-load" wx:if="{{hasMore}}" bindtap="loadMore">加载更多</view>
+    <block wx:for="{{messages}}" wx:for-item="msg" wx:key="id">
+      <view class="ai-message {{msg.senderType === 1 ? 'user' : msg.senderType === 2 ? 'ai' : 'system'}}">
+        <view class="ai-bubble" wx:if="{{msg.senderType !== 3}}">
+          <text class="ai-content">{{msg.content}}</text>
+          <text class="ai-time">{{msg.createTimeText}}</text>
+        </view>
+      </view>
+      <view wx:if="{{msg.senderType === 2 && msg.dishes && msg.dishes.length}}" class="dish-list">
+        <view wx:for="{{msg.dishes}}" wx:for-item="dish" wx:key="dishId" class="dish-item">
+          <dish-card
+            dish="{{dish}}"
+            added="{{dish.added}}"
+            data-message-id="{{msg.id}}"
+            bind:add="onDishAdd"
+            bind:cancel="onDishCancel"
+          />
+        </view>
+      </view>
+    </block>
+    <view class="ai-empty" wx:if="{{!messages.length}}">和我聊聊您想吃什么吧</view>
+  </scroll-view>
+
+  <view class="ai-input-box">
+    <textarea
+      class="ai-input"
+      value="{{inputValue}}"
+      placeholder="输入菜品偏好，例如：推荐不辣清淡的菜"
+      bindinput="onInput"
+      maxlength="2000"
+      show-confirm-bar="false"
+    />
+    <button class="ai-send" bindtap="sendInputMessage" disabled="{{sending}}">发送</button>
+  </view>
+</view>

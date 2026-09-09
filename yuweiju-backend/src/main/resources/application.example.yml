@@ -1,0 +1,176 @@
+server:
+  port: 8080
+
+spring:
+  config:
+    import: optional:file:.env[.properties],optional:file:../.env[.properties]
+  profiles:
+    active: dev
+  main:
+    allow-circular-references: true
+  datasource:
+    druid:
+      driver-class-name: ${sky.datasource.driver-class-name}
+      url: jdbc:mysql://${sky.datasource.host}:${sky.datasource.port}/${sky.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+      username: ${sky.datasource.username}
+      password: ${sky.datasource.password}
+  data:
+    redis:
+      host: ${sky.redis.host}
+      port: ${sky.redis.port}
+      database: ${sky.redis.database}
+  mvc:
+    static-path-pattern: /static/**
+  web:
+    resources:
+      static-locations: classpath:/resources/, classpath:/static/
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+  ai:
+    model:
+      chat: openai
+    openai:
+      base-url: https://api.deepseek.com
+      api-key: ${DEEPSEEK_API_KEY:}
+      chat:
+        options:
+          model: deepseek-chat
+          temperature: 0.7
+          max-tokens: 512
+        completions-path: /v1/chat/completions
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    com.codeying: debug
+
+sky:
+  jwt:
+    admin-secret-key: ${sky.jwt.admin-secret-key}
+    admin-ttl: ${sky.jwt.admin-ttl:72000000}
+    admin-token-name: ${sky.jwt.admin-token-name:token}
+    user-secret-key: ${sky.jwt.user-secret-key}
+    user-ttl: ${sky.jwt.user-ttl:72000000}
+    user-token-name: ${sky.jwt.user-token-name:authentication}
+  alioss:
+    endpoint: ${sky.alioss.endpoint}
+    access-key-id: ${sky.alioss.access-key-id}
+    access-key-secret: ${sky.alioss.access-key-secret}
+    bucket-name: ${sky.alioss.bucket-name}
+    default-image-prefix: ${sky.alioss.default-image-prefix:}
+    dish-default-image-prefix: ${sky.alioss.dish-default-image-prefix:}
+    setmeal-default-image-prefix: ${sky.alioss.setmeal-default-image-prefix:}
+    public-base-url: ${sky.alioss.public-base-url:}
+    max-list-count: ${sky.alioss.max-list-count:100}
+    allowed-extensions:
+      - jpg
+      - jpeg
+      - png
+      - webp
+    private-bucket: ${sky.alioss.private-bucket:false}
+    signed-url-expire-seconds: ${sky.alioss.signed-url-expire-seconds:300}
+  wechat:
+    appid: ${sky.wechat.appid}
+    secret: ${sky.wechat.secret}
+    mchid: ${sky.wechat.mchid}
+    mchSerialNo: ${sky.wechat.mchSerialNo}
+    privateKeyFilePath: ${sky.wechat.privateKeyFilePath}
+    apiV3Key: ${sky.wechat.apiV3Key}
+    weChatPayCertFilePath: ${sky.wechat.weChatPayCertFilePath}
+    notifyUrl: ${sky.wechat.notifyUrl}
+    refundNotifyUrl: ${sky.wechat.refundNotifyUrl}
+  shop:
+    address: ${sky.shop.address}
+  baidu-map:
+    ak: ${sky.baidu-map.ak}
+  qweather:
+    api-host: ${QWEATHER_API_HOST:https://jc67cf742g.re.qweatherapi.com}
+    project-id: ${QWEATHER_PROJECT_ID:3F87MAWCP3}
+    credential-id: ${QWEATHER_CREDENTIAL_ID:C45F5WEWJ3}
+    private-key: ${QWEATHER_PRIVATE_KEY:}
+    fail-fast: ${QWEATHER_FAIL_FAST:true}
+
+analysis:
+  feature-version: v1
+  model-version-prefix: analysis
+  cluster-count: 3
+  prediction-window-days: 7
+  training-lookback-days: 90
+  backfill-days: 90
+  decay-lambda: 0.08
+  task:
+    enabled: true
+    snapshot-cron: "0 0 2 * * ?"
+    prediction-cron: "0 30 2 * * ?"
+    training-cron: "0 0 3 ? * SUN"
+  cold-start:
+    top-n: 5
+    bayesian-smoothing-m: 10
+    price-band:
+      low-max: 28
+      mid-max: 58
+  redis:
+    heat-prediction-ttl-hours: 48
+    cluster-user-ttl-hours: 168
+    cluster-topn-ttl-hours: 168
+    fallback-ttl-hours: 24
+  validation:
+    rmse-ratio-threshold: 0.30
+    mae-ratio-threshold: 0.20
+    silhouette-min: 0.30
+    ctr-min: 0.15
+    cvr-min: 0.30
+  xgboost:
+    enabled: true
+    rounds: 120
+    eta: 0.08
+    max-depth: 5
+    subsample: 0.85
+    colsample-bytree: 0.85
+    min-child-weight: 3.0
+    eval-holdout-days: 7
+    long-tail-sales-threshold: 3
+    zero-label-keep-rate: 0.35
+    active-sample-weight: 1.35
+    promo-sample-weight: 1.50
+    severe-weather-sample-weight: 1.20
+    enable-log-label: true
+    model-dir: ./runtime/analysis-models
+  observation:
+    rolling-7d-days: 7
+    rolling-30d-days: 30
+  external:
+    weather-location: ${sky.shop.address}
+    weather-history-days: 10
+    weather-cache-hours: 12
+    promo-periods:
+      - id: p001
+        start: 2026-04-01
+        end: 2026-04-03
+        name: 建店周年庆
+
+order-risk:
+  feature-version: v1
+  model-dir: ./runtime/order-risk-models
+  thresholds:
+    low: 12
+    medium: 16
+  task:
+    scoring-enabled: true
+    training-cron: "0 30 3 ? * MON"
+    backfill-days: 120
+    backfill-max-orders: 5000
+  training:
+    min-anomaly-labels: 50
+    reject-if-metric-regression: true
+    reject-thresholds:
+      pr-auc-delta: 0.02
+      recall-delta: 0.05
+  scoring:
+    lr-weight: 0.4
+    rf-weight: 0.6

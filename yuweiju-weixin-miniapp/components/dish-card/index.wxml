@@ -1,0 +1,33 @@
+<view class="dish-card">
+  <image class="dish-image" src="{{dish.imageUrl}}" mode="aspectFill"></image>
+  <view class="dish-body">
+    <view class="dish-header">
+      <text class="dish-name">{{dish.name}}</text>
+      <text class="dish-price">￥{{dish.price}}</text>
+    </view>
+    <view class="dish-flavors" wx:if="{{dish.flavors && dish.flavors.length}}">
+      <view
+        class="flavor-tag {{selectedFlavor===item?'active':''}}"
+        wx:for="{{dish.flavors}}"
+        wx:key="*this"
+        data-flavor="{{item}}"
+        bindtap="onFlavorTap"
+      >
+        {{item}}
+      </view>
+    </view>
+    <view class="dish-qty" wx:if="{{!added}}">
+      <text class="qty-label">数量</text>
+      <view class="qty-ops">
+        <button class="qty-btn" bindtap="onMinusTap">-</button>
+        <text class="qty-value">{{quantity}}</text>
+        <button class="qty-btn" bindtap="onPlusTap">+</button>
+      </view>
+    </view>
+    <view class="dish-actions" wx:if="{{!added}}">
+      <button class="ghost-btn" bindtap="onCancelTap">取消</button>
+      <button class="primary-btn" bindtap="onAddTap">加入购物车</button>
+    </view>
+    <view class="added-status" wx:else>已加入购物车</view>
+  </view>
+</view>

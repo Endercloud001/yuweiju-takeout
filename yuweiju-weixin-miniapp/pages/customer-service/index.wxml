@@ -1,0 +1,39 @@
+<view class="cs-page">
+  <view class="cs-header">
+    <view class="cs-title">客服消息</view>
+    <view class="cs-status {{wsConnected ? 'online' : 'offline'}}">
+      <text class="cs-status-dot"></text>
+      <text class="cs-status-text">{{wsConnected ? '已连接' : '连接中'}}</text>
+    </view>
+  </view>
+
+  <scroll-view class="cs-list" scroll-y="true" scroll-with-animation="true" scroll-top="{{scrollTop}}">
+    <view class="cs-load" wx:if="{{hasMore}}" bindtap="loadMore">
+      <text class="cs-load-text">加载更多</text>
+    </view>
+    <block wx:for="{{messages}}" wx:key="id">
+      <view class="cs-message {{item.senderType === 1 ? 'admin' : item.senderType === 2 ? 'user' : 'system'}}">
+        <view class="cs-bubble" wx:if="{{item.senderType !== 3}}">
+          <text class="cs-content">{{item.content}}</text>
+          <text class="cs-time">{{item.createTime}}</text>
+        </view>
+        <view class="cs-system" wx:else>
+          <text>{{item.content}}</text>
+        </view>
+      </view>
+    </block>
+    <view class="cs-empty" wx:if="{{!messages.length}}">暂无消息</view>
+  </scroll-view>
+
+  <view class="cs-input">
+    <textarea
+      class="cs-textarea"
+      value="{{inputValue}}"
+      placeholder="输入回复内容..."
+      bindinput="onInput"
+      maxlength="2000"
+      show-confirm-bar="false"
+    />
+    <button class="cs-send" bindtap="sendMessage">发送</button>
+  </view>
+</view>

@@ -1,0 +1,40 @@
+# Local credentials and configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+project.private.config.json
+/yuweiju-backend/src/main/resources/application.yml
+/yuweiju-backend/src/main/resources/application-dev.yml
+/yuweiju-document/db/db_init.sql
+
+# Dependencies, generated output, caches and local tools
+node_modules/
+target/
+dist/
+dist-ssr/
+runtime/
+.m2/
+m2cache/
+.tools/
+.codex/
+.codex-logs/
+.codex-tmp/
+.claude/
+.idea/
+.vscode/
+logs/
+*.log
+*.zip
+*.class
+*.jar
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+
+# Archived papers, raw reports and local reference material
+/yuweiju-document/archived/

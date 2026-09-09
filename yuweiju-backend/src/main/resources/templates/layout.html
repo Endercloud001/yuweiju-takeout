@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/web/thymeleaf/layout">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+    <title>主页</title>
+    <link rel="icon" href="/static/assets/images/favicon.ico" type="image/ico">
+    <link href="/static/assets/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/assets/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="/static/assets/css/style.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/assets/js/bootstrap-datetimepicker/bootstrap-datetimepicker.min.css">
+    <script type="text/javascript" src="/static/assets/js/jquery.min.js"></script>
+    <script type="text/javascript" src="/static/assets/js/jquery.form.js"></script>
+</head>
+
+<body data-theme="default">
+<div class="lyear-layout-web">
+    <div class="lyear-layout-container">
+
+        <!-- 页面头部 -->
+        <header class="lyear-layout-header">
+
+            <nav class="navbar navbar-default">
+                <div class="topbar">
+
+                    <div class="topbar-left">
+                        <div class="lyear-aside-toggler">
+                            <span class="lyear-toggler-bar"></span>
+                            <span class="lyear-toggler-bar"></span>
+                            <span class="lyear-toggler-bar"></span>
+                        </div>
+
+                    </div>
+
+                    <ul class="topbar-right">
+                        <li class="dropdown dropdown-profile">
+                            <a href="javascript:void(0)" data-toggle="dropdown">
+                                <img class="img-avatar img-avatar-48 m-r-10" src="/static/assets/images/avatar.jpg"/>
+                                <span th:if="${ session.user.role == 'admin'}" th:text="管理员"><span class="caret"></span></span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-right">
+                                <li><a th:href="${'/'+session.user.role+'/edit?id='+session.user.id}"><i
+                                        class="mdi mdi-account"></i> 个人信息</a></li>
+                                <li class="divider"></li>
+                                <li><a href="/logout"><i class="mdi mdi-logout-variant"></i> 退出登录</a></li>
+                            </ul>
+                        </li>
+
+                    </ul>
+
+                </div>
+            </nav>
+
+        </header>
+        <!-- 导航侧栏 -->
+        <aside class="lyear-layout-sidebar">
+
+            <div id="logo" class="sidebar-header">
+                <a href="/"><h3 style="height: 68px;line-height: 68px">springboot脚手架</h3></a>
+            </div>
+            <div class="lyear-layout-sidebar-scroll">
+                <nav class="sidebar-main">
+                    <ul class="nav nav-drawer">
+                        <li class="nav-item"><a th:href="${'/'}"><i
+                                class="mdi mdi-home"></i> 首页</a></li>
+                        <li class="nav-item"><a th:href="${'/'+ session.user.role + '/edit?id=' + session.user.id }"><i
+                                class="mdi mdi-account"></i> 个人中心</a></li>
+                        <li class="nav-item nav-item-has-subnav open">
+                            <a href="javascript:void(0)"><i class="mdi mdi-format-align-justify"></i> 用户管理</a>
+                            <ul class="nav nav-subnav" th:if="${ session.user.role == 'admin'  }">
+                                <li> <a th:href="${ '/admin/list'}">管理员</a> </li>
+                            </ul>
+                        </li>
+
+                    </ul>
+                </nav>
+            </div>
+
+        </aside>
+
+        <!--页面主要内容-->
+        <main class="lyear-layout-content">
+            <div id="content-container" layout:fragment="content">
+
+            </div>
+        </main>
+        <!--End 页面主要内容-->
+    </div>
+</div>
+<script type="text/javascript" src="/static/assets/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="/static/assets/js/perfect-scrollbar.min.js"></script>
+<script type="text/javascript" src="/static/assets/js/main.min.js"></script>
+<script src="/static/assets/js/bootstrap-datetimepicker/moment.min.js"></script>
+<script src="/static/assets/js/bootstrap-datetimepicker/bootstrap-datetimepicker.min.js"></script>
+<script src="/static/assets/js/bootstrap-datetimepicker/locale/zh-cn.js"></script>
+</body>
+</html>
+
+
+
