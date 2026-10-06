@@ -1,5 +1,8 @@
 # 立即清理并轮换敏感凭据 实现计划
 
+> 2026-10-06 维护更新：本文保留当时方案/调查/验证事实，不作为现行强制规则。PLANS 已退出流程；当前协作与技术规范见仓库 `docs/agents/workflow.md`、`docs/standards/`。旧工具规则和冲突 Code Style 已退役；历史来源名称不再代表执行要求。
+
+
 > **面向 AI 代理的工作者：** 必需子技能：使用 `superpowers:executing-plans`（或 `superpowers:subagent-driven-development`）逐任务实现此计划。步骤使用复选框（`- [ ]`）语法跟踪进度。
 
 **目标：** 从代码仓库和构建产物中移除真实凭据，轮换已经暴露的数据库、OSS、微信支付、地图和大模型密钥，并让三端在没有本地密钥文件时仍能通过明确配置启动或安全失败。
@@ -148,4 +151,4 @@
 - [微信支付 API v3 概述](https://pay.wechatpay.cn/doc/v3/merchant/4012081606)：商户 API 证书、平台证书/公钥和 API v3 密钥的职责区别。
 - [微信支付官方工具库说明](https://pay.wechatpay.cn/doc/v3/merchant/4012081606)：优先复用官方 Java/Go 工具库封装的密钥加载、签名、验签和请求头能力。
 - [AI 运营化计划](./ExecPlan%20-%20把%20AI%20从“同步调用模型”升级为可运营系统.md)：旧 Key 撤销后的模型 profile/fallback 交叉验证。
-- [余味居后端配置](../../yuweiju-backend/src/main/resources/application.yml)：当前配置入口。
+- `余味居后端配置`（本机敏感配置，已忽略）：当前配置入口。

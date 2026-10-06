@@ -1,5 +1,8 @@
 # 补齐生产级可靠性与质量门禁 实现计划
 
+> 2026-10-06 维护更新：本文保留当时方案/调查/验证事实，不作为现行强制规则。PLANS 已退出流程；当前协作与技术规范见仓库 `docs/agents/workflow.md`、`docs/standards/`。旧工具规则和冲突 Code Style 已退役；历史来源名称不再代表执行要求。
+
+
 > **面向 AI 代理的工作者：** 必需子技能：使用 `superpowers:executing-plans`（或 `superpowers:subagent-driven-development`）逐任务实现此计划。步骤使用复选框（`- [ ]`）语法跟踪进度。
 
 **目标：** 让三端具备可重复构建、可观测、可回归和可水平扩展的生产质量基线，重点解决内存 WebSocket 状态、重复操作、缺失测试、缺少 CI、无健康指标和构建产物混入仓库等问题。
