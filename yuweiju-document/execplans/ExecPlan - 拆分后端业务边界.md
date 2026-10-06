@@ -1,5 +1,8 @@
 # 拆分后端业务边界 实现计划
 
+> 2026-10-06 维护更新：本文保留当时方案/调查/验证事实，不作为现行强制规则。PLANS 已退出流程；当前协作与技术规范见仓库 `docs/agents/workflow.md`、`docs/standards/`。旧工具规则和冲突 Code Style 已退役；历史来源名称不再代表执行要求。
+
+
 > **面向 AI 代理的工作者：** 必需子技能：使用 `superpowers:executing-plans`（或 `superpowers:subagent-driven-development`）逐任务实现此计划。步骤使用复选框（`- [ ]`）语法跟踪进度。
 
 **目标：** 在不立即拆成微服务、不破坏现有 API 和数据库的前提下，把当前 Spring Boot 单体改造成可独立演进、可测试和可迁移的模块化单体。
@@ -108,7 +111,7 @@
 ### 任务 6：收敛旧包并决定提取边界
 
 - [ ] 每迁移一个模块删除旧实现的生产引用，禁止保留两个会产生不同结果的并行业务路径。
-- [ ] 更新 `yuweiju-backend/.trae/rules/rules.md` 或新增模块规范，说明包命名、依赖方向、事件版本和事务边界。
+- [ ] 更新 `docs/standards/backend.md` 或新增模块规范，说明包命名、依赖方向、事件版本和事务边界。
 - [ ] 用 Maven、ArchUnit、outbox 重放测试、接口烟测和三端回归验证；若某模块满足独立数据库、独立扩缩容、独立发布和清晰事件契约四项条件，再单独记录微服务提取 ExecPlan。
 
 ## Concrete Steps
@@ -144,4 +147,4 @@
 - [Spring Modulith events](https://docs.spring.io/spring-modulith/reference/events.html)：应用事件和事务提交后的处理模式；使用前确认版本矩阵。
 - [可靠性计划](./ExecPlan%20-%20补齐生产级可靠性与质量门禁.md)：WebSocket 分布式协调必须先完成，再进行 transport adapter 归属迁移。
 - [sky-take-out](https://github.com/shuhongfan/sky-take-out)：订单、菜品、套餐、支付和小程序闭环参考。
-- [后端规则](../../yuweiju-backend/.trae/rules/rules.md)、[数据库设计](../db/数据库设计文档.md)、[API 文档](../api/余味居-用户端接口.html)。
+- [后端规则](../../docs/standards/backend.md)、[数据库设计](../db/数据库设计文档.md)、[API 文档](../api/余味居-用户端接口.html)。

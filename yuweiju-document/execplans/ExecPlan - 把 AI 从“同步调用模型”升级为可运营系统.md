@@ -1,5 +1,8 @@
 # 把 AI 从“同步调用模型”升级为可运营系统 实现计划
 
+> 2026-10-06 维护更新：本文保留当时方案/调查/验证事实，不作为现行强制规则。PLANS 已退出流程；当前协作与技术规范见仓库 `docs/agents/workflow.md`、`docs/standards/`。旧工具规则和冲突 Code Style 已退役；历史来源名称不再代表执行要求。
+
+
 > **面向 AI 代理的工作者：** 必需子技能：使用 `superpowers:executing-plans`（或 `superpowers:subagent-driven-development`）逐任务实现此计划。步骤使用复选框（`- [ ]`）语法跟踪进度。
 
 **目标：** 把当前 `RestTemplate + Prompt + 正则/JSON 解析` 的 AI 助手升级为有模型抽象、结构化输出、工具权限、流式体验、限流降级、Prompt 版本、调用追踪和离线评测的生产链路。

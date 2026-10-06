@@ -1,5 +1,8 @@
 # 统一三端接口与环境配置 实现计划
 
+> 2026-10-06 维护更新：本文保留当时方案/调查/验证事实，不作为现行强制规则。PLANS 已退出流程；当前协作与技术规范见仓库 `docs/agents/workflow.md`、`docs/standards/`。旧工具规则和冲突 Code Style 已退役；历史来源名称不再代表执行要求。
+
+
 > **面向 AI 代理的工作者：** 必需子技能：使用 `superpowers:executing-plans`（或 `superpowers:subagent-driven-development`）逐任务实现此计划。步骤使用复选框（`- [ ]`）语法跟踪进度。
 
 **目标：** 让 Spring Boot 后端、Vue 管理端和微信小程序共享一份可验证的 API 契约、统一的环境配置和错误处理方式，同时保持现有 `{ code, msg, data }` 响应结构与 Token 字段兼容。
@@ -14,7 +17,7 @@
 
 当前管理端已有 `src/api/http.ts`，但小程序的 AI 助手和人工客服页面各自声明 `const baseUrl = 'http://localhost:8080'` 并重复读取 Token；WebSocket、HTTP 和两个客户端的 Token 约定也分散在页面代码中。完成后，开发者通过一个环境变量即可切换本地、测试和生产；新增接口只需更新 OpenAPI 和对应模块；非法响应、过期登录、网络超时和 Blob 下载在三端有一致行为。静态门禁只负责快速反馈，运行时契约测试负责验证真实响应。
 
-本计划遵守 `yuweiju-backend/.trae/rules/rules.md` 的 `ApiResult`、REST、参数校验要求，遵守 `yuweiju-web-vue/.trae/rules/project_rules.md` 的 `VITE_API_BASE`、`token`、严格 TypeScript 要求，并遵守小程序 `AGENTS.md` 的字段一致性要求。接口和数据库变更必须同时核对 `yuweiju-document/api/`、`yuweiju-document/db/` 和 To-do List。
+本计划遵守 `docs/standards/backend.md` 的 `ApiResult`、REST、参数校验要求，遵守 `docs/standards/admin.md` 的 `VITE_API_BASE`、`token`、严格 TypeScript 要求，并遵守小程序 `AGENTS.md` 的字段一致性要求。接口和数据库变更必须同时核对 `yuweiju-document/api/`、`yuweiju-document/db/` 和 To-do List。
 
 ## Progress
 
@@ -143,7 +146,7 @@ OpenAPI 提取和契约检查可重复运行。页面迁移采用 wrapper 逐页
 
 ## Interfaces and Dependencies
 
-- [Spring Boot API result and project rules](../../yuweiju-backend/.trae/rules/rules.md)
+- [Spring Boot API result and project rules](../../docs/standards/backend.md)
 - [Management API](./../api/余味居-管理端接口.html)
 - [User API](./../api/余味居-用户端接口.html)
 - [OpenAPI Specification](https://spec.openapis.org/oas/latest.html)
