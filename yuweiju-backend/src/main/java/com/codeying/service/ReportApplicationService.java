@@ -15,6 +15,9 @@ import java.util.Date;
  * @author Endercloud
  */
 public interface ReportApplicationService {
+    /** Yesterday-ending 30-day export period and daily actuals; core query failures propagate. */
+    com.codeying.vo.admin.report.ReportExportData prepareExport();
+
     /**
      * Execute computeBusinessData.
      *

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.codeying.mapper.OrdersMapper">
+    <sql id="inclusiveOrderPeriod">
+        order_time &gt;= #{begin} and order_time &lt;= #{end}
+    </sql>
+    <select id="aggregateBusinessByOrderTimeRange" resultType="com.codeying.vo.admin.report.OrderBusinessAggregate">
+        select count(*) as totalOrders,
+               coalesce(sum(case when status = #{completed} then 1 else 0 end), 0) as validOrders,
+               coalesce(sum(case when status = #{completed} then amount else 0 end), 0) as turnover
+        from orders where <include refid="inclusiveOrderPeriod"/>
+    </select>
+    <select id="sumAmountByStatusAndOrderTimeRange" resultType="java.math.BigDecimal">
+        select coalesce(sum(amount), 0) from orders
+        where status = #{status} and <include refid="inclusiveOrderPeriod"/>
+    </select>
+</mapper>
