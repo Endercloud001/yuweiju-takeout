@@ -5,6 +5,12 @@ const os = require('node:os')
 const path = require('node:path')
 const { spawnSync } = require('node:child_process')
 
+// The permission fixture must exercise Linux file permissions, never a skipped case.
+if (process.platform !== 'linux' || typeof process.getuid !== 'function') {
+  console.error('Reference-image behavior acceptance requires Linux. Run npm run test:refimg in WSL Ubuntu or the non-root verification container; Windows execution is not acceptance.')
+  process.exit(2)
+}
+
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'issue-4-refimg-'))
   t.after(() => fs.rmSync(root, { recursive: true, force: true }))

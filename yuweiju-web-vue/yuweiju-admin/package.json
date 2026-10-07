@@ -12,7 +12,8 @@
     "format": "prettier . --check",
     "copy:refimg": "node scripts/copy-ref-images.cjs",
     "fix:refimg": "node scripts/fix-refimg-imports.cjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:refimg": "node --test scripts/refimg-scripts.check.cjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
