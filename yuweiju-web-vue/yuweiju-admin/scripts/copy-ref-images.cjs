@@ -1,10 +1,12 @@
 const fs = require('fs')
 const path = require('path')
 
-// Source: use absolute path to the external reference_images directory
+// Usage: node scripts/copy-ref-images.cjs [sourceDir] [destinationDir]
 const projectRoot = path.resolve(__dirname, '..')
-const srcDir = path.resolve('E:/Learning Files/yuweiju-takeout/yuweiju-web-vue/reference_images')
-const destDir = path.resolve(projectRoot, 'src', 'assets', 'reference_images')
+const [sourceDir = path.join(projectRoot, '..', 'reference_images'),
+  destinationDir = path.join(projectRoot, 'src', 'assets', 'reference_images')] = process.argv.slice(2)
+const srcDir = path.resolve(sourceDir)
+const destDir = path.resolve(destinationDir)
 
 console.log('Project root:', projectRoot)
 console.log('Source directory:', srcDir)
@@ -29,6 +31,7 @@ for (const entry of entries) {
       console.log('Copied', entry.name)
     } catch (e) {
       console.error('Failed to copy', entry.name, e)
+      process.exitCode = 1
     }
   }
 }

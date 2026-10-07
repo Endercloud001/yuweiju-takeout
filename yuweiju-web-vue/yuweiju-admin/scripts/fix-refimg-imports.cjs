@@ -1,14 +1,17 @@
 const fs = require('fs')
 const path = require('path')
 
-// Function to calculate relative path from file to assets/reference_images
+// Usage: node scripts/fix-refimg-imports.cjs [scanRoot] [assetsDir]
+const projectRoot = path.resolve(__dirname, '..')
+const [scanRoot = path.join(projectRoot, 'src'),
+  assetsDir = path.join(projectRoot, 'src', 'assets', 'reference_images')] = process.argv.slice(2)
+const srcDir = path.resolve(scanRoot)
+const targetDir = path.resolve(assetsDir)
+
 function getRelativePath(filePath) {
-  const srcDir = path.join(__dirname, '..', 'src')
-  const relativeToSrc = path.relative(srcDir, path.dirname(filePath))
-  const parts = relativeToSrc.split(path.sep).filter(p => p !== '')
-  const upLevels = parts.length
-  const upPath = '../'.repeat(upLevels)
-  return upPath + 'assets/reference_images/'
+  const relative = path.relative(path.dirname(filePath), targetDir).split(path.sep).join('/')
+  const prefix = relative.startsWith('../') ? relative : `./${relative}`
+  return prefix.endsWith('/') ? prefix : `${prefix}/`
 }
 
 // Get all .vue files in src directory
@@ -26,7 +29,6 @@ function findVueFiles(dir, files = []) {
   return files
 }
 
-const srcDir = path.join(__dirname, '..', 'src')
 const vueFiles = findVueFiles(srcDir)
 
 let modifiedFiles = 0

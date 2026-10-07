@@ -14,8 +14,19 @@
 
 Element Plus 表单、Dialog v-model、上传、分页及确认交互按现有用法核对。API 抛错、页面展示时避免重复提示。保留色值、字体、图标、布局和动效，以 src/style.css 与邻近组件为依据，不恢复强制噪点、字体安装或矛盾 easing 禁令。
 
-原素材 `yuweiju-web-vue/reference_images/`，应用素材 `yuweiju-admin/src/assets/reference_images/`，复用缺图补位图。复制脚本含本机绝对路径，使用前检查，不作为页面修改前置。[历史订单图片](../adr/0002-preserve-historical-order-images.md) 保留已有图片，缺失兜底，不自动重设计。
+原素材 `yuweiju-web-vue/reference_images/`，应用素材 `yuweiju-admin/src/assets/reference_images/`，复用缺图补位图。素材脚本按自身位置解析默认路径：`copy-ref-images.cjs [sourceDir] [destinationDir]` 可指定复制路径；`fix-refimg-imports.cjs [scanRoot] [assetsDir]` 可指定扫描根与素材目标。路径参数相对执行目录解析；复制/改写会实际写入目标，验证时只使用隔离夹具，不作为页面修改前置。[历史订单图片](../adr/0002-preserve-historical-order-images.md) 保留已有图片，缺失兜底，不自动重设计。
 
 ## 验证
 
-工作目录 `yuweiju-web-vue/yuweiju-admin/`，按改动运行现有 lint/typecheck/test/build。完整 lint 待 issue #4 修复，失败记录实际原因与影响，不排除目录伪称通过。界面改动检查实际路由、正常登录、空/错/加载状态及三端一致性。文档迁移只验证文档/路径，不宣称业务 UI 验收。
+工作目录 `yuweiju-web-vue/yuweiju-admin/`，按改动运行现有 lint/typecheck/test/build。#4 的 CommonJS lint 适配已集成；完整 lint 包含 scripts，失败记录实际原因与影响，不排除目录伪称通过。
+
+素材脚本修改需执行下列两个独立测试入口，Vitest 通过不能代替素材行为验收：
+
+```sh
+npm run test
+npm run test:refimg
+```
+
+`test` 运行 Vitest；`test:refimg` 用 Node 内置测试运行真实素材脚本，覆盖复制、覆盖/保留、缺源、部分复制失败及导入转换。完整素材行为验收采用 Linux，权限用例必须真实执行，不跳过；独立验证容器使用非 root 用户。Windows 原生运行 `test:refimg` 会明确非零退出，应改用 WSL Ubuntu/Linux 容器，并在新环境准备 Linux 依赖，不复用 Windows node_modules。测试只写拥有的临时夹具。
+
+界面改动检查实际路由、正常登录、空/错/加载状态及三端一致性。文档迁移只验证文档/路径，不宣称业务 UI 验收。
