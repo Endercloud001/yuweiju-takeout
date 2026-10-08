@@ -27,6 +27,16 @@ public interface OrdersMapper extends BaseMapper<Orders> {
     Long countByStatus(@Param("status") int status);
 
 
+    /** Administrator filters with inclusive time bounds and latest-risk predicates.
+     * SQL failures, including risk filtering failures, propagate to the caller.
+     */
+    com.baomidou.mybatisplus.core.metadata.IPage<Orders> selectAdminConditionPage(
+            com.baomidou.mybatisplus.extension.plugins.pagination.Page<Orders> page,
+            @Param("query") com.codeying.dto.admin.order.OrderConditionQuery query,
+            @Param("begin") Date begin, @Param("end") Date end,
+            @Param("riskLevel") String riskLevel);
+
+
     /**
      * 统计指定时间范围内的订单数量。
      *

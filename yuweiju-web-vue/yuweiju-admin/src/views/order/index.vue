@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatRiskLevel } from '../../utils/order-risk'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -480,6 +481,11 @@ onMounted(fetch)
               </el-tooltip>
               <el-tag v-else size="small" :type="getOrderStatusTagType(row.status)">{{ getOrderStatusLabel(row.status) }}</el-tag>
             </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="风险等级" width="140" align="center">
+          <template #default="{ row }">
+            <span class="order-risk-label" :title="row.riskReasons || ''">{{ formatRiskLevel(row.riskLevel) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="订单菜品" min-width="180" align="center" header-align="center">

@@ -14,10 +14,10 @@ export interface OrderListItem {
   estimatedDeliveryTime?: string
   deliveryTime?: string
   orderDishes?: string
-  riskScore?: number
-  riskLevel?: string
-  riskReasons?: string
-  modelVersion?: string
+  riskScore?: number | null
+  riskLevel?: string | null
+  riskReasons?: string | null
+  modelVersion?: string | null
 }
 
 export interface OrderConditionQuery {
@@ -51,10 +51,10 @@ export interface OrderDetail {
     amount?: number
   }>
   amount?: number
-  riskScore?: number
-  riskLevel?: string
-  riskReasons?: string
-  modelVersion?: string
+  riskScore?: number | null
+  riskLevel?: string | null
+  riskReasons?: string | null
+  modelVersion?: string | null
   decisionStatus?: string
 }
 

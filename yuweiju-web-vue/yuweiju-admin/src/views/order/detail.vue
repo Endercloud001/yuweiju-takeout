@@ -1,5 +1,6 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { formatRiskLevel } from '../../utils/order-risk'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getOrderDetails, submitOrderRiskFeedback } from '../../api/modules/order'
@@ -182,7 +183,7 @@ watch(orderId, fetchDetail, { immediate: true })
           </div>
           <div class="kv-item">
             <span class="k">风险等级</span>
-            <span class="v">{{ detail.riskLevel || '--' }}</span>
+            <span class="v">{{ formatRiskLevel(detail.riskLevel) }}</span>
           </div>
           <div class="kv-item">
             <span class="k">模型版本</span>
