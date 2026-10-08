@@ -14,4 +14,34 @@
         select coalesce(sum(amount), 0) from orders
         where status = #{status} and <include refid="inclusiveOrderPeriod"/>
     </select>
+    <select id="selectAdminConditionPage" resultType="com.codeying.entity.Orders">
+        SELECT o.* FROM orders o
+        <where>
+            <if test="query.number != null and query.number.trim() != ''">
+                <bind name="number" value="query.number.trim()"/>
+                AND o.number LIKE CONCAT('%', #{number}, '%')
+            </if>
+            <if test="query.phone != null and query.phone.trim() != ''">
+                <bind name="phone" value="query.phone.trim()"/>
+                AND o.phone LIKE CONCAT('%', #{phone}, '%')
+            </if>
+            <if test="query.status != null">AND o.status = #{query.status}</if>
+            <if test="begin != null">AND o.order_time &gt;= #{begin}</if>
+            <if test="end != null">AND o.order_time &lt;= #{end}</if>
+            <!-- Separate predicates preserve existing matching across latest-time ties. -->
+            <if test="riskLevel != null">
+                AND EXISTS (SELECT 1 FROM order_risk_result rr
+                    WHERE rr.order_id = o.id AND rr.evaluated_at =
+                    (SELECT MAX(r2.evaluated_at) FROM order_risk_result r2 WHERE r2.order_id = o.id)
+                    AND rr.risk_level = #{riskLevel})
+            </if>
+            <if test="query.minRiskScore != null">
+                AND EXISTS (SELECT 1 FROM order_risk_result rr
+                    WHERE rr.order_id = o.id AND rr.evaluated_at =
+                    (SELECT MAX(r2.evaluated_at) FROM order_risk_result r2 WHERE r2.order_id = o.id)
+                    AND rr.risk_score &gt;= #{query.minRiskScore})
+            </if>
+        </where>
+        ORDER BY o.order_time DESC, o.id DESC
+    </select>
 </mapper>

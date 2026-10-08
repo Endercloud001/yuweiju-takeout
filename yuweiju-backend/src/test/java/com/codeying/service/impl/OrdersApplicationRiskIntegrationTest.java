@@ -22,7 +22,7 @@ import com.codeying.utils.BaiduMapUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
+import com.codeying.mapper.OrdersMapper;
 import org.mockito.Mockito;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
@@ -49,6 +49,7 @@ class OrdersApplicationRiskIntegrationTest {
     private final AnalysisObservationService analysisObservationService = Mockito.mock(AnalysisObservationService.class);
     private final OrderRiskService orderRiskService = Mockito.mock(OrderRiskService.class);
 
+    private final OrdersMapper ordersMapper = Mockito.mock(OrdersMapper.class);
     private OrdersApplicationServiceImpl service;
 
     @BeforeEach
@@ -66,7 +67,7 @@ class OrdersApplicationRiskIntegrationTest {
                 baiduMapUtil,
                 stringRedisTemplate,
                 analysisObservationService,
-                orderRiskService
+                orderRiskService, ordersMapper
         );
     }
 
@@ -82,7 +83,7 @@ class OrdersApplicationRiskIntegrationTest {
         Page<Orders> page = new Page<>(1, 10);
         page.setRecords(List.of(row));
         page.setTotal(1);
-        Mockito.when(ordersService.page(any(Page.class), any(QueryWrapper.class))).thenReturn(page);
+        Mockito.when(ordersMapper.selectAdminConditionPage(any(), any(), any(), any(), any())).thenReturn(page);
         Mockito.when(orderDetailService.list(any(QueryWrapper.class))).thenReturn(List.of());
 
         OrderRiskResult riskResult = new OrderRiskResult();
@@ -110,11 +111,72 @@ class OrdersApplicationRiskIntegrationTest {
         Assertions.assertEquals("order-risk-20260426203624", vo.getModelVersion());
         Assertions.assertEquals("suspicious_remark", vo.getRiskReasons());
 
-        ArgumentCaptor<QueryWrapper<Orders>> wrapperCaptor = ArgumentCaptor.forClass(QueryWrapper.class);
-        Mockito.verify(ordersService).page(any(Page.class), wrapperCaptor.capture());
-        String segment = wrapperCaptor.getValue().getCustomSqlSegment();
-        Assertions.assertTrue(segment.contains("order_risk_result"));
-        Assertions.assertTrue(segment.contains("risk_level"));
-        Assertions.assertTrue(segment.contains("risk_score"));
+        Mockito.verify(ordersMapper).selectAdminConditionPage(any(), Mockito.eq(query),
+                Mockito.isNull(), Mockito.isNull(), Mockito.eq("HIGH"));
+    }
+
+    private Orders row() {
+        Orders row = new Orders();
+        row.setId(5001L);
+        row.setNumber("ORD-5001");
+        row.setAmount(new BigDecimal("66.60"));
+        Mockito.when(ordersService.getById(5001L)).thenReturn(row);
+        Mockito.when(orderDetailService.list(any(QueryWrapper.class))).thenReturn(List.of());
+        return row;
+    }
+
+    private void unavailable(OrderVO vo) {
+        Assertions.assertEquals("UNAVAILABLE", vo.getRiskLevel());
+        Assertions.assertNull(vo.getRiskScore());
+        Assertions.assertNull(vo.getModelVersion());
+        Assertions.assertNotNull(vo.getRiskReasons());
+        Assertions.assertEquals(new BigDecimal("66.60"), vo.getAmount());
+    }
+
+    @Test
+    void missingRiskAndLookupFailureKeepDetailReadable() {
+        row();
+        Mockito.when(orderRiskService.findLatestByOrderIds(any())).thenReturn(Map.of());
+        unavailable(service.adminOrderDetail(5001L));
+        Mockito.when(orderRiskService.findLatestByOrderIds(any())).thenThrow(new IllegalStateException("optional"));
+        unavailable(service.adminOrderDetail(5001L));
+    }
+
+    @Test
+    void assemblyFailureClearsOptionalFields() {
+        row();
+        OrderRiskResult risk = new OrderRiskResult();
+        risk.setRiskScore(80);
+        risk.setRiskLevel("HIGH");
+        Mockito.when(orderRiskService.findLatestByOrderIds(any())).thenReturn(Map.of(5001L, risk));
+        Mockito.when(orderRiskService.summarizeReason(any())).thenThrow(new IllegalStateException("assembly"));
+        unavailable(service.adminOrderDetail(5001L));
+    }
+
+    @Test
+    void optionalPageFailureAndEmptyPage() {
+        Orders row = row();
+        Page<Orders> page = new Page<>(1, 10);
+        page.setRecords(List.of(row)); page.setTotal(1);
+        Mockito.when(ordersMapper.selectAdminConditionPage(any(), any(), any(), any(), any())).thenReturn(page);
+        Mockito.when(orderRiskService.findLatestByOrderIds(any())).thenThrow(new IllegalStateException("optional"));
+        OrderConditionQuery query = new OrderConditionQuery(); query.setPage(1); query.setPageSize(10);
+        unavailable(service.adminConditionSearch(query).getRecords().get(0));
+        Mockito.clearInvocations(orderRiskService);
+        page.setRecords(List.of());
+        Assertions.assertTrue(service.adminConditionSearch(query).getRecords().isEmpty());
+        Mockito.verifyNoInteractions(orderRiskService);
+    }
+
+    @Test
+    void coreAndFilterFailuresPropagateWithoutRetry() {
+        RuntimeException failure = new IllegalStateException("core");
+        Mockito.when(ordersService.getById(5001L)).thenThrow(failure);
+        Assertions.assertSame(failure, Assertions.assertThrows(RuntimeException.class, () -> service.adminOrderDetail(5001L)));
+        OrderConditionQuery query = new OrderConditionQuery(); query.setPage(1); query.setPageSize(10); query.setRiskLevel("HIGH");
+        Mockito.when(ordersMapper.selectAdminConditionPage(any(), any(), any(), any(), any())).thenThrow(failure);
+        Assertions.assertSame(failure, Assertions.assertThrows(RuntimeException.class, () -> service.adminConditionSearch(query)));
+        Mockito.verify(ordersMapper, Mockito.times(1)).selectAdminConditionPage(any(), any(), any(), any(), any());
+        Mockito.verifyNoInteractions(orderRiskService);
     }
 }

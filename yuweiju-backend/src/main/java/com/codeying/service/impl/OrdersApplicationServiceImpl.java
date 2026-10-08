@@ -4,6 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.codeying.assembler.OrderAssembler;
+import com.codeying.mapper.OrdersMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.codeying.common.page.PageData;
 import com.codeying.constant.RedisKeys;
 import com.codeying.dto.admin.order.OrderConditionQuery;
@@ -60,6 +63,8 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class OrdersApplicationServiceImpl implements OrdersApplicationService {
 
+    private static final Logger log = LoggerFactory.getLogger(OrdersApplicationServiceImpl.class);
+    private final OrdersMapper ordersMapper;
     private final OrdersService ordersService;
     private final OrderDetailService orderDetailService;
     private final DishService dishService;
@@ -87,8 +92,10 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
             BaiduMapUtil baiduMapUtil,
             StringRedisTemplate stringRedisTemplate,
             AnalysisObservationService analysisObservationService,
-            OrderRiskService orderRiskService
+            OrderRiskService orderRiskService,
+            OrdersMapper ordersMapper
     ) {
+        this.ordersMapper = ordersMapper;
         this.ordersService = ordersService;
         this.orderDetailService = orderDetailService;
         this.dishService = dishService;
@@ -423,30 +430,11 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
         if (query == null || query.getPage() == null || query.getPageSize() == null || query.getPage() <= 0 || query.getPageSize() <= 0) {
             throw new OrderBusinessException("参数错误");
         }
-        QueryWrapper<Orders> wrapper = new QueryWrapper<>();
-        if (StringUtils.hasText(query.getNumber())) wrapper.like("number", query.getNumber().trim());
-        if (StringUtils.hasText(query.getPhone())) wrapper.like("phone", query.getPhone().trim());
-        if (query.getStatus() != null) wrapper.eq("status", query.getStatus());
-        if (StringUtils.hasText(query.getRiskLevel())) {
-            wrapper.apply(
-                    "exists (select 1 from order_risk_result rr where rr.order_id = id and rr.evaluated_at = "
-                            + "(select max(r2.evaluated_at) from order_risk_result r2 where r2.order_id = id) and rr.risk_level = {0})",
-                    query.getRiskLevel().trim().toUpperCase()
-            );
-        }
-        if (query.getMinRiskScore() != null) {
-            wrapper.apply(
-                    "exists (select 1 from order_risk_result rr where rr.order_id = id and rr.evaluated_at = "
-                            + "(select max(r2.evaluated_at) from order_risk_result r2 where r2.order_id = id) and rr.risk_score >= {0})",
-                    query.getMinRiskScore()
-            );
-        }
-        Date begin = query.beginDateTime();
-        Date end = query.endDateTime();
-        if (begin != null) wrapper.ge("order_time", begin);
-        if (end != null) wrapper.le("order_time", end);
-        wrapper.orderByDesc("order_time").orderByDesc("id");
-        IPage<Orders> result = ordersService.page(new Page<>(query.getPage(), query.getPageSize()), wrapper);
+        String riskLevel = StringUtils.hasText(query.getRiskLevel())
+                ? query.getRiskLevel().trim().toUpperCase(java.util.Locale.ROOT) : null;
+        IPage<Orders> result = ordersMapper.selectAdminConditionPage(
+                new Page<>(query.getPage(), query.getPageSize()), query,
+                query.beginDateTime(), query.endDateTime(), riskLevel);
         List<com.codeying.vo.admin.order.OrderVO> records = new ArrayList<>();
         for (Orders o : result.getRecords()) {
             records.add(buildAdminOrderVO(o));
@@ -472,7 +460,7 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
         Orders orders = ordersService.getById(id);
         if (orders == null) throw new OrderBusinessException("订单不存在");
         com.codeying.vo.admin.order.OrderVO vo = buildAdminOrderVO(orders);
-        fillRiskFields(vo, orderRiskService.findLatestByOrderIds(List.of(id)).get(id));
+        enrichRiskFields(List.of(vo));
         return vo;
     }
 
@@ -540,20 +528,39 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
             return;
         }
         List<Long> orderIds = records.stream().map(com.codeying.vo.admin.order.OrderVO::getId).toList();
-        Map<Long, OrderRiskResult> riskMap = orderRiskService.findLatestByOrderIds(orderIds);
+        Map<Long, OrderRiskResult> riskMap;
+        try {
+            riskMap = orderRiskService.findLatestByOrderIds(orderIds);
+        } catch (RuntimeException failure) {
+            log.warn("Optional order risk lookup unavailable for orderIds={}", orderIds, failure);
+            records.forEach(this::markRiskUnavailable);
+            return;
+        }
         for (com.codeying.vo.admin.order.OrderVO vo : records) {
-            fillRiskFields(vo, riskMap.get(vo.getId()));
+            try {
+                OrderRiskResult riskResult = riskMap.get(vo.getId());
+                if (riskResult == null) {
+                    markRiskUnavailable(vo);
+                    continue;
+                }
+                // Assemble optional reason before publishing any risk fields.
+                String reason = orderRiskService.summarizeReason(riskResult);
+                vo.setRiskScore(riskResult.getRiskScore());
+                vo.setRiskLevel(riskResult.getRiskLevel());
+                vo.setModelVersion(riskResult.getModelVersion());
+                vo.setRiskReasons(reason);
+            } catch (RuntimeException failure) {
+                log.warn("Optional order risk assembly unavailable for orderId={}", vo.getId(), failure);
+                markRiskUnavailable(vo);
+            }
         }
     }
 
-    private void fillRiskFields(com.codeying.vo.admin.order.OrderVO vo, OrderRiskResult riskResult) {
-        if (vo == null || riskResult == null) {
-            return;
-        }
-        vo.setRiskScore(riskResult.getRiskScore());
-        vo.setRiskLevel(riskResult.getRiskLevel());
-        vo.setModelVersion(riskResult.getModelVersion());
-        vo.setRiskReasons(orderRiskService.summarizeReason(riskResult));
+    private void markRiskUnavailable(com.codeying.vo.admin.order.OrderVO vo) {
+        vo.setRiskScore(null);
+        vo.setRiskLevel("UNAVAILABLE");
+        vo.setModelVersion(null);
+        vo.setRiskReasons("风险结果暂不可用，请稍后重试");
     }
 
     @Override

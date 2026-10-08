@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatRiskLevel } from '../../utils/order-risk'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -507,6 +508,11 @@ onMounted(fetch)
         <el-table-column label="预计送达时间" width="170" align="center" header-align="center">
           <template #default="{ row }">
             {{ formatDateTime(row.estimatedDeliveryTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="风险等级" width="140" align="center">
+          <template #default="{ row }">
+            <span :title="row.riskReasons || ''">{{ formatRiskLevel(row.riskLevel) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="实收金额" width="130" align="center" header-align="center">
