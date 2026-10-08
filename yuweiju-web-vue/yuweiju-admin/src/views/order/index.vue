@@ -483,6 +483,11 @@ onMounted(fetch)
             </div>
           </template>
         </el-table-column>
+        <el-table-column label="风险等级" width="140" align="center">
+          <template #default="{ row }">
+            <span class="order-risk-label" :title="row.riskReasons || ''">{{ formatRiskLevel(row.riskLevel) }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="订单菜品" min-width="180" align="center" header-align="center">
           <template #default="{ row }">
             <div class="ellipsis">
@@ -508,11 +513,6 @@ onMounted(fetch)
         <el-table-column label="预计送达时间" width="170" align="center" header-align="center">
           <template #default="{ row }">
             {{ formatDateTime(row.estimatedDeliveryTime) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="风险等级" width="140" align="center">
-          <template #default="{ row }">
-            <span :title="row.riskReasons || ''">{{ formatRiskLevel(row.riskLevel) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="实收金额" width="130" align="center" header-align="center">
