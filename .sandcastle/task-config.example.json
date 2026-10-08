@@ -1,0 +1,15 @@
+{
+  "branch": "codex/next-issue-authorized",
+  "startCommit": "REPLACE_WITH_LOCAL_COMMIT",
+  "promptFile": "/absolute/task/prompt.md",
+  "inputDirectory": "/absolute/task/input",
+  "image": "sandcastle:yuweiju-dev",
+  "checkCommands": [
+    "mvn -B -f yuweiju-backend/pom.xml package"
+  ],
+  "installCommands": [],
+  "authDirectory": "/home/endercloud/projects/yuweiju-afk-auth",
+  "totalMs": 1800000,
+  "maxIterations": 1,
+  "progressFile": ".sandcastle/task-progress.md"
+}

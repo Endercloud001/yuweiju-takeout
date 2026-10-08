@@ -1,0 +1,10 @@
+{
+  "appid": "touristappid",
+  "projectname": "sandcastle-isolated-probe",
+  "compileType": "miniprogram",
+  "miniprogramRoot": "./",
+  "setting": {
+    "es6": true,
+    "minifyWXML": true
+  }
+}

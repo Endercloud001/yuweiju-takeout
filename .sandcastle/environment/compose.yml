@@ -1,0 +1,58 @@
+name: yuweiju-sandcastle-env
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+      MYSQL_DATABASE: sandcastle_fixture
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/10-schema.sql:ro
+      - ./fixture.sql:/docker-entrypoint-initdb.d/20-fixture.sql:ro
+    networks: [isolated]
+    healthcheck:
+      test: [CMD-SHELL, 'mysql -h 127.0.0.1 -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=\"sandcastle_fixture\"" | grep -qx 24 && mysql -h 127.0.0.1 sandcastle_fixture -N -e "SELECT COUNT(*) FROM employee WHERE id=900001" | grep -qx 1']
+      interval: 5s
+      timeout: 5s
+      retries: 60
+  redis:
+    image: redis:7.4
+    command: [redis-server, --save, '', --appendonly, 'no']
+    networks: [isolated]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  backend:
+    profiles: [dev]
+    image: sandcastle:yuweiju-dev
+    user: '1000:1000'
+    entrypoint: [java, -jar, /app.jar, --spring.config.location=file:/environment/application-afk.yml, '--spring.profiles.active=dev,afk']
+    volumes:
+      - ${SANDCASTLE_SOURCE:-/home/endercloud/projects/yuweiju-sandcastle-env-evidence/dev-snapshot}/yuweiju-backend/target/proj-boot-1.0-SNAPSHOT.jar:/app.jar:ro
+      - ./:/environment:ro
+      - ${SANDCASTLE_RUNTIME:-/home/endercloud/projects/yuweiju-sandcastle-env-evidence/dev-runtime}:/runtime
+    networks: [isolated]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  gateway:
+    profiles: [dev]
+    image: sandcastle:yuweiju-dev
+    user: '1000:1000'
+    entrypoint: [python3, /environment/host-gateway.py]
+    volumes: ['./:/environment:ro']
+    ports: ['127.0.0.1:18080:18080']
+    networks: [isolated, host-access]
+    depends_on: [backend]
+
+networks:
+  host-access: {}
+  isolated:
+    internal: true
+volumes:
+  mysql-data:

@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resultSummary } from './result-summary.mts';
+const evidence = '/home/endercloud/projects/yuweiju-afk-evidence';
+const committed = JSON.parse(readFileSync(`${evidence}/codex-afk-smoke-complete-1791307948811-1791307961555-result.json`, 'utf8'));
+const missing = JSON.parse(readFileSync(`${evidence}/codex-afk-issue-4-1791345439288-result.json`, 'utf8'));
+assert.ok(committed.result.commits.length > 0);
+assert.equal(resultSummary(committed.result, committed.resourceFile).status, 'agent-reported-complete-awaiting-independent-review');
+const actual = resultSummary(missing.result, missing.resourceFile);
+assert.equal(actual.status, 'incomplete-missing-task-commit');
+assert.equal(actual.agentReportedComplete, true);
+assert.equal(actual.hasTaskCommit, false);
+assert.equal(actual.independentVerification, 'not-performed');
+assert.equal(actual.humanAcceptance, 'not-performed');
+assert.match(actual.nextStep, /no-automatic-rerun/);
+assert.equal(resultSummary({ ...committed.result, completionSignal: undefined }, committed.resourceFile).status, 'incomplete');
+console.log('PASS: actual committed smoke, actual missing-commit AFK result, and absent completion signal');
