@@ -14,6 +14,18 @@ import java.util.Date;
  * @author Endercloud
  */
 public interface OrdersMapper extends BaseMapper<Orders> {
+    /** Inclusive actual aggregation, SQL failures propagate to the use case. */
+    com.codeying.vo.admin.report.OrderBusinessAggregate aggregateBusinessByOrderTimeRange(
+            @Param("begin") Date begin, @Param("end") Date end, @Param("completed") int completed);
+
+    /** All-history overview, without a date filter. */
+    @Select("select count(*) from orders")
+    Long countAllOrders();
+
+    /** All-history count for the requested business status. */
+    @Select("select count(*) from orders where status = #{status}")
+    Long countByStatus(@Param("status") int status);
+
 
     /**
      * 统计指定时间范围内的订单数量。
@@ -44,6 +56,5 @@ public interface OrdersMapper extends BaseMapper<Orders> {
      * @param end    结束时间
      * @return 营业额（单位：元）
      */
-    @Select("select ifnull(sum(amount),0) from orders where status = #{status} and order_time >= #{begin} and order_time <= #{end}")
     BigDecimal sumAmountByStatusAndOrderTimeRange(@Param("status") Integer status, @Param("begin") Date begin, @Param("end") Date end);
 }

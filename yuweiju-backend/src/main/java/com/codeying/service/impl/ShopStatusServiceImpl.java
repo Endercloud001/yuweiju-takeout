@@ -27,8 +27,8 @@ public class ShopStatusServiceImpl implements ShopStatusService {
             String value = stringRedisTemplate.opsForValue().get(RedisKeys.shopStatusKey());
             if (!StringUtils.hasText(value)) return 1;
             return "0".equals(value) ? 0 : 1;
-        } catch (Exception ignored) {
-            return 1;
+        } catch (RuntimeException e) {
+            throw new com.codeying.exception.BusinessException("店铺状态读取失败，请稍后再试", e);
         }
     }
 
@@ -36,7 +36,8 @@ public class ShopStatusServiceImpl implements ShopStatusService {
     public void setStatus(int status) {
         try {
             stringRedisTemplate.opsForValue().set(RedisKeys.shopStatusKey(), status == 0 ? "0" : "1");
-        } catch (Exception ignored) {
+        } catch (RuntimeException e) {
+            throw new com.codeying.exception.BusinessException("店铺状态更新失败，请稍后再试", e);
         }
     }
 }

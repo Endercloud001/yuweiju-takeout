@@ -1,14 +1,12 @@
 package com.codeying.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.codeying.entity.OrderDetail;
 import com.codeying.entity.Orders;
-import com.codeying.entity.User;
 import com.codeying.mapper.OrderDetailMapper;
 import com.codeying.mapper.OrdersMapper;
+import com.codeying.mapper.UserMapper;
+import com.codeying.exception.BusinessException;
+import com.codeying.vo.admin.report.ReportExportData;
 import com.codeying.service.ReportApplicationService;
-import com.codeying.service.OrdersService;
-import com.codeying.service.UserService;
 import com.codeying.vo.admin.report.OrdersStatisticsVO;
 import com.codeying.vo.admin.report.ReportBusinessData;
 import com.codeying.vo.admin.report.Top10VO;
@@ -32,34 +30,37 @@ import java.util.StringJoiner;
  */
 @Service
 public class ReportApplicationServiceImpl implements ReportApplicationService {
-    private final OrdersService ordersService;
-    private final UserService userService;
+    private final UserMapper userMapper;
     private final OrdersMapper ordersMapper;
     private final OrderDetailMapper orderDetailMapper;
 
-    public ReportApplicationServiceImpl(OrdersService ordersService, UserService userService, OrdersMapper ordersMapper, OrderDetailMapper orderDetailMapper) {
-        this.ordersService = ordersService;
-        this.userService = userService;
+    public ReportApplicationServiceImpl(UserMapper userMapper, OrdersMapper ordersMapper, OrderDetailMapper orderDetailMapper) {
+        this.userMapper = userMapper;
         this.ordersMapper = ordersMapper;
         this.orderDetailMapper = orderDetailMapper;
     }
 
     @Override
-    public ReportBusinessData computeBusinessData(Date begin, Date end) {
-        int newUsers = (int) userService.count(new QueryWrapper<User>().ge("create_time", begin).le("create_time", end));
-        long totalOrders = ordersService.count(new QueryWrapper<Orders>().ge("order_time", begin).le("order_time", end));
-        long validOrders = ordersService.count(new QueryWrapper<Orders>().ge("order_time", begin).le("order_time", end).eq("status", Orders.COMPLETED));
-
-        QueryWrapper<Orders> turnoverWrapper = new QueryWrapper<>();
-        turnoverWrapper.select("amount");
-        turnoverWrapper.eq("status", Orders.COMPLETED);
-        turnoverWrapper.ge("order_time", begin);
-        turnoverWrapper.le("order_time", end);
-        List<Orders> completed = ordersService.list(turnoverWrapper);
-        BigDecimal turnover = BigDecimal.ZERO;
-        for (Orders o : completed) {
-            if (o != null && o.getAmount() != null) turnover = turnover.add(o.getAmount());
+    public ReportExportData prepareExport() {
+        LocalDate today = LocalDate.now();
+        LocalDate begin = today.minusDays(30);
+        LocalDate end = today.minusDays(1);
+        ReportBusinessData summary = computeBusinessData(dayBegin(begin), dayEnd(end));
+        java.util.ArrayList<ReportExportData.DailyData> days = new java.util.ArrayList<>();
+        for (LocalDate date = begin; !date.isAfter(end); date = date.plusDays(1)) {
+            days.add(new ReportExportData.DailyData(date, computeBusinessData(dayBegin(date), dayEnd(date))));
         }
+        return new ReportExportData(begin, end, summary, List.copyOf(days));
+    }
+
+    @Override
+    public ReportBusinessData computeBusinessData(Date begin, Date end) {
+        if (begin == null || end == null || begin.after(end)) throw new BusinessException("参数错误");
+        int newUsers = userMapper.countCreatedInRange(begin, end).intValue();
+        var actual = ordersMapper.aggregateBusinessByOrderTimeRange(begin, end, Orders.COMPLETED);
+        long totalOrders = actual.getTotalOrders();
+        long validOrders = actual.getValidOrders();
+        BigDecimal turnover = actual.getTurnover();
 
         double completionRate = totalOrders == 0 ? 0D : (double) validOrders / (double) totalOrders;
         BigDecimal unitPrice = validOrders == 0 ? BigDecimal.ZERO : turnover.divide(new BigDecimal(validOrders), 2, java.math.RoundingMode.HALF_UP);
@@ -75,14 +76,15 @@ public class ReportApplicationServiceImpl implements ReportApplicationService {
 
     @Override
     public TurnoverStatisticsVO buildTurnoverStatistics(LocalDate begin, LocalDate end) {
+        validateRange(begin, end);
         DecimalFormat df = new DecimalFormat("0.00");
         StringJoiner dateList = new StringJoiner(",");
         StringJoiner turnoverList = new StringJoiner(",");
         LocalDate cur = begin;
         while (!cur.isAfter(end)) {
             dateList.add(cur.toString());
-            Date dayBegin = Date.from(cur.atStartOfDay(ZoneId.systemDefault()).toInstant());
-            Date dayEnd = Date.from(cur.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().minusMillis(1));
+            Date dayBegin = dayBegin(cur);
+            Date dayEnd = dayEnd(cur);
             BigDecimal turnover = ordersMapper.sumAmountByStatusAndOrderTimeRange(Orders.COMPLETED, dayBegin, dayEnd);
             turnoverList.add(df.format(turnover == null ? BigDecimal.ZERO : turnover));
             cur = cur.plusDays(1);
@@ -95,16 +97,17 @@ public class ReportApplicationServiceImpl implements ReportApplicationService {
 
     @Override
     public UserStatisticsVO buildUserStatistics(LocalDate begin, LocalDate end) {
+        validateRange(begin, end);
         StringJoiner dateList = new StringJoiner(",");
         StringJoiner newUserList = new StringJoiner(",");
         StringJoiner totalUserList = new StringJoiner(",");
         LocalDate cur = begin;
         while (!cur.isAfter(end)) {
             dateList.add(cur.toString());
-            Date dayBegin = Date.from(cur.atStartOfDay(ZoneId.systemDefault()).toInstant());
-            Date dayEnd = Date.from(cur.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().minusMillis(1));
-            int newUsers = (int) userService.count(new QueryWrapper<User>().ge("create_time", dayBegin).le("create_time", dayEnd));
-            int totalUsers = (int) userService.count(new QueryWrapper<User>().le("create_time", dayEnd));
+            Date dayBegin = dayBegin(cur);
+            Date dayEnd = dayEnd(cur);
+            int newUsers = userMapper.countCreatedInRange(dayBegin, dayEnd).intValue();
+            int totalUsers = userMapper.countCreatedThrough(dayEnd).intValue();
             newUserList.add(String.valueOf(newUsers));
             totalUserList.add(String.valueOf(totalUsers));
             cur = cur.plusDays(1);
@@ -118,6 +121,7 @@ public class ReportApplicationServiceImpl implements ReportApplicationService {
 
     @Override
     public OrdersStatisticsVO buildOrdersStatistics(LocalDate begin, LocalDate end) {
+        validateRange(begin, end);
         StringJoiner dateList = new StringJoiner(",");
         StringJoiner orderCountList = new StringJoiner(",");
         StringJoiner validOrderCountList = new StringJoiner(",");
@@ -126,8 +130,8 @@ public class ReportApplicationServiceImpl implements ReportApplicationService {
         LocalDate cur = begin;
         while (!cur.isAfter(end)) {
             dateList.add(cur.toString());
-            Date dayBegin = Date.from(cur.atStartOfDay(ZoneId.systemDefault()).toInstant());
-            Date dayEnd = Date.from(cur.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().minusMillis(1));
+            Date dayBegin = dayBegin(cur);
+            Date dayEnd = dayEnd(cur);
             int dayTotal = ordersMapper.countByOrderTimeRange(dayBegin, dayEnd).intValue();
             int dayValid = ordersMapper.countByStatusAndOrderTimeRange(Orders.COMPLETED, dayBegin, dayEnd).intValue();
             totalOrderCount += dayTotal;
@@ -149,8 +153,9 @@ public class ReportApplicationServiceImpl implements ReportApplicationService {
 
     @Override
     public Top10VO buildTop10(LocalDate begin, LocalDate end) {
-        Date beginTime = Date.from(begin.atStartOfDay(ZoneId.systemDefault()).toInstant());
-        Date endTime = Date.from(end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().minusMillis(1));
+        validateRange(begin, end);
+        Date beginTime = dayBegin(begin);
+        Date endTime = dayEnd(end);
         List<GoodsSales> sales = orderDetailMapper.top10(beginTime, endTime, Orders.COMPLETED);
         StringJoiner nameList = new StringJoiner(",");
         StringJoiner numberList = new StringJoiner(",");
@@ -165,5 +170,18 @@ public class ReportApplicationServiceImpl implements ReportApplicationService {
         vo.setNameList(nameList.toString());
         vo.setNumberList(numberList.toString());
         return vo;
+    }
+    private static void validateRange(LocalDate begin, LocalDate end) {
+        if (begin == null || end == null || begin.isAfter(end) || end.equals(LocalDate.MAX)) {
+            throw new BusinessException("参数错误");
+        }
+    }
+
+    private static Date dayBegin(LocalDate date) {
+        return Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
+    }
+
+    private static Date dayEnd(LocalDate date) {
+        return Date.from(date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().minusMillis(1));
     }
 }

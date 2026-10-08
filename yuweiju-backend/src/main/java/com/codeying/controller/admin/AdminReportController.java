@@ -23,8 +23,6 @@ import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.Date;
 
 /**
  * 管理端数据报表接口（导出报表、营业额/用户/订单统计、销量 TOP10）。
@@ -35,6 +33,7 @@ import java.util.Date;
 @RequestMapping("/admin/report")
 public class AdminReportController {
 
+    private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(getClass());
     private final ReportApplicationService reportApplicationService;
 
     public AdminReportController(ReportApplicationService reportApplicationService) {
@@ -47,10 +46,11 @@ public class AdminReportController {
      * @param response HTTP 响应
      */
     @GetMapping("/export")
-    public void export(HttpServletResponse response) {
+    public void export(HttpServletResponse response) throws java.io.IOException {
         try {
-            LocalDate begin = LocalDate.now().minusDays(30);
-            LocalDate end = LocalDate.now().minusDays(1);
+            var export = reportApplicationService.prepareExport();
+            LocalDate begin = export.begin();
+            LocalDate end = export.end();
 
             try (InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream("template/运营数据报表模板.xlsx")) {
                 if (inputStream == null) throw new IllegalStateException("报表模板不存在");
@@ -58,9 +58,7 @@ public class AdminReportController {
                     XSSFSheet sheet = excel.getSheetAt(0);
                     if (sheet == null) throw new IllegalStateException("报表模板缺少 Sheet");
 
-                    Date beginTime = Date.from(begin.atStartOfDay(ZoneId.systemDefault()).toInstant());
-                    Date endTime = Date.from(end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().minusMillis(1));
-                    ReportBusinessData data30Days = reportApplicationService.computeBusinessData(beginTime, endTime);
+                    ReportBusinessData data30Days = export.summary();
 
                     getCell(sheet, 1, 1).setCellValue(begin + " 至 " + end);
 
@@ -71,11 +69,10 @@ public class AdminReportController {
                     getCell(sheet, 4, 2).setCellValue(data30Days.getValidOrderCount());
                     getCell(sheet, 4, 4).setCellValue(data30Days.getUnitPrice().doubleValue());
 
-                    for (int i = 0; i < 30; i++) {
-                        LocalDate date = begin.plusDays(i);
-                        Date dayBegin = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
-                        Date dayEnd = Date.from(date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().minusMillis(1));
-                        ReportBusinessData daily = reportApplicationService.computeBusinessData(dayBegin, dayEnd);
+                    for (int i = 0; i < export.days().size(); i++) {
+                        var day = export.days().get(i);
+                        LocalDate date = day.date();
+                        ReportBusinessData daily = day.data();
 
                         int r = 7 + i;
                         getCell(sheet, r, 1).setCellValue(date.toString());
@@ -97,16 +94,17 @@ public class AdminReportController {
                     }
                 }
             }
-        } catch (Throwable e) {
-            try {
-                response.reset();
-                response.setStatus(500);
-                response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-                response.setContentType("text/plain;charset=UTF-8");
-                response.getWriter().write(e.getClass().getName() + ": " + e.getMessage());
-                response.getWriter().flush();
-            } catch (Exception ignored) {
+        } catch (Exception e) {
+            logger.error("报表导出失败", e);
+            if (response.isCommitted()) {
+                throw new com.codeying.exception.BusinessException("报表导出失败，请稍后再试", e);
             }
+            response.reset();
+            response.setStatus(500);
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+            response.setContentType("text/plain;charset=UTF-8");
+            response.getWriter().write("报表导出失败，请稍后再试");
+            response.getWriter().flush();
         }
     }
 
