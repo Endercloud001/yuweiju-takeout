@@ -1,0 +1,1 @@
+Page({data:{message:"Sandcastle isolated compile revision 2"}})

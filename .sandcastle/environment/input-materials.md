@@ -1,0 +1,1 @@
+当前 Issue 正文/评论和适用规范部署到 `/home/endercloud/projects/yuweiju-sandcastle-env-input`。按任务选取所需 issue-N.md、规范与 API 材料；本轮未复制个人配置、凭据或原运行资源。历史引用 49 项，存在 7 项；缺失明确为已清理，不恢复旧日志/截图、不重跑原库写入补证。详细清单在 input/material-status.json。原库 harness 仅留路径，不自动挂载/执行。

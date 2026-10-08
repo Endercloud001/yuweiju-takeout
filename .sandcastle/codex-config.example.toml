@@ -1,0 +1,7 @@
+forced_login_method = "chatgpt"
+cli_auth_credentials_store = "file"
+model = "gpt-6.1-sol"
+model_reasoning_effort = "medium"
+# Standard uses the default tier (service_tier omitted).
+[features]
+fast_mode = false

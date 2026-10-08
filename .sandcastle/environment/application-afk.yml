@@ -1,0 +1,131 @@
+# Standalone config: spring.config.location replaces all personal profiles and .env imports.
+server:
+  port: 8080
+spring:
+  main:
+    allow-circular-references: true
+  datasource:
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://mysql:3306/sandcastle_fixture?serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      username: root
+      password: ''
+  data:
+    redis:
+      host: redis
+      port: 6379
+      database: 0
+  ai:
+    openai:
+      base-url: http://127.0.0.1:18081
+      api-key: sandbox-local-placeholder
+      chat:
+        completions-path: /v1/chat/completions
+        options:
+          model: local-fixture
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+sky:
+  jwt:
+    admin-secret-key: sandbox-only-admin-key-32-characters
+    admin-ttl: 72000000
+    admin-token-name: token
+    user-secret-key: sandbox-only-user-key-32-characters
+    user-ttl: 72000000
+    user-token-name: authentication
+  wechat:
+    appid: sandbox-placeholder
+    secret: sandbox-placeholder
+    mock-login: false
+  alioss:
+    endpoint: http://127.0.0.1:18082
+    access-key-id: sandbox-placeholder
+    access-key-secret: sandbox-placeholder
+    bucket-name: sandbox-only
+    public-base-url: http://127.0.0.1:18082/sandbox-only
+  shop:
+    address: Isolation street
+  baidu-map:
+    ak: sandbox-placeholder
+  qweather:
+    fail-fast: false
+analysis:
+  feature-version: v1
+  model-version-prefix: analysis
+  cluster-count: 3
+  prediction-window-days: 7
+  training-lookback-days: 90
+  backfill-days: 90
+  decay-lambda: 0.08
+  task:
+    enabled: false
+    snapshot-cron: "-"
+    prediction-cron: "-"
+    training-cron: "-"
+  cold-start:
+    top-n: 5
+    bayesian-smoothing-m: 10
+    price-band:
+      low-max: 28
+      mid-max: 58
+  redis:
+    heat-prediction-ttl-hours: 48
+    cluster-user-ttl-hours: 168
+    cluster-topn-ttl-hours: 168
+    fallback-ttl-hours: 24
+  validation:
+    rmse-ratio-threshold: 0.30
+    mae-ratio-threshold: 0.20
+    silhouette-min: 0.30
+    ctr-min: 0.15
+    cvr-min: 0.30
+  xgboost:
+    enabled: true
+    rounds: 120
+    eta: 0.08
+    max-depth: 5
+    subsample: 0.85
+    colsample-bytree: 0.85
+    min-child-weight: 3.0
+    eval-holdout-days: 7
+    long-tail-sales-threshold: 3
+    zero-label-keep-rate: 0.35
+    active-sample-weight: 1.35
+    promo-sample-weight: 1.50
+    severe-weather-sample-weight: 1.20
+    enable-log-label: true
+    model-dir: /runtime/analysis-models
+  observation:
+    rolling-7d-days: 7
+    rolling-30d-days: 30
+  external:
+    weather-location: Isolation street
+    weather-history-days: 10
+    weather-cache-hours: 12
+    promo-periods:
+      - id: p001
+        start: 2026-04-01
+        end: 2026-04-03
+        name: 建店周年庆
+
+order-risk:
+  feature-version: v1
+  model-dir: /runtime/order-risk-models
+  thresholds:
+    low: 12
+    medium: 16
+  task:
+    scoring-enabled: false
+    training-cron: "-"
+    backfill-days: 120
+    backfill-max-orders: 5000
+  training:
+    min-anomaly-labels: 50
+    reject-if-metric-regression: true
+    reject-thresholds:
+      pr-auc-delta: 0.02
+      recall-delta: 0.05
+  scoring:
+    lr-weight: 0.4
+    rf-weight: 0.6
