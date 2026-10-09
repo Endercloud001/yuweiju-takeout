@@ -1,6 +1,6 @@
 # Issue #7 identity / employee audit and candidate validation
 
-2026-10-09 retry1, issue #7 only. Initial worktree was clean. Native #2 is closed; historical “dependency 6” is specification numbering, not native #6. No original database/cache writes, password resets, push, publication, policy changes, schema changes, external dependency changes or extra coding agents. Current standards and ADR 0001 applied; ADR 0002 has no affected image behavior. Plan: [issue7-plan.md](issue7-plan.md).
+2026-10-09 retry1, issue #7 only. The current mounted worktree was clean and already contained candidate implementation commits ce76fd4 and fff5217. The supplied zero-task-commit description describes earlier pre-coding failure, not this mounted Git state; the existing work is preserved. Native #2 is closed; historical “dependency 6” is specification numbering, not native #6. No original database/cache writes, password resets, push, publication, policy changes, schema changes, external dependency changes or extra coding agents. Current standards and ADR 0001 applied; ADR 0002 has no affected image behavior. Plan: [issue7-plan.md](issue7-plan.md).
 
 ## Responsibility chain and compatibility
 
@@ -13,7 +13,7 @@ No paths/schema/JSON fields/types/business codes changed. ApiResult is success c
 
 ## Existing permission and state boundaries
 
-File evidence in backend `src/main/java/com/codeying/`:
+File evidence in backend `src/main/java/com/codeying/` (Service implementation in `service/impl/`, Mapper in `mapper/`, interceptor in `interceptor/`):
 
 - EmployeeApplicationServiceImpl:45 login only matches status=1 through EmployeeMapper:12; wrong/disabled accounts share existing error. `:70` editPassword rejects absent actor, different empId, missing employee and wrong old password. `:88` setStatus requires nonnull actor, status 0/1 and existing target; it permits any authenticated employee to change any employee including itself. Create/update similarly require nonnull actor; there is no role field/policy in Employee.
 - `JwtAuthInterceptor:49` permits OPTIONS; `:57` selects separate admin/user header and signing key; `:74` parses signature/expiry, `:82` checks Redis blacklist, `:88` requires uid, `:94` publishes identity. It does not check a persisted employee's current status or a scope claim. Tests retain those facts; do not infer a production role policy. Separate keys enforce current user/admin separation.
@@ -38,7 +38,7 @@ Evidence paths below are backend `src/main/java/com/codeying/`. Both Controllers
 | `/admin/save` | unrestricted | AdminManagementController:89 | JWT required; updates still dereference legacy session user, so JWT alone may fail after a write; no repair or runtime writes attempted |
 | `/admin/delete` | unrestricted | AdminManagementController:106 | JWT required; no additional session/role authorization; legacy primary-key delete retained |
 
-`WebMvcConfiguration:32` applies JWT to /admin/** except /admin/employee/login; `:38` applies it to /user/** except /user/user/login, /user/shop/status, /user/category/list, /user/dish/list, /user/setmeal/list, /user/setmeal/dish/**. Portal paths are outside those patterns, and `JwtAuthInterceptor:55` also passes non-admin/user paths. No other servlet filter/security/interceptor registration found. OPTIONS is exempt even on protected routes.
+`config/WebMvcConfiguration.java:32` applies JWT to /admin/** except /admin/employee/login; `:38` applies it to /user/** except /user/user/login, /user/shop/status, /user/category/list, /user/dish/list, /user/setmeal/list, /user/setmeal/dish/**. Portal paths are outside those patterns, and `JwtAuthInterceptor:55` also passes non-admin/user paths. No other servlet filter/security/interceptor registration found. OPTIONS is exempt even on protected routes.
 
 `AdminPortalController:83` checks captcha before credential lookup; `:93` writes session. A successful legacy session cannot supply the token header required by old /admin routes. Static template evidence: `src/main/resources/templates/login.html:62` posts /login, `:77` requests /captcha; `register.html:70` posts /register; `layout.html:72` links /admin/list. CaptchaServlet is a component (`servlet/CaptchaServlet:23`) with session captcha write at :47, without explicit /captcha servlet mapping in source. Runtime servlet registration has an empty mapping set (`ISSUE7 CAPTCHA_SERVLET_MAPPINGS []`); it is not proof of a reachable /captcha endpoint. A later curl attempt occurred after normal probe shutdown and returned connection failure (HTTP 000), so it supplies no endpoint evidence. POM lacks a Thymeleaf template-engine dependency despite retained Thymeleaf templates; template rendering is not validated. Legacy entity maps `tb_admin` (`entity/Admin:19`); that table is absent from the provided isolated schema. Enabled handler registration does not prove the old portal is usable.
 
@@ -46,7 +46,7 @@ Authentication gaps: publicly registered legacy account creation, session/JWT mi
 
 ## Verification and evidence
 
-Logs/artifacts are under `.scratch/issue7/` (ignored, not committed). They use synthetic isolated credentials only and never print login bodies/tokens. Build/test outputs are not production authentication evidence.
+The following original run results were recorded in the mounted report, but its ignored logs/artifacts were absent in the current container. They are historical results, not current runtime proof. Current rerun artifacts are under `.scratch/issue7/` (ignored, not committed); the current results are recorded separately below. They use synthetic isolated credentials only and never print login bodies/tokens. Build/test outputs are not production authentication evidence.
 
 | Command and directory | Result |
 | --- | --- |
@@ -64,7 +64,7 @@ Real probe: candidate jar libraries extracted locally, real Spring App with stan
 
 The task-specific browser script fills synthetic credentials into the actual Vue username/password inputs and clicks 登录. This is separate evidence from API login. Screenshot is taken after route navigation, without printing credentials/tokens. The actual screenshot was inspected and shows the Vue workspace/dashboard; `.scratch/issue7/synthetic-page-login.png`. Browser fixture credential file is removed on normal completion. It does not satisfy the requested human/real maintainer password demonstration.
 
-Preserved failed runs: first Maven run failed one assertion because a test initially confused HTTP 401 with business code 0; second failed standalone legacy request injection. Both were test fixture mistakes, fixed without changing product auth semantics. The first real probe failed a narrow wall-clock registration-time assumption after its login/isolation assertions; the rerun references persisted DATETIME and compares named counts with direct bound SQL. The original probe log is preserved; product time semantics are unchanged. They are not supervisor iterations. No Git guard rejection occurred. All named build/client commands exited 0 in their own invocation; no frontend source or lockfile modifications resulted.
+Preserved failed runs: first Maven run failed one assertion because a test initially confused HTTP 401 with business code 0; second failed standalone legacy request injection. Both were test fixture mistakes, fixed without changing product auth semantics. The first real probe failed a narrow wall-clock registration-time assumption after its login/isolation assertions; the rerun references persisted DATETIME and compares named counts with direct bound SQL. The previous report recorded preservation of the original probe log, but that ignored artifact is absent from the current mount; product time semantics are unchanged. They are not supervisor iterations. No Git guard rejection occurred. All named build/client commands exited 0 in their own invocation; no frontend source or lockfile modifications resulted.
 
 ## Original limitations and pending human acceptance
 
@@ -76,3 +76,11 @@ Historical `docs/verification-evidence/2026-10-05/miniapp-real-login.json`, `min
 4. Decide separately any changed employee role/status enforcement or JWT state policy. Current exclusions retain plaintext/password/token strategies and dev mock fallback.
 
 Candidate delivery can be complete as a local reviewed implementation with successful automated checks; issue #7 is not fully accepted while real manual PAGE / real Wechat criteria remain unverified. No host publication or production-auth claim.
+
+## Current mounted retry review
+
+The plan was updated before further code edits. Review found and corrected one pagination compatibility regression: `AdminServiceImpl.pageLegacy` used the MyBatis Plus Page constructor, which normalizes nonpositive current pages, whereas the original controller used setters and exposed the requested value through `PagerFooterVO`. Setter construction is restored. The added ordinary footer behavior test covers default page/size and requested pages -1, 0, 1 and 3. This does not change public auth, schema, clients or password/token/dev fallback behavior. Legacy SQL remains unavailable because fixture tb_admin is absent.
+
+Current verification in progress; final results will be added before local commit. Existing commits and report history are preserved. No supervisor continuation or extra coding agent used.
+
+Host handoff: supervisor exhausted its authorized 30-minute total across 2 iterations, without COMPLETE. Pagination compatibility correction was preserved uncommitted. Host independently ran LegacyAdminBehaviorTest in a no-auth/no-model container: exit 0. This correction is committed for exact-candidate independent verification; full acceptance remains pending. Earlier ignored first-iteration logs did not survive framework worktree recreation; historical results are not substituted for new validation.

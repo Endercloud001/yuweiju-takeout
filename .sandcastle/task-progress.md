@@ -25,3 +25,11 @@
 - Scope/diff --check reviewed; preparing explicit task-only staging and normal local commit. No Git guard rejection; no supervisor continuation used.
 
 - Delivery state: local candidate only; all required automated commands and synthetic PAGE/isolated checks passed. Explicit 26-file task scope staged and cached diff --check passed. Normal task commit recorded in Git metadata; no push or publication. Human real PAGE/real Wechat acceptance and legacy usability remain pending; issue #7 is not fully accepted. Logs and first failures preserved under .scratch/issue7. Supervisor continuations: 0, extra coding agents: 0.
+
+- Current mounted retry verification: initial Git inspection found existing candidate commits ce76fd4 and fff5217 (clean worktree), contradicting the supplied zero-commit description. Preserve them. Ignored .scratch/issue7 artifacts are absent here, so prior report is historical evidence only; required commands and isolated probe will be rerun locally. Plan updated first; no Git guard rejection or supervisor iteration.
+
+- Review found a concrete legacy pagination compatibility regression: Page constructor normalizes nonpositive requested pages while original setters preserve them for PagerFooterVO. Restored setter construction in AdminServiceImpl and added a footer behavior test; no role/auth/schema change. Current build may have compiled pre-fix sources, so final Maven package must rerun after completion.
+
+- Current rerun: npm ci/lint/typecheck/test each exit 0 (Vitest 2/2); no lockfile/frontend edits. Initial Maven package exit 0 with 34 tests at 13:16:27 UTC, but compiled before pagination fix. Final post-fix package and npm build now running; no final result claimed yet. Logs use *-current filenames under .scratch/issue7.
+
+Host handoff: supervisor exhausted its authorized 30-minute total across 2 iterations, without COMPLETE. Pagination compatibility correction was preserved uncommitted. Host independently ran LegacyAdminBehaviorTest in a no-auth/no-model container: exit 0. This correction is committed for exact-candidate independent verification; full acceptance remains pending. Earlier ignored first-iteration logs did not survive framework worktree recreation; historical results are not substituted for new validation.

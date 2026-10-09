@@ -36,8 +36,10 @@ public class AdminServiceImpl extends ServiceImpl<AdminMapper, Admin> implements
 
     @Override
     public IPage<Admin> pageLegacy(Integer pageIndex, Integer size, String username, String name) {
-        return baseMapper.pageByUsernameAndName(new Page<>(pageIndex == null ? 1 : pageIndex,
-                size == null ? 15 : size), username, name);
+        // Page(current, size) 会规范化非正页码；旧页脚需保留调用者传入的页码。
+        Page<Admin> page = new Page<Admin>().setCurrent(pageIndex == null ? 1 : pageIndex)
+                .setSize(size == null ? 15 : size);
+        return baseMapper.pageByUsernameAndName(page, username, name);
     }
 
     @Override
