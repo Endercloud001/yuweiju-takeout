@@ -7,7 +7,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Analysis Observation Service service interface.
+ * Optional recommendation observations: Redis failures are logged as unavailable and
+ * stop that observation without failing the caller. No success receipt or retry is
+ * implied. Partial Redis writes are not covered by the caller's SQL transaction.
  *
  * @author Endercloud
  */

@@ -60,8 +60,10 @@ public class UserOrderController {
         if (body == null || body.getAddressBookId() == null) return ApiResult.badRequest("参数错误");
         try {
             return ApiResult.successData(ordersApplicationService.submit(userId, body));
-        } catch (Exception e) {
+        } catch (com.codeying.exception.OrderBusinessException e) {
             return ApiResult.badRequest(e.getMessage());
+        } catch (Exception e) {
+            return ApiResult.badRequest("下单失败，请稍后重试");
         }
     }
 
