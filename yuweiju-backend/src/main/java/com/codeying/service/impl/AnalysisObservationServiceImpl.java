@@ -63,162 +63,186 @@ public class AnalysisObservationServiceImpl implements AnalysisObservationServic
 
     @Override
     public void recordRecommendationExposure(Long userId, Long sessionId, Long messageId, AiAssistantSendReplyVO replyVO) {
-        if (userId == null || sessionId == null || messageId == null || replyVO == null || replyVO.getDishes() == null || replyVO.getDishes().isEmpty()) {
-            return;
-        }
-        ObservationPayload payload = readPayload(replyVO.getPayload());
-        String modelVersion = normalizeModelVersion(payload.modelVersion());
-        LocalDate observeDate = LocalDate.now(APP_ZONE);
-        List<Long> dishIds = replyVO.getDishes().stream()
-                .map(AiAssistantDishCardVO::getDishId)
-                .filter(id -> id != null && id > 0)
-                .distinct()
-                .toList();
-        if (dishIds.isEmpty()) {
-            return;
-        }
+        try {
+            if (userId == null || sessionId == null || messageId == null || replyVO == null || replyVO.getDishes() == null || replyVO.getDishes().isEmpty()) {
+                return;
+            }
+            ObservationPayload payload = readPayload(replyVO.getPayload());
+            String modelVersion = normalizeModelVersion(payload.modelVersion());
+            LocalDate observeDate = LocalDate.now(APP_ZONE);
+            List<Long> dishIds = replyVO.getDishes().stream()
+                    .map(AiAssistantDishCardVO::getDishId)
+                    .filter(id -> id != null && id > 0)
+                    .distinct()
+                    .toList();
+            if (dishIds.isEmpty()) {
+                return;
+            }
 
-        ObservationContext context = new ObservationContext(
-                observeDate.toString(),
-                sessionId,
-                messageId,
-                payload.strategy(),
-                modelVersion,
-                payload.fallback(),
-                dishIds,
-                new ArrayList<>(),
-                new ArrayList<>()
-        );
-        saveContext(userId, context);
-        addUserToMetricSet(RedisKeys.aiRecommendExposureUsersKey(observeDate.toString(), modelVersion), userId);
-        incrementMetricCounter(RedisKeys.aiRecommendExposureCountKey(observeDate.toString(), modelVersion));
-        log.info("[Analysis-Exposure] date={}, userId={}, sessionId={}, messageId={}, modelVersion={}, strategy={}, fallback={}, dishIds={}",
-                observeDate,
-                userId,
-                sessionId,
-                messageId,
-                modelVersion,
-                payload.strategy(),
-                payload.fallback(),
-                dishIds);
-        logOnlineObservation(observeDate, modelVersion);
+            ObservationContext context = new ObservationContext(
+                    observeDate.toString(),
+                    sessionId,
+                    messageId,
+                    payload.strategy(),
+                    modelVersion,
+                    payload.fallback(),
+                    dishIds,
+                    new ArrayList<>(),
+                    new ArrayList<>()
+            );
+            saveContext(userId, context);
+            addUserToMetricSet(RedisKeys.aiRecommendExposureUsersKey(observeDate.toString(), modelVersion), userId);
+            incrementMetricCounter(RedisKeys.aiRecommendExposureCountKey(observeDate.toString(), modelVersion));
+            log.info("[Analysis-Exposure] date={}, userId={}, sessionId={}, messageId={}, modelVersion={}, strategy={}, fallback={}, dishIds={}",
+                    observeDate,
+                    userId,
+                    sessionId,
+                    messageId,
+                    modelVersion,
+                    payload.strategy(),
+                    payload.fallback(),
+                    dishIds);
+            logOnlineObservation(observeDate, modelVersion);
+        } catch (RuntimeException ex) {
+            // Optional observation must never roll back the calling business use case.
+            log.warn("AI recommendation observation unavailable, operation={}, failure={}",
+                    "recordRecommendationExposure", ex.getClass().getSimpleName());
+        }
     }
 
     @Override
     public void recordRecommendationClick(Long userId, Long dishId) {
-        if (userId == null || dishId == null) {
-            return;
+        try {
+            if (userId == null || dishId == null) {
+                return;
+            }
+            ObservationContext context = readContext(userId);
+            if (context == null || context.dishIds() == null || !context.dishIds().contains(dishId)) {
+                return;
+            }
+            Set<Long> clickedDishIds = new LinkedHashSet<>(safeList(context.clickedDishIds()));
+            if (!clickedDishIds.add(dishId)) {
+                return;
+            }
+            ObservationContext updated = new ObservationContext(
+                    context.observeDate(),
+                    context.sessionId(),
+                    context.messageId(),
+                    context.strategy(),
+                    context.modelVersion(),
+                    context.fallback(),
+                    safeList(context.dishIds()),
+                    new ArrayList<>(clickedDishIds),
+                    safeList(context.convertedOrderIds())
+            );
+            saveContext(userId, updated);
+            addUserToMetricSet(RedisKeys.aiRecommendClickUsersKey(context.observeDate(), context.modelVersion()), userId);
+            incrementMetricCounter(RedisKeys.aiRecommendClickCountKey(context.observeDate(), context.modelVersion()));
+            log.info("[Analysis-CTR] date={}, userId={}, modelVersion={}, strategy={}, clickedDishId={}",
+                    context.observeDate(),
+                    userId,
+                    context.modelVersion(),
+                    context.strategy(),
+                    dishId);
+            logOnlineObservation(LocalDate.parse(context.observeDate()), context.modelVersion());
+        } catch (RuntimeException ex) {
+            // Optional observation must never roll back the calling business use case.
+            log.warn("AI recommendation observation unavailable, operation={}, failure={}",
+                    "recordRecommendationClick", ex.getClass().getSimpleName());
         }
-        ObservationContext context = readContext(userId);
-        if (context == null || context.dishIds() == null || !context.dishIds().contains(dishId)) {
-            return;
-        }
-        Set<Long> clickedDishIds = new LinkedHashSet<>(safeList(context.clickedDishIds()));
-        if (!clickedDishIds.add(dishId)) {
-            return;
-        }
-        ObservationContext updated = new ObservationContext(
-                context.observeDate(),
-                context.sessionId(),
-                context.messageId(),
-                context.strategy(),
-                context.modelVersion(),
-                context.fallback(),
-                safeList(context.dishIds()),
-                new ArrayList<>(clickedDishIds),
-                safeList(context.convertedOrderIds())
-        );
-        saveContext(userId, updated);
-        addUserToMetricSet(RedisKeys.aiRecommendClickUsersKey(context.observeDate(), context.modelVersion()), userId);
-        incrementMetricCounter(RedisKeys.aiRecommendClickCountKey(context.observeDate(), context.modelVersion()));
-        log.info("[Analysis-CTR] date={}, userId={}, modelVersion={}, strategy={}, clickedDishId={}",
-                context.observeDate(),
-                userId,
-                context.modelVersion(),
-                context.strategy(),
-                dishId);
-        logOnlineObservation(LocalDate.parse(context.observeDate()), context.modelVersion());
     }
 
     @Override
     public void recordRecommendationConversion(Long userId, Long orderId, List<Long> dishIds) {
-        if (userId == null || orderId == null || dishIds == null || dishIds.isEmpty()) {
-            return;
+        try {
+            if (userId == null || orderId == null || dishIds == null || dishIds.isEmpty()) {
+                return;
+            }
+            ObservationContext context = readContext(userId);
+            if (context == null || context.clickedDishIds() == null || context.clickedDishIds().isEmpty()) {
+                return;
+            }
+            Set<Long> clickedDishIds = new LinkedHashSet<>(safeList(context.clickedDishIds()));
+            boolean matched = dishIds.stream().anyMatch(clickedDishIds::contains);
+            if (!matched) {
+                return;
+            }
+            Set<Long> convertedOrderIds = new LinkedHashSet<>(safeList(context.convertedOrderIds()));
+            if (!convertedOrderIds.add(orderId)) {
+                return;
+            }
+            ObservationContext updated = new ObservationContext(
+                    context.observeDate(),
+                    context.sessionId(),
+                    context.messageId(),
+                    context.strategy(),
+                    context.modelVersion(),
+                    context.fallback(),
+                    safeList(context.dishIds()),
+                    safeList(context.clickedDishIds()),
+                    new ArrayList<>(convertedOrderIds)
+            );
+            saveContext(userId, updated);
+            addUserToMetricSet(RedisKeys.aiRecommendConversionUsersKey(context.observeDate(), context.modelVersion()), userId);
+            incrementMetricCounter(RedisKeys.aiRecommendConversionCountKey(context.observeDate(), context.modelVersion()));
+            log.info("[Analysis-CVR] date={}, userId={}, orderId={}, modelVersion={}, strategy={}, matchedDishIds={}",
+                    context.observeDate(),
+                    userId,
+                    orderId,
+                    context.modelVersion(),
+                    context.strategy(),
+                    dishIds.stream().filter(clickedDishIds::contains).distinct().toList());
+            logOnlineObservation(LocalDate.parse(context.observeDate()), context.modelVersion());
+        } catch (RuntimeException ex) {
+            // Optional observation must never roll back the calling business use case.
+            log.warn("AI recommendation observation unavailable, operation={}, failure={}",
+                    "recordRecommendationConversion", ex.getClass().getSimpleName());
         }
-        ObservationContext context = readContext(userId);
-        if (context == null || context.clickedDishIds() == null || context.clickedDishIds().isEmpty()) {
-            return;
-        }
-        Set<Long> clickedDishIds = new LinkedHashSet<>(safeList(context.clickedDishIds()));
-        boolean matched = dishIds.stream().anyMatch(clickedDishIds::contains);
-        if (!matched) {
-            return;
-        }
-        Set<Long> convertedOrderIds = new LinkedHashSet<>(safeList(context.convertedOrderIds()));
-        if (!convertedOrderIds.add(orderId)) {
-            return;
-        }
-        ObservationContext updated = new ObservationContext(
-                context.observeDate(),
-                context.sessionId(),
-                context.messageId(),
-                context.strategy(),
-                context.modelVersion(),
-                context.fallback(),
-                safeList(context.dishIds()),
-                safeList(context.clickedDishIds()),
-                new ArrayList<>(convertedOrderIds)
-        );
-        saveContext(userId, updated);
-        addUserToMetricSet(RedisKeys.aiRecommendConversionUsersKey(context.observeDate(), context.modelVersion()), userId);
-        incrementMetricCounter(RedisKeys.aiRecommendConversionCountKey(context.observeDate(), context.modelVersion()));
-        log.info("[Analysis-CVR] date={}, userId={}, orderId={}, modelVersion={}, strategy={}, matchedDishIds={}",
-                context.observeDate(),
-                userId,
-                orderId,
-                context.modelVersion(),
-                context.strategy(),
-                dishIds.stream().filter(clickedDishIds::contains).distinct().toList());
-        logOnlineObservation(LocalDate.parse(context.observeDate()), context.modelVersion());
     }
 
     @Override
     public void logOnlineObservation(LocalDate observeDate, String modelVersion) {
-        if (observeDate == null) {
-            return;
-        }
-        String normalizedModelVersion = normalizeModelVersion(modelVersion);
-        String date = observeDate.toString();
-        RollingObservation daily = loadRollingObservation(observeDate, 1, normalizedModelVersion);
+        try {
+            if (observeDate == null) {
+                return;
+            }
+            String normalizedModelVersion = normalizeModelVersion(modelVersion);
+            String date = observeDate.toString();
+            RollingObservation daily = loadRollingObservation(observeDate, 1, normalizedModelVersion);
 
-        log.info("[Analysis-Observation] date={}, modelVersion={}, exposedUsers={}, clickedUsers={}, convertedUsers={}, exposureCount={}, clickCount={}, conversionCount={}, ctrUv={}, cvrUv={}, ctrPv={}, cvrPv={}",
-                date,
-                normalizedModelVersion,
-                daily.exposedUsers(),
-                daily.clickedUsers(),
-                daily.convertedUsers(),
-                daily.exposureCount(),
-                daily.clickCount(),
-                daily.conversionCount(),
-                scale(daily.ctrUv()),
-                scale(daily.cvrUv()),
-                scale(daily.ctrPv()),
-                scale(daily.cvrPv()));
-        if (daily.exposedUsers() > 0 && daily.ctrUv() < analysisProperties.getValidation().getCtrMin()) {
-            log.warn("[Analysis-Observation] CTR below threshold, date={}, modelVersion={}, ctr={}, threshold={}",
+            log.info("[Analysis-Observation] date={}, modelVersion={}, exposedUsers={}, clickedUsers={}, convertedUsers={}, exposureCount={}, clickCount={}, conversionCount={}, ctrUv={}, cvrUv={}, ctrPv={}, cvrPv={}",
                     date,
                     normalizedModelVersion,
+                    daily.exposedUsers(),
+                    daily.clickedUsers(),
+                    daily.convertedUsers(),
+                    daily.exposureCount(),
+                    daily.clickCount(),
+                    daily.conversionCount(),
                     scale(daily.ctrUv()),
-                    analysisProperties.getValidation().getCtrMin());
-        }
-        if (daily.clickedUsers() > 0 && daily.cvrUv() < analysisProperties.getValidation().getCvrMin()) {
-            log.warn("[Analysis-Observation] CVR below threshold, date={}, modelVersion={}, cvr={}, threshold={}",
-                    date,
-                    normalizedModelVersion,
                     scale(daily.cvrUv()),
-                    analysisProperties.getValidation().getCvrMin());
+                    scale(daily.ctrPv()),
+                    scale(daily.cvrPv()));
+            if (daily.exposedUsers() > 0 && daily.ctrUv() < analysisProperties.getValidation().getCtrMin()) {
+                log.warn("[Analysis-Observation] CTR below threshold, date={}, modelVersion={}, ctr={}, threshold={}",
+                        date,
+                        normalizedModelVersion,
+                        scale(daily.ctrUv()),
+                        analysisProperties.getValidation().getCtrMin());
+            }
+            if (daily.clickedUsers() > 0 && daily.cvrUv() < analysisProperties.getValidation().getCvrMin()) {
+                log.warn("[Analysis-Observation] CVR below threshold, date={}, modelVersion={}, cvr={}, threshold={}",
+                        date,
+                        normalizedModelVersion,
+                        scale(daily.cvrUv()),
+                        analysisProperties.getValidation().getCvrMin());
+            }
+            logRollingObservation(observeDate, normalizedModelVersion);
+        } catch (RuntimeException ex) {
+            // Optional observation must never roll back the calling business use case.
+            log.warn("AI recommendation observation unavailable, operation={}, failure={}",
+                    "logOnlineObservation", ex.getClass().getSimpleName());
         }
-        logRollingObservation(observeDate, normalizedModelVersion);
     }
 
     @Override
@@ -256,7 +280,7 @@ public class AnalysisObservationServiceImpl implements AnalysisObservationServic
         try {
             return objectMapper.readValue(raw, ObservationContext.class);
         } catch (Exception ex) {
-            log.warn("读取 AI 推荐观察上下文失败，userId={}, message={}", userId, ex.getMessage());
+            log.warn("Recommendation context unavailable, userId={}, failure={}", userId, ex.getClass().getSimpleName());
             return null;
         }
     }
@@ -269,7 +293,7 @@ public class AnalysisObservationServiceImpl implements AnalysisObservationServic
                     CONTEXT_TTL
             );
         } catch (Exception ex) {
-            log.warn("写入 AI 推荐观察上下文失败，userId={}, message={}", userId, ex.getMessage());
+            throw new IllegalStateException("Recommendation context write failed", ex);
         }
     }
 
@@ -350,7 +374,9 @@ public class AnalysisObservationServiceImpl implements AnalysisObservationServic
 
     private void addUserToMetricSet(String key, Long userId) {
         stringRedisTemplate.opsForSet().add(key, String.valueOf(userId));
-        stringRedisTemplate.expire(key, metricTtl());
+        if (!Boolean.TRUE.equals(stringRedisTemplate.expire(key, metricTtl()))) {
+            throw new IllegalStateException("Recommendation metric expiry failed");
+        }
     }
 
     private Set<String> members(String key) {
@@ -360,7 +386,9 @@ public class AnalysisObservationServiceImpl implements AnalysisObservationServic
 
     private void incrementMetricCounter(String key) {
         stringRedisTemplate.opsForValue().increment(key);
-        stringRedisTemplate.expire(key, metricTtl());
+        if (!Boolean.TRUE.equals(stringRedisTemplate.expire(key, metricTtl()))) {
+            throw new IllegalStateException("Recommendation metric expiry failed");
+        }
     }
 
     private Duration metricTtl() {

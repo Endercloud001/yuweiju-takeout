@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-09",
+  "source": "User-reported manual testing and attached screenshots in this chat",
+  "candidate": "b7d35c9f7ff93b0dd9a776c985035221b40a2465",
+  "screenshots": {
+    "shop-status.png": "codex-clipboard-8f1c7622-0322-4ea7-b82f-1dc1a418c6e1.png",
+    "miniapp-menu.png": "codex-clipboard-9a7bfb7b-4bca-4399-8118-1de8045358fc.png",
+    "miniapp-checkout.png": "codex-clipboard-e343b903-3dfa-464a-8b86-bd512ede4dd2.png",
+    "miniapp-success.png": "codex-clipboard-0733a4fe-222c-4a70-97f1-1899e504a66c.png",
+    "admin-order.png": "codex-clipboard-7024762f-a901-4e25-9969-8f37ec5c3b58.png"
+  },
+  "dashboardScreenshotNotArchived": "Visible password in browser save-password prompt",
+  "isolatedOrderReadback": {
+    "id": 40,
+    "number": "1791543317096",
+    "userId": 900003,
+    "amount": "19.00",
+    "packAmount": 1,
+    "status": 2,
+    "payStatus": 1,
+    "detailQuantity": 1,
+    "detailUnitAmount": "18.00",
+    "remainingUserCartRows": 0,
+    "queryExitCode": 0
+  }
+}

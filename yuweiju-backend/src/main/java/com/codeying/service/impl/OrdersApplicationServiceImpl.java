@@ -208,21 +208,16 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
             throw new OrderBusinessException("参数错误");
         }
 
-        QueryWrapper<ShoppingCart> cartWrapper = new QueryWrapper<>();
-        cartWrapper.eq("user_id", userId);
-        cartWrapper.orderByAsc("create_time").orderByAsc("id");
-        List<ShoppingCart> carts = shoppingCartService.list(cartWrapper);
+        List<ShoppingCart> carts = shoppingCartService.listForUser(userId);
         if (carts == null || carts.isEmpty()) throw new OrderBusinessException("购物车为空");
 
-        QueryWrapper<AddressBook> addressWrapper = new QueryWrapper<>();
-        addressWrapper.eq("id", body.getAddressBookId());
-        addressWrapper.eq("user_id", userId);
-        AddressBook address = addressBookService.getOne(addressWrapper);
-        if (address == null) throw new OrderBusinessException("地址不存在");
+        AddressBook address = addressBookService.getById(body.getAddressBookId());
+        if (address == null || !userId.equals(address.getUserId())) throw new OrderBusinessException("地址不存在");
 
         Integer packAmount = body.getPackAmount() == null ? 0 : body.getPackAmount();
         BigDecimal goodsTotal = BigDecimal.ZERO;
         for (ShoppingCart c : carts) {
+            shoppingCartService.requireSaleable(c.getDishId(), c.getSetmealId());
             BigDecimal unit = c.getAmount() == null ? BigDecimal.ZERO : c.getAmount();
             int num = c.getNumber() == null ? 0 : c.getNumber();
             goodsTotal = goodsTotal.add(unit.multiply(BigDecimal.valueOf(num)));
@@ -254,7 +249,7 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
         order.setTablewareNumber(body.getTablewareNumber());
         order.setTablewareStatus(body.getTablewareStatus());
 
-        ordersService.save(order);
+        if (!ordersService.save(order)) throw new OrderBusinessException("订单写入失败");
 
         List<OrderDetail> details = new ArrayList<>(carts.size());
         for (ShoppingCart c : carts) {
@@ -269,14 +264,15 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
             d.setAmount(c.getAmount());
             details.add(d);
         }
-        if (!details.isEmpty()) orderDetailService.saveBatch(details);
+        if (!orderDetailService.saveBatch(details)) throw new OrderBusinessException("订单明细写入失败");
+        // Finish every core write before optional Redis/risk side effects.
+        if (shoppingCartService.clearForUser(userId) != carts.size()) throw new OrderBusinessException("购物车清理失败");
         analysisObservationService.recordRecommendationConversion(
                 userId,
                 order.getId(),
                 carts.stream().map(ShoppingCart::getDishId).filter(id -> id != null && id > 0).distinct().toList()
         );
         orderRiskService.scoreOrder(order.getId(), "submit");
-        shoppingCartService.remove(cartWrapper);
 
         OrderSubmitVO vo = new OrderSubmitVO();
         vo.setId(order.getId());
