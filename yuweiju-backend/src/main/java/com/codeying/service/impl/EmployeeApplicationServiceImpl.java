@@ -1,6 +1,5 @@
 package com.codeying.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.codeying.common.page.PageData;
@@ -9,6 +8,7 @@ import com.codeying.dto.admin.employee.EmployeeDTO;
 import com.codeying.dto.admin.employee.EmployeePageQuery;
 import com.codeying.dto.admin.employee.LoginDTO;
 import com.codeying.entity.Employee;
+import com.codeying.mapper.EmployeeMapper;
 import com.codeying.exception.BusinessException;
 import com.codeying.properties.SkyProperties;
 import com.codeying.service.EmployeeApplicationService;
@@ -32,10 +32,12 @@ import java.util.List;
 public class EmployeeApplicationServiceImpl implements EmployeeApplicationService {
 
     private final EmployeeService employeeService;
+    private final EmployeeMapper employeeMapper;
     private final SkyProperties skyProperties;
 
-    public EmployeeApplicationServiceImpl(EmployeeService employeeService, SkyProperties skyProperties) {
+    public EmployeeApplicationServiceImpl(EmployeeService employeeService, EmployeeMapper employeeMapper, SkyProperties skyProperties) {
         this.employeeService = employeeService;
+        this.employeeMapper = employeeMapper;
         this.skyProperties = skyProperties;
     }
 
@@ -44,11 +46,7 @@ public class EmployeeApplicationServiceImpl implements EmployeeApplicationServic
         if (body == null || !StringUtils.hasText(body.getUsername()) || !StringUtils.hasText(body.getPassword())) {
             throw new BusinessException("参数错误");
         }
-        QueryWrapper<Employee> wrapper = new QueryWrapper<>();
-        wrapper.eq("username", body.getUsername());
-        wrapper.eq("password", body.getPassword());
-        wrapper.eq("status", 1);
-        Employee employee = employeeService.getOne(wrapper);
+        Employee employee = employeeMapper.findEnabledByCredentials(body.getUsername(), body.getPassword());
         if (employee == null) {
             throw new BusinessException("账号或密码错误");
         }
@@ -104,10 +102,7 @@ public class EmployeeApplicationServiceImpl implements EmployeeApplicationServic
         if (query == null || query.getPage() == null || query.getPageSize() == null || query.getPage() <= 0 || query.getPageSize() <= 0) {
             throw new BusinessException("参数错误");
         }
-        QueryWrapper<Employee> wrapper = new QueryWrapper<>();
-        if (StringUtils.hasText(query.getName())) wrapper.like("name", query.getName().trim());
-        wrapper.orderByDesc("update_time").orderByDesc("id");
-        IPage<Employee> result = employeeService.page(new Page<>(query.getPage(), query.getPageSize()), wrapper);
+        IPage<Employee> result = employeeMapper.pageByName(new Page<>(query.getPage(), query.getPageSize()), query.getName());
         List<EmployeeVO> records = new ArrayList<>();
         for (Employee e : result.getRecords()) {
             records.add(toVO(e));
@@ -124,9 +119,7 @@ public class EmployeeApplicationServiceImpl implements EmployeeApplicationServic
                 || !StringUtils.hasText(body.getPhone()) || !StringUtils.hasText(body.getSex()) || !StringUtils.hasText(body.getIdNumber())) {
             throw new BusinessException("参数错误");
         }
-        QueryWrapper<Employee> existsWrapper = new QueryWrapper<>();
-        existsWrapper.eq("username", body.getUsername().trim());
-        if (employeeService.count(existsWrapper) > 0) throw new BusinessException("用户名已存在");
+        if (employeeMapper.countByUsernameExcludingId(body.getUsername().trim(), null) > 0) throw new BusinessException("用户名已存在");
         Date now = new Date();
         Employee entity = new Employee();
         entity.setUsername(body.getUsername().trim());
@@ -156,10 +149,7 @@ public class EmployeeApplicationServiceImpl implements EmployeeApplicationServic
         if (adminId == null || body == null || body.getId() == null) throw new BusinessException("参数错误");
         Employee existing = employeeService.getById(body.getId());
         if (existing == null) throw new BusinessException("员工不存在");
-        QueryWrapper<Employee> existsWrapper = new QueryWrapper<>();
-        existsWrapper.eq("username", body.getUsername().trim());
-        existsWrapper.ne("id", body.getId());
-        if (employeeService.count(existsWrapper) > 0) throw new BusinessException("用户名已存在");
+        if (employeeMapper.countByUsernameExcludingId(body.getUsername().trim(), body.getId()) > 0) throw new BusinessException("用户名已存在");
         Employee entity = new Employee();
         entity.setId(body.getId());
         entity.setUsername(body.getUsername().trim());

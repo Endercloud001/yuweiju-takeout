@@ -1,19 +1,14 @@
 package com.codeying.controller.admin.page;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.codeying.controller.common.BaseController;
-import com.codeying.entity.Admin;
 import com.codeying.entity.LoginUser;
 import com.codeying.service.AdminService;
-import com.codeying.utils.CommonUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import java.util.Date;
 
 /**
  * 管理端门户页面控制器：登录、注册、首页跳转等。
@@ -23,8 +18,11 @@ import java.util.Date;
 @Controller
 public class AdminPortalController extends BaseController {
 
-    @Autowired
-    protected AdminService adminService;
+    private final AdminService adminService;
+
+    public AdminPortalController(AdminService adminService) {
+        this.adminService = adminService;
+    }
 
     /**
      * 根路径入口：未登录跳转登录页，已登录跳转工作台入口。
@@ -90,10 +88,7 @@ public class AdminPortalController extends BaseController {
 
         LoginUser loginUser;
         if ("admin".equals(usertype)) {
-            QueryWrapper<Admin> wrapper = new QueryWrapper<>();
-            wrapper.eq("username", username);
-            wrapper.eq("password", password);
-            loginUser = adminService.getOne(wrapper);
+            loginUser = adminService.findForLogin(username, password);
             if (loginUser != null) {
                 req.getSession().setAttribute("user", loginUser);
                 req.getSession().setAttribute("role", "admin");
@@ -122,19 +117,10 @@ public class AdminPortalController extends BaseController {
             return "register";
         }
         if ("admin".equals(usertype)) {
-            QueryWrapper<Admin> wrapper = new QueryWrapper<>();
-            wrapper.eq("username", username);
-            Admin temp = adminService.getOne(wrapper);
-            if (temp != null) {
+            if (!adminService.register(username, password)) {
                 req.setAttribute("message", "账号已存在！");
                 return "register";
             }
-            Admin admin = new Admin();
-            admin.setUsername(username);
-            admin.setPassword(password);
-            admin.setId(CommonUtils.newId());
-            admin.setCreatetime(new Date());
-            adminService.save(admin);
             req.setAttribute("message", "注册成功，请登陆");
             return "login";
         }

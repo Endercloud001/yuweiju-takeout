@@ -1,22 +1,17 @@
 package com.codeying.controller.admin.page;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.codeying.controller.common.BaseController;
 import com.codeying.entity.Admin;
 import com.codeying.result.ApiResult;
 import com.codeying.service.AdminService;
-import com.codeying.utils.CommonUtils;
 import com.codeying.vo.PagerFooterVO;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.util.Date;
 
 /**
  * 管理端页面控制器：管理员管理。
@@ -27,8 +22,11 @@ import java.util.Date;
 @RequestMapping("admin")
 public class AdminManagementController extends BaseController {
 
-    @Autowired
-    protected AdminService adminService;
+    private final AdminService adminService;
+
+    public AdminManagementController(AdminService adminService) {
+        this.adminService = adminService;
+    }
 
     /**
      * 管理员列表页（分页）。
@@ -42,19 +40,7 @@ public class AdminManagementController extends BaseController {
      */
     @RequestMapping("list")
     public String list(Model model, Integer pageIndex, Integer size, String username, String name) {
-        if (pageIndex == null) {
-            pageIndex = 1;
-        }
-        if (size == null) {
-            size = 15;
-        }
-        QueryWrapper<Admin> paramMap = new QueryWrapper<>();
-        paramMap.like(!StringUtils.isEmpty(username), "username", username);
-        paramMap.like(!StringUtils.isEmpty(name), "name", name);
-        paramMap.orderByDesc("id");
-
-        IPage<Admin> pageInfo = new Page<Admin>().setCurrent(pageIndex).setSize(size);
-        pageInfo = adminService.page(pageInfo, paramMap);
+        IPage<Admin> pageInfo = adminService.pageLegacy(pageIndex, size, username, name);
 
         model.addAttribute("adminList", pageInfo.getRecords());
         model.addAttribute("pager", new PagerFooterVO(pageInfo));
@@ -104,20 +90,9 @@ public class AdminManagementController extends BaseController {
     @ResponseBody
     public ApiResult<Object> save(Admin entityTemp) {
         String id = entityTemp.getId();
-        if (id == null || id.isEmpty()) {
-            entityTemp.setId(CommonUtils.newId());
-            entityTemp.setCreatetime(new Date());
-            QueryWrapper<Admin> wrapperusername = new QueryWrapper<>();
-            wrapperusername.eq("username", entityTemp.getUsername());
-            if (!adminService.list(wrapperusername).isEmpty()) {
-                return fail("用户名 已存在！");
-            }
-            adminService.save(entityTemp);
-        } else {
-            adminService.updateById(entityTemp);
-            if (getCurrentUser().getId().equals(id)) {
-                setSessionValue("user", adminService.getById(id));
-            }
+        if (!adminService.saveLegacy(entityTemp)) return fail("用户名 已存在！");
+        if (id != null && !id.isEmpty() && getCurrentUser().getId().equals(id)) {
+            setSessionValue("user", adminService.getById(id));
         }
         return ApiResult.successMsg("保存成功");
     }
