@@ -53,7 +53,7 @@ class IdentityControllerSecurityTest {
         var p = properties(); var blacklist = mock(TokenBlacklistService.class);
         var interceptor = new JwtAuthInterceptor(p, blacklist, new ObjectMapper());
         var request = new MockHttpServletRequest("GET", "/admin/employee/page"); var response = new MockHttpServletResponse();
-        request.getSession().setAttribute("user", new com.codeying.entity.Admin());
+        request.getSession().setAttribute("user", new Object());
         assertFalse(interceptor.preHandle(request,response,new Object())); assertEquals(401,response.getStatus());
         request.addHeader("token", JwtUtil.createToken(p.getJwt().getUserSecretKey(),60000,1L,"fixture","user"));
         assertFalse(interceptor.preHandle(request,new MockHttpServletResponse(),new Object()));
@@ -66,32 +66,4 @@ class IdentityControllerSecurityTest {
         assertFalse(interceptor.preHandle(request,new MockHttpServletResponse(),new Object()));
         request.setMethod("OPTIONS"); assertTrue(interceptor.preHandle(request,new MockHttpServletResponse(),new Object()));
     }
-    @Test void legacyCaptchaAndSessionRemainControllerProtocol() throws Exception {
-        var admins = mock(com.codeying.service.AdminService.class);
-        var controller = new com.codeying.controller.admin.page.AdminPortalController(admins);
-        var mvc = MockMvcBuilders.standaloneSetup(controller)
-                .addInterceptors(new org.springframework.web.servlet.HandlerInterceptor() {
-                    @Override
-                    public boolean preHandle(jakarta.servlet.http.HttpServletRequest request,
-                            jakarta.servlet.http.HttpServletResponse response, Object handler) {
-                        org.springframework.test.util.ReflectionTestUtils.setField(controller, "req", request);
-                        return true;
-                    }
-                })
-                .setSingleView(new org.springframework.web.servlet.view.json.MappingJackson2JsonView()).build();
-        mvc.perform(post("/login").param("captcha","bad").sessionAttr("captcha","fixture")
-                .param("username","fixture").param("password","synthetic").param("usertype","admin"))
-                .andExpect(view().name("login"));
-        verifyNoInteractions(admins);
-        var admin = new com.codeying.entity.Admin(); admin.setId("fixture");
-        when(admins.findForLogin("fixture","synthetic")).thenReturn(admin);
-        mvc.perform(post("/login").param("captcha","FIXTURE").sessionAttr("captcha","fixture")
-                .param("username","fixture").param("password","synthetic").param("usertype","admin"))
-                .andExpect(view().name("redirect:/hello")).andExpect(request().sessionAttribute("user",admin))
-                .andExpect(request().sessionAttribute("role","admin"));
-        mvc.perform(post("/register").param("username", "existing").param("password","synthetic").param("usertype","admin"))
-                .andExpect(view().name("register"));
-        verify(admins).register("existing","synthetic");
-    }
-
 }

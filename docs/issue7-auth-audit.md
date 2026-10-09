@@ -1,3 +1,5 @@
+> 2026-10-10 最新决定：维护者确认真实环境验收通过，并授权完全删除 Thymeleaf 管理页面代码，以 Vue 管理端为唯一管理入口。旧页面、专用资源、session 管理入口、Admin 调用链和验证码已删除。以下旧入口调查保留为历史证据，不描述当前可用功能。详见 [删除记录](issue7-legacy-removal.md)。
+
 # Issue #7 identity / employee audit and candidate validation
 
 2026-10-09 retry1, issue #7 only. The current mounted worktree was clean and already contained candidate implementation commits ce76fd4 and fff5217. The supplied zero-task-commit description describes earlier pre-coding failure, not this mounted Git state; the existing work is preserved. Native #2 is closed; historical “dependency 6” is specification numbering, not native #6. No original database/cache writes, password resets, push, publication, policy changes, schema changes, external dependency changes or extra coding agents. Current standards and ADR 0001 applied; ADR 0002 has no affected image behavior. Plan: [issue7-plan.md](issue7-plan.md).

@@ -1,3 +1,5 @@
+> 2026-10-10 后续授权：维护者确认真实环境验收通过，并决定完整删除旧 Thymeleaf 管理入口，Vue 管理端作为唯一管理入口。本报告以下内容记录删除前的集成和验证过程；当前范围与验证见 [删除记录](issue7-legacy-removal.md)。真实验收为维护者确认，本轮未获取额外凭据或重跑原库。
+
 # Issue #7 主线集成与评审报告
 
 日期：2026-10-10（Asia/Shanghai）。维护者已确认隔离环境的三步人工验收符合预期，授权评审/集成候选并创建 PR。任务关联 [Issue #7](https://github.com/Endercloud001/yuweiju-takeout/issues/7)。本 PR 不自动关闭 Issue，未授权直接合并或发布。

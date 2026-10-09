@@ -42,6 +42,11 @@ public class Issue7Probe {
         JsonNode node = JSON.readTree(response.body());
         require(node.path("code").asInt(-999) == code, assertion); return node;
     }
+    static void unavailable(HttpResponse<String> response, String assertion) throws Exception {
+        // Existing advice translates missing resources into HTTP 200 with business code 0.
+        require(response.statusCode() == 404 || (response.statusCode() == 200
+                && JSON.readTree(response.body()).path("code").asInt(-999) == 0), assertion);
+    }
     static JsonNode login(String username, String password, int code) throws Exception {
         return result(call("POST","/admin/employee/login", null,null, Map.of("username",username,"password",password)), code, "admin login outcome");
     }
@@ -137,18 +142,24 @@ public class Issue7Probe {
             require(intervalCount == jdbc.queryForObject("SELECT COUNT(*) FROM user WHERE create_time>=? AND create_time<=?",Long.class,begin,end), "named time query equals direct bound SQL");
             require(users.countCreatedThrough(end) == jdbc.queryForObject("SELECT COUNT(*) FROM user WHERE create_time<=?",Long.class,end), "cumulative user real SQL equals direct bound SQL");
             var mappings = context.getBean("requestMappingHandlerMapping",RequestMappingHandlerMapping.class);
-            Set<String> legacyPaths = new TreeSet<>(); mappings.getHandlerMethods().forEach((info, method) -> {
-                if (method.getBeanType().getPackageName().equals("com.codeying.controller.admin.page")) legacyPaths.addAll(info.getPatternValues());
-            });
+            Set<String> retiredPaths = Set.of("/", "/hello", "/login", "/register", "/logout",
+                    "/admin/list", "/admin/edit", "/admin/detail", "/admin/save", "/admin/delete");
+            require(mappings.getHandlerMethods().keySet().stream()
+                    .flatMap(info -> info.getPatternValues().stream()).noneMatch(retiredPaths::contains),
+                    "legacy portal handlers removed");
             var servletContext = ((org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext) context).getServletContext();
-            var captchaRegistration = servletContext.getServletRegistrations().values().stream()
-                    .filter(registration -> registration.getClassName().equals("com.codeying.servlet.CaptchaServlet")).findFirst();
-            require(captchaRegistration.isPresent(), "captcha servlet registered at runtime");
-            System.out.println("ISSUE7 CAPTCHA_SERVLET_MAPPINGS " + captchaRegistration.get().getMappings());
-            require(legacyPaths.equals(Set.of("/","/hello","/login","/register","/logout","/admin/list","/admin/edit","/admin/detail","/admin/save","/admin/delete")), "exact legacy handlers enabled in Spring");
-            for (String path : List.of("/admin/list","/admin/edit","/admin/detail","/admin/save","/admin/delete"))
-                require(call("GET",path,null,null,null).statusCode() == 401,"legacy admin JWT covered");
-            require(jdbc.queryForObject("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='tb_admin'",Integer.class) == 0, "fixture has no legacy tb_admin; SQL legacy unavailable");
+            require(servletContext.getServletRegistrations().values().stream()
+                    .noneMatch(registration -> registration.getClassName().equals("com.codeying.servlet.CaptchaServlet")),
+                    "legacy captcha servlet removed");
+            for (String path : List.of("/", "/hello", "/login", "/register", "/logout", "/captcha",
+                    "/static/assets/js/jquery.min.js"))
+                unavailable(call("GET",path,null,null,null), "retired page/resource unavailable: " + path);
+            for (String path : List.of("/login", "/register"))
+                unavailable(call("POST",path,null,null,Map.of()), "retired login/register POST unavailable");
+            for (String path : List.of("/admin/list", "/admin/edit", "/admin/detail", "/admin/save", "/admin/delete")) {
+                require(call("GET",path,null,null,null).statusCode() == 401, "admin JWT boundary preserved");
+                unavailable(call("GET",path,"token",adminToken,null), "retired admin handler unavailable");
+            }
             result(call("POST","/admin/employee/logout","token",adminToken,null),1,"admin logout");
             blacklistedJtis.add(JwtUtil.parseClaims(adminToken,properties.getJwt().getAdminSecretKey()).getId());
             result(call("GET","/admin/employee/page?page=1&pageSize=1","token",adminToken,null),0,"real Redis admin revocation");
@@ -156,7 +167,7 @@ public class Issue7Probe {
             blacklistedJtis.add(JwtUtil.parseClaims(userTokenA,properties.getJwt().getUserSecretKey()).getId());
             result(call("GET","/user/addressBook/list","authentication",userTokenA,null),0,"real Redis user revocation");
             System.out.println("ISSUE7 REAL_SQL_SPRING_HTTP_REDIS_PASS");
-            System.out.println("ISSUE7 LEGACY_HANDLER_AND_JWT_COVERAGE_PASS; TB_ADMIN_SQL_AND_TEMPLATE_RENDER_NOT_VERIFIED");
+            System.out.println("ISSUE7 LEGACY_PORTAL_REMOVED_AND_ADMIN_JWT_PRESERVED_PASS");
             if (serve) {
                 Path credentials = root.resolve(".scratch/issue7/browser-fixture.json");
                 java.nio.file.Files.writeString(credentials,JSON.writeValueAsString(Map.of("username",a.getUsername(),"password",PASSWORD)));

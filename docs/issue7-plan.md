@@ -1,3 +1,5 @@
+> 历史方案：2026-10-10 维护者已授权完整删除旧 Thymeleaf 入口，替代本方案的保留范围。当前实施及验证见 [删除记录](issue7-legacy-removal.md)。
+
 # Issue #7 implementation plan
 
 Scope: only identity/login and employee responsibilities plus enabled legacy authentication audit. Native blocker #2 is closed. “Unresolved dependency 6” is historical specification numbering, not native #6. Retry1 follows a pre-coding network failure with no task commit; preserve previous results and the Git guard. Current initial worktree is clean. Apply current workflow, backend/admin/miniapp standards and accepted ADR 0001 (ADR 0002 has no affected image behavior).
