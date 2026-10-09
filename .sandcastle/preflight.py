@@ -93,7 +93,10 @@ sys.exit(0 if all(check['passed'] for check in checks) else 1)
         observed = subprocess.run(['docker', 'inspect', name], capture_output=True)
         record['stopped'] = observed.returncode != 0 and b'no such' in observed.stderr.lower()
         if (evidence / 'network.json').exists():
-            record['checks'] = json.loads((evidence / 'network.json').read_text())
+            try:
+                record['checks'] = json.loads((evidence / 'network.json').read_text())
+            except (json.JSONDecodeError, OSError):
+                record['checks'] = [{'kind': 'network-probe', 'passed': False, 'status': 'interrupted-or-unreadable'}]
         record['passed'] = record.get('exitCode') == 0 and record['stopped']
         record['classification'] = {10: 'missing-tool', 11: 'git-guard', 12: 'git-metadata',
                                     13: 'network-or-service', 14: 'authentication', 124: 'persistent-timeout',

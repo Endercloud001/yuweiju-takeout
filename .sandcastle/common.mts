@@ -100,6 +100,7 @@ export async function boundedRun(agent: AgentProvider, branch: string, smoke = f
   } catch (error) { failure = error; }
   finally {
     clearTimeout(timer); clearTimeout(closingTimer); process.off('SIGINT', sigint); process.off('SIGTERM', sigterm);
+    try {
     if (existsSync(resourceFile)) {
       const resource = JSON.parse(readFileSync(resourceFile, 'utf8'));
       const remaining = matchingContainers(resource.worktree);
@@ -112,6 +113,18 @@ export async function boundedRun(agent: AgentProvider, branch: string, smoke = f
       }
       writeFileSync(resourceFile, JSON.stringify(resource, null, 2));
       if (remaining.length) failure = new Error(`Resource cleanup failed: ${remaining.map((c: any) => c.Id).join(',')}; inspect ${resourceFile}`);
+    }
+    } catch (cleanupError) {
+      // Docker/record inspection failure must still leave a result for recovery.
+      if (existsSync(resourceFile)) {
+        try {
+          const resource = JSON.parse(readFileSync(resourceFile, 'utf8'));
+          resource.stopped = false;
+          resource.cleanupFailure = String(cleanupError);
+          writeFileSync(resourceFile, JSON.stringify(resource, null, 2));
+        } catch { /* Original record remains available; result records failure. */ }
+      }
+      failure = new Error(`Cleanup inspection failed; original outcome: ${failure ? String(failure) : 'no earlier failure'}; cleanup: ${String(cleanupError)}`);
     }
   }
   writeFileSync(resolve(evidence, id + '-result.json'), JSON.stringify({ pid: process.pid, branch, started,

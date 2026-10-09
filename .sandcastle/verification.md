@@ -4,6 +4,8 @@
 
 `verificationMs` 可独立设置检查时限，未填时兼容旧 `totalMs`。生成的 `check.sh` 在写入处固定 UTF-8/LF，包括 ignored 临时文件；resources 中 `checks` 分别报告 passed/failed/not-performed，后续未运行项不算通过，`humanAcceptance` 仍为 not-performed。
 
+宿主入口复用根 package scripts：`npm run check:preflight`（真实镜像/双网络、空认证与取消）、`npm run check:config`（两轮真实工作树重建、缓存/证据承接及独立无模型验证）、`npm run check:evidence`（脱敏、选定文本、路径/大小边界）。前两项需宿主Docker；evidence 普通测试已接入 `checks.example.json` 的runtime组，可在独立容器内运行，无新增合并门槛。
+
 从实际 checkout 读取 `package.json` 和本目录配置。先用 `git status --short`、`git rev-parse HEAD`、`git worktree list` 核对位置、候选和用户变更；项目根目录可能仍在旧分支。此次交付工作树为 `E:\Learning Files\yuweiju-takeout\.scratch\issue13-environment-improvements`，从远端 main 的 `e66ba4a` 创建；main 的后续变化仍需实时读取。历史 `.scratch/issue13-retro-integration` 保留，不能把它自动当作最新交付。
 
 ## Windows 和 Linux 共用 verifier

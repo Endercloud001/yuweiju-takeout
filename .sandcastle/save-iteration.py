@@ -8,9 +8,10 @@ import time
 
 
 def redact(text):
+    text = re.sub(r'(?im)(authorization\s*[:=]\s*)[^\r\n]+', r'\1[REDACTED]', text)
     text = re.sub(r'(?i)("(?:password|passwd|token|secret|api[_-]?key|openid|authorization)"\s*:\s*)"(?:[^"\\]|\\.)*"', r'\1"[REDACTED]"', text)
     text = re.sub(r'(?i)(bearer\s+)[\w.~-]+', r'\1[REDACTED]', text)
-    text = re.sub(r'(?i)((?:password|passwd|token|secret|api[_-]?key|openid|authorization)["\s]*[:=]["\s]*)[^\s,;"}]+', r'\1[REDACTED]', text)
+    text = re.sub(r'(?i)((?:password|passwd|token|secret|api[_-]?key|openid|authorization)["\s]*[:=]["\s]*)[^\r\n,;"}]+', r'\1[REDACTED]', text)
     return re.sub(r'(https?://)[^/\s:@]+:[^/\s@]+@', r'\1[REDACTED]@', text)
 
 

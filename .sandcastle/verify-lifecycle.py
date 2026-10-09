@@ -7,29 +7,14 @@ repo avoids making the deadline fixture depend on full DrvFS checkout.
 import json
 import os
 from pathlib import Path
-import shutil
 import subprocess
-import tempfile
+from fixture_repo import create
 
 runtime = Path(__file__).resolve().parent.parent
 parent = runtime / '.scratch/lifecycle-verification'
 parent.mkdir(parents=True, exist_ok=True)
-fixture = Path(tempfile.mkdtemp(prefix='run-', dir=parent))
-(fixture / '.sandcastle').mkdir()
-for source in (runtime / '.sandcastle').iterdir():
-    if source.is_file():
-        shutil.copyfile(source, fixture / '.sandcastle' / source.name)
-shutil.copyfile(runtime / 'package.json', fixture / 'package.json')
-def git(*args):
-    subprocess.run(['git', '-C', str(fixture), *args], check=True, stdout=subprocess.DEVNULL)
-git('init', '--initial-branch=codex/lifecycle-fixture')
-git('config', 'user.name', 'Lifecycle fixture')
-git('config', 'user.email', 'lifecycle@localhost')
-git('add', '--', '.sandcastle', 'package.json')
-git('commit', '-m', 'test: real Sandcastle lifecycle fixture')
-os.symlink((runtime / 'node_modules').resolve(), fixture / 'node_modules', target_is_directory=True)
-with (fixture / '.git/info/exclude').open('a') as output:
-    output.write('\n/node_modules\n/.scratch/\n')
+fixture = create(runtime, parent)
+
 evidence = fixture / '.scratch/evidence'
 environment = {**os.environ, 'SANDCASTLE_EVIDENCE': str(evidence), 'SANDCASTLE_IMAGE': 'sandcastle:yuweiju-dev-git-safe'}
 temporary = fixture / '.scratch/tmp'

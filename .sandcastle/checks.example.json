@@ -2,7 +2,7 @@
   "image": "sandcastle:yuweiju-dev-git-safe",
   "totalMs": 1800000,
   "checkCommands": [
-    "npm ci && npm run check:types && npm run check:git-policy",
+    "npm ci && npm run check:types && npm run check:git-policy && npm run check:evidence",
     "mvn -B -Dmaven.repo.local=/workspace/.scratch/m2 -f yuweiju-backend/pom.xml clean package",
     "cd yuweiju-web-vue/yuweiju-admin && npm ci && npm run lint && npm run typecheck && npm run test && npm run test:refimg && npm run build"
   ]

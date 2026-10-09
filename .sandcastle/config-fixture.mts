@@ -14,7 +14,7 @@ assert.ok(fs.existsSync('/opt/java/openjdk/bin/java'));
 assert.equal(process.env.LANG,'C.UTF-8');assert.equal(process.env.LC_ALL,'C.UTF-8');
 const iteration=fs.existsSync('.sandcastle/config-fixture-progress.md')?2:1;
 fs.mkdirSync('.scratch/check-evidence',{recursive:true});
-if(iteration===2)fs.rmSync('.scratch/check-evidence/first.log',{force:true});
+if(iteration===2)assert.equal(fs.existsSync('.scratch/check-evidence/first.log'),false,'Ignored first-round evidence must be absent from rebuilt worktree');
 fs.writeFileSync('.scratch/check-evidence/'+(iteration===1?'first':'second')+'.log','check passed; token=fixture-secret-'+iteration);
 fs.mkdirSync('/home/agent/.m2',{recursive:true});fs.mkdirSync('/home/agent/.npm',{recursive:true});
 for(const directory of ['/home/agent/.m2','/home/agent/.npm']){const marker=directory+'/fixture-cache.txt';if(iteration===2)assert.equal(fs.readFileSync(marker,'utf8'),'cache retained');else fs.writeFileSync(marker,'cache retained');}
@@ -23,7 +23,8 @@ fs.writeFileSync('中文路径.txt','UTF-8 native path');
 
 fs.mkdirSync('.sandcastle',{recursive:true});fs.writeFileSync('.sandcastle/config-fixture-progress.md','Configured progress retained');
 fs.writeFileSync('config-fixture-committed.txt','No-model configured task '+iteration);
-cp.execFileSync('git',['add','--','config-fixture-committed.txt']);cp.execFileSync('git',['commit','-m','test: configured no-model fixture']);
+cp.execFileSync('git',['add','--','config-fixture-committed.txt','.sandcastle/config-fixture-progress.md','中文路径.txt']);cp.execFileSync('git',['commit','-m','test: configured no-model fixture']);
+if(iteration===2)fs.writeFileSync('config-fixture-uncommitted.txt','Final candidate retained');
 console.log(JSON.stringify({type:'text',text:iteration===2?'<promise>COMPLETE</promise>':'Local fixture first iteration incomplete'}));`;
 const provider:AgentProvider={name:'configured-local-fixture',env:{},captureSessions:false,
  buildPrintCommand(options){assert.equal(options.prompt,expectedPrompt);return {command:'node -e '+quote(js)};},

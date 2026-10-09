@@ -3,6 +3,9 @@ import json
 from pathlib import Path
 import subprocess
 import time
+import os
+import signal
+import sys
 from preflight import ROOT, run
 
 evidence = ROOT / '.scratch/preflight-verification' / str(time.time_ns())
@@ -37,6 +40,28 @@ try:
     result = run({**base, 'networks': [egress], 'authDirectory': str(auth)}, evidence / 'authentication-failure', auth=True)
     assert not result['passed'] and result['classification'] == 'authentication' and result['stopped'], result
     cases.append({'scenario': 'authentication-failure', 'passed': True, 'result': result})
+    cancel_config = evidence / 'cancel-config.json'
+    cancel_config.write_text(json.dumps({**base, 'networks': [egress], 'preflightUrls': ['https://192.0.2.1/']}))
+    cancel_evidence = evidence / 'cancel'
+    with (evidence / 'cancel-runner.log').open('w') as output:
+        child = subprocess.Popen([sys.executable, str(ROOT / '.sandcastle/preflight.py'), '--config', str(cancel_config)],
+                                 env={**os.environ, 'SANDCASTLE_EVIDENCE': str(cancel_evidence)}, stdout=output, stderr=subprocess.STDOUT)
+        try:
+            deadline = time.monotonic() + 30
+            while time.monotonic() < deadline and child.poll() is None:
+                if list(cancel_evidence.glob('preflight-*/network.json')):
+                    child.send_signal(signal.SIGTERM)
+                    break
+                time.sleep(0.05)
+            exit_code = child.wait(timeout=30)
+            assert exit_code == 130, exit_code
+            result = json.loads(next(cancel_evidence.glob('preflight-*/preflight.json')).read_text())
+            assert result['stopped'] and result['classification'] == 'cancelled', result
+            cases.append({'scenario': 'cancel-during-network-probe', 'passed': True, 'result': result})
+        finally:
+            if child.poll() is None:
+                child.send_signal(signal.SIGTERM)
+                child.wait(timeout=30)
 finally:
     if owned_container:
         subprocess.run(['docker', 'rm', '-f', service], check=True, stdout=subprocess.DEVNULL)
@@ -44,4 +69,4 @@ finally:
         subprocess.run(['docker', 'network', 'rm', network], check=True, stdout=subprocess.DEVNULL)
     (evidence / 'verdict.json').write_text(json.dumps({'cases': cases, 'modelCalled': False,
                                                     'ownedResourcesRemoved': True}, indent=2), encoding='utf-8', newline='\n')
-print(json.dumps({'passed': len(cases) == 4, 'cases': len(cases), 'evidence': str(evidence), 'modelCalled': False}))
+print(json.dumps({'passed': len(cases) == 5, 'cases': len(cases), 'evidence': str(evidence), 'modelCalled': False}))
