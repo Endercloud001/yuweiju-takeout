@@ -13,6 +13,9 @@ assert.equal(fs.readFileSync('/home/agent/task-input/probe.txt','utf8'),'Configu
 assert.ok(fs.existsSync('/opt/java/openjdk/bin/java'));
 assert.equal(process.env.LANG,'C.UTF-8');assert.equal(process.env.LC_ALL,'C.UTF-8');
 const iteration=fs.existsSync('.sandcastle/config-fixture-progress.md')?2:1;
+fs.mkdirSync('.scratch/check-evidence',{recursive:true});
+if(iteration===2)fs.rmSync('.scratch/check-evidence/first.log',{force:true});
+fs.writeFileSync('.scratch/check-evidence/'+(iteration===1?'first':'second')+'.log','check passed; token=fixture-secret-'+iteration);
 fs.mkdirSync('/home/agent/.m2',{recursive:true});fs.mkdirSync('/home/agent/.npm',{recursive:true});
 for(const directory of ['/home/agent/.m2','/home/agent/.npm']){const marker=directory+'/fixture-cache.txt';if(iteration===2)assert.equal(fs.readFileSync(marker,'utf8'),'cache retained');else fs.writeFileSync(marker,'cache retained');}
 cp.execFileSync('java',['-XshowSettings:properties','-version'],{encoding:'utf8',stdio:['ignore','ignore','pipe']});
@@ -38,5 +41,12 @@ assert.equal(resource.mounts.some((m:any)=>m.destination==='/home/agent/task-inp
 const parent=execFileSync('git',['-C',repo,'rev-parse',task.branch+'~2'],{encoding:'utf8'}).trim();
 const configured=execFileSync('git',['-C',repo,'rev-parse',task.startCommit],{encoding:'utf8'}).trim();assert.equal(parent,configured);
 assert.equal(readFileSync(join(resource.worktree,task.progressFile!), 'utf8'),'Configured progress retained');
+const first=join(resource.iterationEvidence,'iteration-1');
+const second=join(resource.iterationEvidence,'iteration-2');
+assert.equal(readFileSync(join(first,'files/.scratch/check-evidence/first.log'),'utf8'),'check passed; token=[REDACTED]');
+assert.equal(readFileSync(join(second,'files/.scratch/check-evidence/second.log'),'utf8'),'check passed; token=[REDACTED]');
+assert.equal(JSON.parse(readFileSync(join(first,'iteration.json'),'utf8')).agentExitCode,0);
+assert.equal(JSON.parse(readFileSync(join(first,'iteration.json'),'utf8')).completionTextObserved,false);
+assert.equal(JSON.parse(readFileSync(join(second,'iteration.json'),'utf8')).completionTextObserved,true);
 writeFileSync(join(evidence,'config-fixture-result.json'),JSON.stringify({passed:true,authMounted:false,modelCalled:false,startCommit:parent,...summary},null,2));
 console.log(JSON.stringify({passed:true,startCommit:parent,resourceFile,progressFile:summary.progressFile}));

@@ -1,5 +1,7 @@
 # Sandcastle 任务运行时与 issue #19 复盘改进
 
+当前维护补齐启动前 [信息/授权/预算](../.agents/skills/yuweiju-afk/references/startup.md)、实际镜像网络 `preflight.py`、截止提醒与宿主逐轮证据；人工验收通过后走 [deliver](../.agents/skills/yuweiju-deliver/SKILL.md)，选定复盘改造走 [retro-improve](../.agents/skills/yuweiju-retro-improve/SKILL.md)。默认编码轮数/时限、认证设置与Git防护保持不变；监督器不自动续跑。下方日期化材料作为历史证据，实际入口以选定checkout的当前源码为准。
+
 当前入口使用本文后半部分“Sandcastle Git 防误操作改进”的准备流程与 Git-safe 镜像。前半部分保留旧环境的历史记录；当前任务按 [AFK runtime](../.agents/skills/yuweiju-afk/references/runtime.md) 核实绝对工具路径、专属 networks、预算与独立验证。
 
 本目录首次纳入主分支。运行时入口与隔离环境是复盘改进的必要依赖，不包含业务代码变更。以下历史记录保留其原始日期与验证范围；当前任务必须通过 `SANDCASTLE_TASK_CONFIG` 显式指定，禁止复用历史任务分支或自动恢复失败任务。

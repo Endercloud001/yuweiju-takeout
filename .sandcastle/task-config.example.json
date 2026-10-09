@@ -12,5 +12,10 @@
   "authDirectory": "/home/endercloud/projects/yuweiju-afk-auth",
   "totalMs": 1800000,
   "maxIterations": 1,
+  "verificationMs": 1200000,
+  "closingMs": 120000,
+  "evidencePaths": [".sandcastle/task-progress.md"],
+  "preflightUrls": ["https://chatgpt.com/"],
+  "preflightServices": [],
   "progressFile": ".sandcastle/task-progress.md"
 }

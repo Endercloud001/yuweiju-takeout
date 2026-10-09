@@ -3,7 +3,7 @@
 Use these paths as discovery hints. Check the files before use:
 
 - WSL distribution: `Ubuntu`.
-- Current Git-protected checkout: `/mnt/e/Learning Files/yuweiju-takeout/.scratch/sandcastle-git-safety/runtime`. Read the project-root `.sandcastle/README.md` for preparation and guard checks; quote paths containing spaces. Use its `preparation.json` to locate the prepared commit, then confirm the selected checkout's actual HEAD and config.
+- Prefer the runtime/verifier in the confirmed main checkout. The old prepared Git-protected checkout `/mnt/e/Learning Files/yuweiju-takeout/.scratch/sandcastle-git-safety/runtime` is a historical discovery hint, not automatically current. Read the selected checkout's `.sandcastle/README.md`, compare its HEAD/runtime with confirmed main, and preserve user changes; quote paths containing spaces. For a prepared clone, inspect `preparation.json` and actual HEAD/config.
 - Previous general checkout: `/home/endercloud/projects/yuweiju-sandcastle-env`, retained as a read-only source and fallback; it does not include the Git guard.
 - Old pilot checkout: `/home/endercloud/projects/yuweiju-afk-issue-4`. Keep its completed #4 branch and results.
 - Environment instructions: `.sandcastle/environment/README.md` in the general checkout. Read only the sections needed for the task.
@@ -13,6 +13,8 @@ The general runtime uses `.sandcastle/task-config.mts`, `common.mts`, `main.ts`,
 The protected runtime requires the Git-safe image named by its config example. Read `.sandcastle/README.md` when preparing or diagnosing guard failures. Readiness runs before dependencies and again before the agent; a missing guard is a preparation failure. On `SANDCASTLE_GIT_BLOCKED`, preserve progress, report the operation category and blocker, and stop if that operation is needed to finish. Host publication follows task authorization. The wrapper reduces accidents; alternate binaries and filesystem writes remain outside its boundary.
 
 ## Prepare
+
+First complete [startup handoff and evidence selection](startup.md). The selected runtime's `preflight.py` checks the actual image/networks before coding; business-worker repeats it with a read-only dedicated-login check. Use `verificationMs` for independent review and `closingMs` inside the original `totalMs`; defaults remain unchanged. See [human acceptance](acceptance.md) only after independent verification passes. Do not select an old verifier merely because this discovery hint names an old runtime.
 
 Use `.sandcastle/task-config.example.json` as the field source. Supply absolute Linux paths for the prompt, input, authentication, and optional skills. Set `maxIterations` to X and `totalMs` to Y × 60000. Use `.sandcastle/task-progress.md` as the retained progress file. Inspect `.sandcastle/prepare-input.py` before use; it reads GitHub and copies selected materials. Read native dependencies separately because that helper does not collect them.
 

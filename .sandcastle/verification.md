@@ -1,5 +1,9 @@
 # 独立检查入口
 
+优先使用已确认 main 的入口，并记录实际 checkout/HEAD 和候选；下方日期化路径是历史来源。编码前运行 `.sandcastle/preflight.py --config <配置>`，它不启动模型或写业务数据；真实双网络无模型回归入口为 `python3 .sandcastle/verify-preflight.py`。独立候选验证仍使用本页统一 verifier。
+
+`verificationMs` 可独立设置检查时限，未填时兼容旧 `totalMs`。生成的 `check.sh` 在写入处固定 UTF-8/LF，包括 ignored 临时文件；resources 中 `checks` 分别报告 passed/failed/not-performed，后续未运行项不算通过，`humanAcceptance` 仍为 not-performed。
+
 从实际 checkout 读取 `package.json` 和本目录配置。先用 `git status --short`、`git rev-parse HEAD`、`git worktree list` 核对位置、候选和用户变更；项目根目录可能仍在旧分支。此次交付工作树为 `E:\Learning Files\yuweiju-takeout\.scratch\issue13-environment-improvements`，从远端 main 的 `e66ba4a` 创建；main 的后续变化仍需实时读取。历史 `.scratch/issue13-retro-integration` 保留，不能把它自动当作最新交付。
 
 ## Windows 和 Linux 共用 verifier
