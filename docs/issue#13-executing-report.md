@@ -74,10 +74,10 @@ AFK 收尾时未验证的原生小程序正常首页/点餐/结算、管理端�
 
 已先核对本轮资源停止记录，再读代理日志/进度/result、候选 diff 和独立结果。项目 runtime 的 package.json 已有 types、git-policy、git-guard、lifecycle 检查；业务验收仍使用既有 Maven/npm 与本票普通探针，没有增加新 gate。
 
-- shell 工具路径：宿主和代理各发生一次 PATH 造成 exit127。建议 AFK 启动导航示例直接使用已核实的绝对 Node 路径，并明确 Java/Maven 检查用非登录容器 shell。影响：减少无业务价值的失败和纠正。状态：本票调用已修正；未扩大修改共享技能/运行时文档。
-- 区分编排轮次与验证批次：实际 result.iterations=1，但代理进度把复跑 checks 写作 Iteration 2。建议 prompt 统一使用“检查批次”，编排轮数只从 result/resource 读取。影响：预算报告可核对。状态：本报告已纠正术语，建议未写入共享配置。
-- 真实存储接入：旧 provider 和独立 verifier 没有显式网络配置，已有 DB 探针不能直接使用。影响：即使代码可写，也无法证明本票要求的真实事务。状态：本票准备提交 09c2962 已完成最小 networks 接入并通过类型/语法/真实连接与完整运行；未重构生命周期/防护。
-- 故障诊断证据：观察服务降级日志目前只输出 operation 和异常类名，便于脱敏但缺少具体调用上下文/底层原因。建议后续在保留脱敏前提下设计可定位的 user/order 上下文与安全 cause 记录；不记录原始敏感 Redis/HTTP 正文。影响：生产故障排查更可追踪。状态：候选中尚未修改，业务验收已独立通过；作为后续维护建议，不冒称已完成。
+- shell 工具路径：宿主和代理各发生一次 PATH 造成 exit127。维护者批准后，共享 AFK 导航和 runtime README 已使用实际核实的绝对 Node 入口，注明启动前复核，以及 Java/Maven 使用非登录容器 shell。状态：已落实；未更改全局 PATH。
+- 区分编排轮次与验证批次：实际 result.iterations=1，但代理进度把复跑 checks 写作 Iteration 2。共享 prompt 导航已要求使用“检查批次”，编排轮数只从 result/resource 读取。状态：已落实；未放宽原任务轮次或时限。
+- 真实存储接入：准备提交 09c2962 的最小 networks 接入已同步到共享 TaskConfig、Docker provider 和独立 verifier，并补充隔离网络导航。同步必要 Git-safe overlay 保留已升级的防护实现，不吸收旧 runtime 的业务提交历史。状态：已落实；真实连接与独立验证结果见后续集成报告。
+- 故障诊断证据：观察服务降级日志已增加脱敏 user/order 引用及最多八层异常类型、首帧源码位置，保留原因链的定位证据；不输出异常 message、原始 Redis/HTTP 正文或 Throwable。增加日志捕获测试检查嵌套敏感正文及完整 ID 不泄露。状态：已落实；该修改仍在原可选观察边界内，不改变订单事务或金额。
 
 没有恢复历史日志、修改全局 Git、增加 hash/冻结 contract/baseline/gate 或绕过 Git guard。
 
