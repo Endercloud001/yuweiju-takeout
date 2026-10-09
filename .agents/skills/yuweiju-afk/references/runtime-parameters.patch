@@ -1,0 +1,45 @@
+diff --git a/.sandcastle/common.mts b/.sandcastle/common.mts
+index 1812d82..24f5b7f 100644
+--- a/.sandcastle/common.mts
++++ b/.sandcastle/common.mts
+@@ -8,7 +8,7 @@ export const repo = repoRoot;
+ export const evidence = process.env.SANDCASTLE_EVIDENCE ?? '/home/endercloud/projects/yuweiju-sandcastle-env-evidence';
+ export const image = task?.image ?? process.env.SANDCASTLE_IMAGE ?? 'sandcastle:yuweiju-dev';
+ export const quote = (s: string) => "'" + s.replaceAll("'", "'\\''") + "'";
+-export const limits = { maxIterations: 1, idleTimeoutSeconds: 600, completionTimeoutSeconds: 60 };
++export const limits = { maxIterations: task?.maxIterations ?? 1, idleTimeoutSeconds: 600, completionTimeoutSeconds: 60 };
+ export const dockerProvider = (smoke = false) => docker({
+   imageName: image, containerUid: 1000, containerGid: 1000,
+   mounts: smoke ? [{ hostPath: evidence, sandboxPath: '/smoke-evidence' }, ...(task ? [{ hostPath: task.inputDirectory, sandboxPath: '/home/agent/task-input', readonly: true }] : [])] : [
+diff --git a/.sandcastle/task-config.example.json b/.sandcastle/task-config.example.json
+index e0bfe64..952f20a 100644
+--- a/.sandcastle/task-config.example.json
++++ b/.sandcastle/task-config.example.json
+@@ -10,5 +10,6 @@
+   "installCommands": [],
+   "authDirectory": "/home/endercloud/projects/yuweiju-afk-auth",
+   "totalMs": 1800000,
++  "maxIterations": 1,
+   "progressFile": ".sandcastle/task-progress.md"
+ }
+diff --git a/.sandcastle/task-config.mts b/.sandcastle/task-config.mts
+index 77c28f0..8c0f956 100644
+--- a/.sandcastle/task-config.mts
++++ b/.sandcastle/task-config.mts
+@@ -3,11 +3,15 @@ import { resolve, dirname } from 'node:path';
+ import { fileURLToPath } from 'node:url';
+ export type TaskConfig = { branch: string; startCommit: string; promptFile: string; inputDirectory: string;
+   image: string; checkCommands: string[]; installCommands: string[]; authDirectory: string; skillsDirectory?: string;
+-  totalMs?: number; progressFile?: string };
++  totalMs?: number; maxIterations?: number; progressFile?: string };
+ export const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+ export const task: TaskConfig | undefined = process.env.SANDCASTLE_TASK_CONFIG
+   ? JSON.parse(readFileSync(resolve(process.env.SANDCASTLE_TASK_CONFIG), 'utf8')) : undefined;
+ if (task) {
++  if (task.maxIterations !== undefined && (!Number.isSafeInteger(task.maxIterations) || task.maxIterations < 1))
++    throw new Error('maxIterations must be a positive safe integer');
++  if (task.totalMs !== undefined && (!Number.isSafeInteger(task.totalMs) || task.totalMs < 1 || task.totalMs > 2147483647))
++    throw new Error('totalMs must be an integer from 1 to 2147483647');
+   for (const key of ['branch', 'startCommit', 'promptFile', 'inputDirectory', 'image', 'authDirectory'] as const)
+     if (!task[key] || typeof task[key] !== 'string') throw new Error(`Missing task setting: ${key}`);
+   if (!Array.isArray(task.checkCommands) || !task.checkCommands.length || !Array.isArray(task.installCommands))
