@@ -16,6 +16,11 @@
 - 修改接口/数据库：读相关新旧 API、数据库设计与当前 issue；旧 To-do 当前不存在，需求以已确认 issue 为准。
 - GitHub Issues：读 [issue-tracker](docs/agents/issue-tracker.md)；分流另读 [triage-labels](docs/agents/triage-labels.md)。
 
+## 项目文件输出
+
+- 本项目任务产生的文档、脚本、日志、截图、临时文件和其他产物，统一写入 `E:\Learning Files\yuweiju-takeout` 内；临时产物放入项目根目录的 `.scratch/`。
+- 执行写入命令前确认实际工作目录与目标绝对路径均在项目目录内。不得自行在父目录、桌面、用户目录或外部 worktree 中创建项目文件。
+
 ## 必要边界
 
 - 保留用户变更与已有安全措施；认证、数据安全、不可逆操作、正式发布按项目要求和任务授权处理。

@@ -1,0 +1,3 @@
+# Linux entry points must survive native Windows checkouts with autocrlf=true.
+/.sandcastle/environment/*.sh text eol=lf
+/.sandcastle/verify-admin.sh text eol=lf
