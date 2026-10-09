@@ -66,6 +66,8 @@ Check that the task branch is absent and the start commit includes the selected 
 
 ## Run and verify
 
+Independent acceptance from Windows uses `.sandcastle/verify-task.ps1`; see [verification entry](../../../../.sandcastle/verification.md) for arguments, shared check configuration and host-only Docker checks. This selects Ubuntu explicitly and resolves Windows worktree Git metadata without changing global Git settings. Keep the direct Python entry below for Linux callers.
+
 From the selected WSL checkout, after task authorization:
 
 ```sh

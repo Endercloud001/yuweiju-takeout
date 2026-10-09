@@ -133,6 +133,8 @@ used by the review entry to support older candidate commits without the alias.
 
 ## Independent verification
 
+当前 Windows/WSL 独立入口、共用检查配置和结果位置见 [独立检查入口](verification.md)。优先复用通用 verifier，不为临时验收另写容器启动脚本。
+
 From the WSL clone root, review committed content without authentication/model:
 
 ```sh
