@@ -3,7 +3,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 export type TaskConfig = { branch: string; startCommit: string; promptFile: string; inputDirectory: string;
   image: string; checkCommands: string[]; installCommands: string[]; authDirectory: string; skillsDirectory?: string;
-  totalMs?: number; maxIterations?: number; progressFile?: string };
+  networks?: string[]; totalMs?: number; maxIterations?: number; progressFile?: string };
 export const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const task: TaskConfig | undefined = process.env.SANDCASTLE_TASK_CONFIG
   ? JSON.parse(readFileSync(resolve(process.env.SANDCASTLE_TASK_CONFIG), 'utf8')) : undefined;

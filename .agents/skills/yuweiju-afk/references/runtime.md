@@ -3,11 +3,14 @@
 Use these paths as discovery hints. Check the files before use:
 
 - WSL distribution: `Ubuntu`.
-- General checkout: `/home/endercloud/projects/yuweiju-sandcastle-env`.
+- Current Git-protected checkout: `/mnt/e/Learning Files/yuweiju-takeout/.scratch/sandcastle-git-safety/runtime`. Read the project-root `.sandcastle/README.md` for preparation and guard checks; quote paths containing spaces. Use its `preparation.json` to locate the prepared commit, then confirm the selected checkout's actual HEAD and config.
+- Previous general checkout: `/home/endercloud/projects/yuweiju-sandcastle-env`, retained as a read-only source and fallback; it does not include the Git guard.
 - Old pilot checkout: `/home/endercloud/projects/yuweiju-afk-issue-4`. Keep its completed #4 branch and results.
 - Environment instructions: `.sandcastle/environment/README.md` in the general checkout. Read only the sections needed for the task.
 
 The general runtime uses `.sandcastle/task-config.mts`, `common.mts`, `main.ts`, and `launch.mts`. It currently uses Sandcastle 0.12.0. Read `business-worker.mts` for model settings. Read the config and `common.mts` for defaults: 1 iteration, 30 minutes total, 600 seconds idle, and 60 seconds completion grace. Confirm these values in the selected checkout.
+
+The protected runtime requires the Git-safe image named by its config example. Read `.sandcastle/README.md` when preparing or diagnosing guard failures. Readiness runs before dependencies and again before the agent; a missing guard is a preparation failure. On `SANDCASTLE_GIT_BLOCKED`, preserve progress, report the operation category and blocker, and stop if that operation is needed to finish. Host publication follows task authorization. The wrapper reduces accidents; alternate binaries and filesystem writes remain outside its boundary.
 
 ## Prepare
 
@@ -24,6 +27,12 @@ Write generated shell scripts and copied runtime source with LF. On Windows Pyth
 When borrowing an existing Linux `node_modules` via a symlink, exclude that exact untracked link in the selected checkout's local exclude file before checking cleanliness or staging preparation files. Find the file with `git rev-parse --git-path info/exclude` from that checkout, preserving its existing entries; linked worktrees may share the repository exclude file. Use an anchored path such as `/node_modules` for a root-level link, or the actual nested path. Verify with `git check-ignore -v -- node_modules` and `git status --short --untracked-files=all`; substitute the actual link path. An exclude does not hide tracked files: check `git ls-files -- node_modules` before proceeding. Keep the user `.gitignore` and global Git configuration unchanged, and explicitly stage preparation files.
 
 ### Commands and paths in the task prompt
+
+Resolve the WSL Node executable before launch. On this host, `/home/endercloud/.nvm/versions/node/v22.23.3/bin/node --version` was verified on 2026-10-09. Use that absolute executable after confirming it still exists; `wsl --exec` does not load nvm shell initialization. Container Java/Maven checks use `bash -c`, with `command -v java` and `command -v mvn` checked in the selected image; a login shell can replace its tool PATH.
+
+Require the task prompt to name repeated validation runs “检查批次 / check batch”. The host reads orchestration iterations only from result/resource records. Rerunning checks within one iteration does not start or count another iteration; keep the original limits unchanged.
+
+For real SQL/Redis verification, configure `networks` as an explicit list of task-owned Docker network names. The provider and independent verifier both attach to that list. Omit it for the Docker default network; use an internal fixture network plus an explicitly authorized download/model network when required. Inspect fixtures, network isolation and cleanup ownership before launch. Network attachment does not authorize access to an existing database.
 
 Confirm commands against the selected image. Python commands use `python3`; provide the actual check command, not only “check links.” A missing `python` alias when `python3` is available is an invocation error, not a missing capability. Inside the same authorized iteration, the agent may correct that command or a known path and rerun its affected check. The failed check is unresolved until a corrected execution passes. Persistent failures, new dependency requirements, unknown decisions, ownership or authorization problems stop the task. This does not authorize restarting a supervisor that has ended or changing iteration/time limits.
 
@@ -60,10 +69,12 @@ Check that the task branch is absent and the start commit includes the selected 
 From the selected WSL checkout, after task authorization:
 
 ```sh
-SANDCASTLE_TASK_CONFIG=/absolute/task/config.json npx --no-install tsx .sandcastle/main.ts
+SANDCASTLE_TASK_CONFIG=/absolute/task/config.json /home/endercloud/.nvm/versions/node/v22.23.3/bin/node --import ./node_modules/tsx/dist/loader.mjs .sandcastle/main.ts
 python3 .sandcastle/verify-task.py --config /absolute/task/config.json --commit LOCAL_TASK_COMMIT
 ```
 
 Set a separate `SANDCASTLE_EVIDENCE` directory for the run and review. `checkCommands` run from the new snapshot root. Include dependency preparation needed by that fresh snapshot; worker `installCommands` are not reused by review. Read verification code for mount and service needs. Use isolated services and task-specific checks from the affected client standards. For admin script changes, the existing `verify-admin.py --commit LOCAL_TASK_COMMIT` is also available.
+
+For the project-local WSL checkout, set `TMPDIR` and `npm_config_cache` to project-local `.scratch/` directories before launch. Use the direct Node loader command above: the tsx CLI's Unix socket is unsupported on DrvFS.
 
 Review uses no authentication mount or model. It does not prove business acceptance unless its commands check the issue requirements. Missing required tools or unresolved acceptance criteria block launch. Report the missing item and the action needed to resolve it.

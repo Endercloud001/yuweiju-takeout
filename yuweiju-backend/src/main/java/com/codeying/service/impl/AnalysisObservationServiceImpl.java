@@ -105,8 +105,7 @@ public class AnalysisObservationServiceImpl implements AnalysisObservationServic
             logOnlineObservation(observeDate, modelVersion);
         } catch (RuntimeException ex) {
             // Optional observation must never roll back the calling business use case.
-            log.warn("AI recommendation observation unavailable, operation={}, failure={}",
-                    "recordRecommendationExposure", ex.getClass().getSimpleName());
+            logUnavailable("recordRecommendationExposure", userId, null, ex);
         }
     }
 
@@ -147,8 +146,7 @@ public class AnalysisObservationServiceImpl implements AnalysisObservationServic
             logOnlineObservation(LocalDate.parse(context.observeDate()), context.modelVersion());
         } catch (RuntimeException ex) {
             // Optional observation must never roll back the calling business use case.
-            log.warn("AI recommendation observation unavailable, operation={}, failure={}",
-                    "recordRecommendationClick", ex.getClass().getSimpleName());
+            logUnavailable("recordRecommendationClick", userId, null, ex);
         }
     }
 
@@ -195,8 +193,7 @@ public class AnalysisObservationServiceImpl implements AnalysisObservationServic
             logOnlineObservation(LocalDate.parse(context.observeDate()), context.modelVersion());
         } catch (RuntimeException ex) {
             // Optional observation must never roll back the calling business use case.
-            log.warn("AI recommendation observation unavailable, operation={}, failure={}",
-                    "recordRecommendationConversion", ex.getClass().getSimpleName());
+            logUnavailable("recordRecommendationConversion", userId, orderId, ex);
         }
     }
 
@@ -240,8 +237,7 @@ public class AnalysisObservationServiceImpl implements AnalysisObservationServic
             logRollingObservation(observeDate, normalizedModelVersion);
         } catch (RuntimeException ex) {
             // Optional observation must never roll back the calling business use case.
-            log.warn("AI recommendation observation unavailable, operation={}, failure={}",
-                    "logOnlineObservation", ex.getClass().getSimpleName());
+            logUnavailable("logOnlineObservation", null, null, ex);
         }
     }
 
@@ -272,6 +268,34 @@ public class AnalysisObservationServiceImpl implements AnalysisObservationServic
         return new ObservationPayload(strategy, modelVersion, fallback);
     }
 
+    private void logUnavailable(String operation, Long userId, Long orderId, Throwable failure) {
+        // Throwable messages may contain Redis values or HTTP bodies. Retain only
+        // exception types and source locations, with a bounded cause traversal.
+        StringBuilder causes = new StringBuilder();
+        Throwable current = failure;
+        for (int depth = 0; current != null && depth < 8; depth++) {
+            if (depth > 0) {
+                causes.append(" <- ");
+            }
+            causes.append(current.getClass().getName());
+            StackTraceElement[] frames = current.getStackTrace();
+            if (frames.length > 0) {
+                StackTraceElement frame = frames[0];
+                causes.append("@").append(frame.getClassName()).append(".")
+                        .append(frame.getMethodName()).append(":").append(frame.getLineNumber());
+            }
+            current = current.getCause();
+        }
+        if (current != null) {
+            causes.append(" <- [truncated]");
+        }
+        log.warn("AI recommendation observation unavailable, operation={}, userRef={}, orderRef={}, causes={}",
+                operation, maskedReference(userId), maskedReference(orderId), causes);
+    }
+
+    private String maskedReference(Long id) {
+        return id == null ? "none" : "***" + Math.floorMod(id, 10000);
+    }
     private ObservationContext readContext(Long userId) {
         String raw = stringRedisTemplate.opsForValue().get(RedisKeys.aiRecommendContextKey(userId));
         if (!StringUtils.hasText(raw)) {
@@ -280,7 +304,7 @@ public class AnalysisObservationServiceImpl implements AnalysisObservationServic
         try {
             return objectMapper.readValue(raw, ObservationContext.class);
         } catch (Exception ex) {
-            log.warn("Recommendation context unavailable, userId={}, failure={}", userId, ex.getClass().getSimpleName());
+            logUnavailable("readContext", userId, null, ex);
             return null;
         }
     }

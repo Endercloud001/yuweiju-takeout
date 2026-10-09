@@ -47,7 +47,9 @@ for (const scenario of scenarios) {
   try { outcome = await boundedRun(provider, branch, true, {
     idleTimeoutSeconds: scenario === 'idle' ? 1 : 10,
     completionTimeoutSeconds: 1,
-  }, scenario === 'deadline' ? 5000 : 30000, controller); }
+  // Guard checks and DrvFS setup must finish before this fixture tests an
+  // agent deadline. Production limits remain unchanged in common.mts.
+  }, scenario === 'deadline' ? 20000 : 30000, controller); }
   catch (e) { error = e; }
   const records = readdirSync(evidence).filter(f => f.startsWith(branch.replaceAll('/', '-') + '-') && f.endsWith('-resources.json'));
   assert.equal(records.length, 1, 'Actual Docker resource must be recorded');

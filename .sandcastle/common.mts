@@ -4,12 +4,19 @@ import { docker } from '@ai-hero/sandcastle/sandboxes/docker';
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { protectAgent, guardReadyCommand } from './git-safe-agent.mts';
+import { prepareWorktree } from './prepare-worktree.mts';
 export const repo = repoRoot;
-export const evidence = process.env.SANDCASTLE_EVIDENCE ?? '/home/endercloud/projects/yuweiju-sandcastle-env-evidence';
-export const image = task?.image ?? process.env.SANDCASTLE_IMAGE ?? 'sandcastle:yuweiju-dev';
+export const evidence = process.env.SANDCASTLE_EVIDENCE ?? resolve(repo, '.scratch/sandcastle-evidence');
+export const image = task?.image ?? process.env.SANDCASTLE_IMAGE ?? 'sandcastle:yuweiju-dev-git-safe';
 export const quote = (s: string) => "'" + s.replaceAll("'", "'\\''") + "'";
+// Trusted dependency preparation keeps native Git semantics. This PATH is
+// confined to the one hook process; the agent gets the default guarded entry.
+export const prepareInstallCommand = (command: string) =>
+  `env PATH=/opt/sandcastle/git-guard/real:"$PATH" /bin/bash -c ${quote(command)}`;
 export const limits = { maxIterations: task?.maxIterations ?? 1, idleTimeoutSeconds: 600, completionTimeoutSeconds: 60 };
 export const dockerProvider = (smoke = false, cacheDirectory?: string) => docker({
+  network: task?.networks,
   imageName: image, containerUid: 1000, containerGid: 1000,
   env: { LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8' },
   mounts: [...(cacheDirectory ? [
@@ -50,18 +57,24 @@ export async function boundedRun(agent: AgentProvider, branch: string, smoke = f
   const timer = setTimeout(() => abort('AFK total time limit reached'), totalMs);
   const command = `${quote(process.execPath)} --import ${quote(resolve(repo, 'node_modules/tsx/dist/loader.mjs'))} ${quote(resolve(repo, '.sandcastle/resource-check.mts'))} ${quote(resourceFile)} ${quote(branch)}`;
   const started = new Date().toISOString();
-  let result; let failure: unknown;
+  let result; let failure: unknown; let preparedWorktreePath: string | undefined;
   try {
-    result = await run({ cwd: repo, agent, sandbox: dockerProvider(smoke, cacheDirectory), ...limits,
+    preparedWorktreePath = await prepareWorktree(repo, branch, task?.startCommit ?? 'HEAD', controller.signal);
+    result = await run({ cwd: repo, sandbox: dockerProvider(smoke, cacheDirectory), ...limits,
       branchStrategy: { type: 'branch', branch, baseBranch: task?.startCommit },
       prompt: smoke ? 'Run the predetermined local smoke scenario only.' : undefined,
       promptFile: smoke ? undefined : resolve(task!.promptFile),
       ...options,
+      agent: protectAgent(options.agent ?? agent, !smoke),
       logging: { type: 'file', path: resolve(evidence, id + '.log') },
       hooks: { host: { onSandboxReady: [{ command, timeoutMs: 30_000 }] },
-        sandbox: { onSandboxReady: smoke ? [{ command: 'test "$(id -u)" = 1000', timeoutMs: 30_000 }] : [
+        sandbox: { onSandboxReady: smoke ? [
+          { command: guardReadyCommand, timeoutMs: 30_000 },
+          { command: 'test "$(id -u)" = 1000', timeoutMs: 30_000 },
+        ] : [
+          { command: guardReadyCommand, timeoutMs: 30_000 },
           { command: 'codex login status', timeoutMs: 30_000 },
-          ...task!.installCommands.map(command => ({ command, timeoutMs: 300_000 })),
+          ...task!.installCommands.map(command => ({ command: prepareInstallCommand(command), timeoutMs: 300_000 })),
         ] } }, signal: controller.signal,
     });
   } catch (error) { failure = error; }
@@ -82,6 +95,7 @@ export async function boundedRun(agent: AgentProvider, branch: string, smoke = f
   }
   writeFileSync(resolve(evidence, id + '-result.json'), JSON.stringify({ pid: process.pid, branch, started,
     ended: new Date().toISOString(), resourceFile, aborted: controller.signal.aborted,
+    preparedWorktreePath,
     configuration: smoke ? { image, modelCalled: false, authMounted: false } : { branch, startCommit: task!.startCommit, image, promptFile: task!.promptFile, inputDirectory: task!.inputDirectory, checkCommands: task!.checkCommands },
     failure: failure ? String(failure) : null,
     result: result ? { branch: result.branch, commits: result.commits, completionSignal: result.completionSignal,

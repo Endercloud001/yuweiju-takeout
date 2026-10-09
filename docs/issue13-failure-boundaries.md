@@ -4,6 +4,8 @@ The mounted issue/plan and current backend/admin/miniapp standards govern this t
 
 ## Code boundaries
 
+Optional observation degradation logs retain operation, masked numeric user/order references (last four digits), and up to eight cause types with their first source frame. Exception messages, throwable stacks with messages, Redis values and HTTP bodies are excluded. References can collide and are diagnostic context, not identity proof. `logOnlineObservation` has no user/order input and reports `none`; SQL business failure handling remains separate.
+
 `UserShoppingCartController` resolves the authenticated identity; `ShoppingCartService` owns add/sub/list/clean rules and add/sub transactions. `ShoppingCartMapper` provides named user/item queries and scoped deletion. Adding an existing item and submitting a cart both check current dish/setmeal saleability. Address primary-key read is followed by ownership validation inside submit. Authentication, ownership, saleability, core SQL and the map ETA call are outside optional observation catches.
 
 `OrdersApplicationService.submit` remains a real Spring transaction: save order, save all details, delete this user's cart, then optional conversion and existing optional scoring. Failed save results and unexpected delete counts fail the transaction. Order submit returns a friendly failure instead of exposing SQL details. No automatic business retry is introduced.
