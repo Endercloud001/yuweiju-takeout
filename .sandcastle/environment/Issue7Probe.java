@@ -132,7 +132,7 @@ public class Issue7Probe {
             // Align the check with persisted MySQL DATETIME rather than assume wall-clock timezone conversion.
             Date created = users.findByOpenid(openidA).getCreateTime();
             Date begin = new Date(created.getTime() - 86400000), end = new Date(created.getTime() + 86400000);
-            long intervalCount = users.countCreatedBetween(begin, end);
+            long intervalCount = users.countCreatedInRange(begin, end);
             require(intervalCount >= 2, "persisted user time interval real SQL");
             require(intervalCount == jdbc.queryForObject("SELECT COUNT(*) FROM user WHERE create_time>=? AND create_time<=?",Long.class,begin,end), "named time query equals direct bound SQL");
             require(users.countCreatedThrough(end) == jdbc.queryForObject("SELECT COUNT(*) FROM user WHERE create_time<=?",Long.class,end), "cumulative user real SQL equals direct bound SQL");
