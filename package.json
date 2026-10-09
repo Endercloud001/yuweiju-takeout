@@ -10,6 +10,8 @@
   },
   "scripts": {
     "check:types": "tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck .sandcastle/*.mts .sandcastle/main.ts --allowImportingTsExtensions",
-    "check:lifecycle": "tsx .sandcastle/smoke-run.mts"
+    "check:lifecycle": "python3 .sandcastle/verify-lifecycle.py",
+    "check:git-policy": "node --test .sandcastle/git-policy.test.mjs",
+    "check:git-guard": "python3 .sandcastle/verify-git-guard.py"
   }
 }

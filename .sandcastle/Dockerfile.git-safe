@@ -1,0 +1,13 @@
+FROM sandcastle:yuweiju-dev
+USER root
+COPY git-policy.mjs git-wrapper.mjs guard-ready.mjs /opt/sandcastle/git-guard/
+RUN mkdir /opt/sandcastle/git-guard/real \
+    && mv /usr/bin/git /opt/sandcastle/git-guard/real/git \
+    && ln -sf /opt/sandcastle/git-guard/git-wrapper.mjs /usr/bin/git \
+    && ln -sf /opt/sandcastle/git-guard/git-wrapper.mjs /usr/lib/git-core/git \
+    && chown -R root:root /opt/sandcastle/git-guard \
+    && chmod 755 /opt/sandcastle /opt/sandcastle/git-guard \
+    && chmod 555 /opt/sandcastle/git-guard/* /opt/sandcastle/git-guard/real/git
+USER 1000:1000
+WORKDIR /home/agent
+ENTRYPOINT ["sleep", "infinity"]

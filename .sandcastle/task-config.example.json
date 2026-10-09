@@ -3,11 +3,12 @@
   "startCommit": "REPLACE_WITH_LOCAL_COMMIT",
   "promptFile": "/absolute/task/prompt.md",
   "inputDirectory": "/absolute/task/input",
-  "image": "sandcastle:yuweiju-dev",
+  "image": "sandcastle:yuweiju-dev-git-safe",
   "checkCommands": [
     "mvn -B -f yuweiju-backend/pom.xml package"
   ],
   "installCommands": [],
+  "networks": [],
   "authDirectory": "/home/endercloud/projects/yuweiju-afk-auth",
   "totalMs": 1800000,
   "maxIterations": 1,
