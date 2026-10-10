@@ -51,10 +51,8 @@ public class ShoppingCartServiceImpl extends ServiceImpl<ShoppingCartMapper, Sho
         requireSaleable(body.getDishId(), body.getSetmealId());
         var existing = baseMapper.findItem(userId, body.getDishId(), body.getSetmealId(), flavor(body));
         if (existing != null) {
-            var update = new ShoppingCart();
-            update.setId(existing.getId());
-            update.setNumber(existing.getNumber() == null ? 2 : existing.getNumber() + 1);
-            if (!updateById(update)) throw new OrderBusinessException("购物车写入失败");
+            int number = existing.getNumber() == null ? 2 : existing.getNumber() + 1;
+            if (baseMapper.updateQuantityOwned(userId, existing.getId(), number) != 1) throw new OrderBusinessException("购物车写入失败");
         } else {
             var item = new ShoppingCart();
             item.setUserId(userId); item.setDishId(body.getDishId()); item.setSetmealId(body.getSetmealId());
@@ -78,9 +76,8 @@ public class ShoppingCartServiceImpl extends ServiceImpl<ShoppingCartMapper, Sho
         var item = baseMapper.findItem(userId, body.getDishId(), body.getSetmealId(), flavor(body));
         if (item == null) throw new OrderBusinessException("购物车中无此商品");
         if (item.getNumber() != null && item.getNumber() > 1) {
-            var update = new ShoppingCart(); update.setId(item.getId()); update.setNumber(item.getNumber() - 1);
-            if (!updateById(update)) throw new OrderBusinessException("购物车写入失败");
-        } else if (!removeById(item.getId())) throw new OrderBusinessException("购物车写入失败");
+            if (baseMapper.updateQuantityOwned(userId, item.getId(), item.getNumber() - 1) != 1) throw new OrderBusinessException("购物车写入失败");
+        } else if (baseMapper.deleteOwned(userId, item.getId()) != 1) throw new OrderBusinessException("购物车写入失败");
     }
 
     @Override
