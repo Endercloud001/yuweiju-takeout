@@ -1,7 +1,8 @@
 import type { AgentProvider } from '@ai-hero/sandcastle';
 
 export const guardReadyCommand = '/usr/local/bin/node /opt/sandcastle/git-guard/guard-ready.mjs';
-export const gitSafetyInstructions = `Sandcastle Git safety:
+export const gitSafetyInstructions = `Task inputs are mounted read-only at /home/agent/task-input; the project worktree is /home/agent/workspace. Read the named input files there first.
+Sandcastle Git safety:
 Report repeated validation commands as check batches. The host counts orchestration iterations from result/resource records; keep the configured iteration and time limits unchanged.
 Use ordinary Git inspection, explicit staging of authorized task files, and a normal local task commit.
 Push, hard reset, destructive clean, forced branch operations, forced checkout/switch, and restoration over modified files are blocked.

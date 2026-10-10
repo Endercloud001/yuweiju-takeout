@@ -4,7 +4,8 @@ param(
     [Parameter(Mandatory)][string]$Commit,
     [string]$Checkout = (Split-Path $PSScriptRoot -Parent),
     [string]$Distribution = 'Ubuntu',
-    [string]$Evidence
+    [string]$Evidence,
+    [string]$NpmCache
 )
 $ErrorActionPreference = 'Stop'
 $Checkout = (Resolve-Path -LiteralPath $Checkout).Path
@@ -26,6 +27,10 @@ function Convert-WslPath([string]$Path) {
 $runner = Convert-WslPath (Join-Path $Checkout '.sandcastle/verify-task.py')
 $linuxConfig = Convert-WslPath $Config
 $linuxEvidence = Convert-WslPath $Evidence
+$cacheArguments = @()
+if ($NpmCache) {
+    $cacheArguments = @('--npm-cache', (Convert-WslPath (Resolve-Path -LiteralPath $NpmCache).Path))
+}
 # Pass arguments directly; no nested shell, global Git settings or auth mount.
-& wsl.exe -d $Distribution --exec env "SANDCASTLE_EVIDENCE=$linuxEvidence" python3 $runner --config $linuxConfig --commit $Commit
+& wsl.exe -d $Distribution --exec env "SANDCASTLE_EVIDENCE=$linuxEvidence" python3 $runner --config $linuxConfig --commit $Commit @cacheArguments
 exit $LASTEXITCODE
