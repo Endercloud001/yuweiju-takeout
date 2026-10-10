@@ -1,12 +1,9 @@
 package com.codeying.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.codeying.common.page.PageData;
 import com.codeying.entity.Category;
-import com.codeying.entity.Dish;
-import com.codeying.entity.Setmeal;
 import com.codeying.exception.CategoryBusinessException;
 import com.codeying.dto.admin.category.CategoryDTO;
 import com.codeying.dto.admin.category.CategoryPageQuery;
@@ -59,7 +56,7 @@ public class CategoryApplicationServiceImpl implements CategoryApplicationServic
         try {
             categoryService.save(entity);
         } catch (DuplicateKeyException e) {
-            throw new CategoryBusinessException("分类名称已存在");
+            throw new CategoryBusinessException("分类名称已存在", e);
         }
     }
 
@@ -82,7 +79,7 @@ public class CategoryApplicationServiceImpl implements CategoryApplicationServic
         try {
             categoryService.updateById(update);
         } catch (DuplicateKeyException e) {
-            throw new CategoryBusinessException("分类名称已存在");
+            throw new CategoryBusinessException("分类名称已存在", e);
         }
     }
 
@@ -106,11 +103,11 @@ public class CategoryApplicationServiceImpl implements CategoryApplicationServic
         Category category = categoryService.getById(id);
         if (category == null) throw new CategoryBusinessException("分类不存在");
         if (Integer.valueOf(1).equals(category.getType())) {
-            if (dishService.count(new QueryWrapper<Dish>().eq("category_id", id)) > 0) {
+            if (dishService.countByCategory(id) > 0) {
                 throw new CategoryBusinessException("当前分类下存在菜品，无法删除");
             }
         } else if (Integer.valueOf(2).equals(category.getType())) {
-            if (setmealService.count(new QueryWrapper<Setmeal>().eq("category_id", id)) > 0) {
+            if (setmealService.countByCategory(id) > 0) {
                 throw new CategoryBusinessException("当前分类下存在套餐，无法删除");
             }
         }
@@ -119,10 +116,7 @@ public class CategoryApplicationServiceImpl implements CategoryApplicationServic
 
     @Override
     public List<Category> list(Integer type) {
-        QueryWrapper<Category> wrapper = new QueryWrapper<>();
-        if (type != null) wrapper.eq("type", type);
-        wrapper.orderByAsc("sort").orderByDesc("id");
-        return categoryService.list(wrapper);
+        return categoryService.listByType(type);
     }
 
     private boolean isValidType(Integer type) {
@@ -132,11 +126,7 @@ public class CategoryApplicationServiceImpl implements CategoryApplicationServic
     @Override
     public PageData<Category> page(Integer page, Integer pageSize, String name, Integer type) {
         if (page == null || pageSize == null || page <= 0 || pageSize <= 0) throw new CategoryBusinessException("参数错误");
-        QueryWrapper<Category> wrapper = new QueryWrapper<>();
-        if (StringUtils.hasText(name)) wrapper.like("name", name.trim());
-        if (type != null) wrapper.eq("type", type);
-        wrapper.orderByAsc("sort").orderByDesc("update_time").orderByDesc("id");
-        IPage<Category> result = categoryService.page(new Page<>(page, pageSize), wrapper);
+        IPage<Category> result = categoryService.pageCatalog(new Page<>(page, pageSize), name, type);
         PageData<Category> data = new PageData<>();
         data.setTotal(result.getTotal());
         data.setRecords(result.getRecords());

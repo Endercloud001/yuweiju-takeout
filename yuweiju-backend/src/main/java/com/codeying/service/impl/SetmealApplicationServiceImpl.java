@@ -1,6 +1,5 @@
 package com.codeying.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.codeying.assembler.SetmealAssembler;
@@ -71,7 +70,7 @@ public class SetmealApplicationServiceImpl implements SetmealApplicationService 
         try {
             setmealService.save(entity);
         } catch (DuplicateKeyException e) {
-            throw new SetmealBusinessException("套餐名称已存在");
+            throw new SetmealBusinessException("套餐名称已存在", e);
         }
         saveSetmealDishes(entity.getId(), body.getSetmealDishes());
     }
@@ -96,7 +95,7 @@ public class SetmealApplicationServiceImpl implements SetmealApplicationService 
         try {
             setmealService.updateById(entity);
         } catch (DuplicateKeyException e) {
-            throw new SetmealBusinessException("套餐名称已存在");
+            throw new SetmealBusinessException("套餐名称已存在", e);
         }
         if (body.getSetmealDishes() != null) {
             saveSetmealDishes(body.getId(), body.getSetmealDishes());
@@ -110,10 +109,10 @@ public class SetmealApplicationServiceImpl implements SetmealApplicationService 
         List<Long> idList = parseIds(ids);
         if (idList.isEmpty()) throw new SetmealBusinessException("参数错误");
 
-        long selling = setmealService.count(new QueryWrapper<Setmeal>().in("id", idList).eq("status", 1));
+        long selling = setmealService.countSellingInIds(idList);
         if (selling > 0) throw new SetmealBusinessException("套餐正在售卖中，无法删除");
 
-        setmealDishService.remove(new QueryWrapper<SetmealDish>().in("setmeal_id", idList));
+        setmealDishService.deleteBySetmeals(idList);
         setmealService.removeByIds(idList);
     }
 
@@ -137,28 +136,19 @@ public class SetmealApplicationServiceImpl implements SetmealApplicationService 
         if (setmeal == null) throw new SetmealBusinessException("套餐不存在");
         Category category = setmeal.getCategoryId() == null ? null : categoryService.getById(setmeal.getCategoryId());
         String categoryName = category == null ? null : category.getName();
-        List<SetmealDish> dishes = setmealDishService.list(new QueryWrapper<SetmealDish>().eq("setmeal_id", id).orderByAsc("id"));
+        List<SetmealDish> dishes = setmealDishService.listBySetmeal(id);
         return SetmealAssembler.toAdminVO(setmeal, categoryName, dishes);
     }
 
     @Override
     public List<Setmeal> list(Long categoryId, Integer status) {
-        QueryWrapper<Setmeal> wrapper = new QueryWrapper<>();
-        if (categoryId != null) wrapper.eq("category_id", categoryId);
-        if (status != null) wrapper.eq("status", status);
-        wrapper.orderByDesc("update_time").orderByDesc("id");
-        return setmealService.list(wrapper);
+        return setmealService.listCatalog(categoryId, status);
     }
 
     @Override
     public PageData<com.codeying.vo.admin.setmeal.SetmealPageVO> page(Integer page, Integer pageSize, String name, Long categoryId, Integer status) {
         if (page == null || pageSize == null || page <= 0 || pageSize <= 0) throw new SetmealBusinessException("参数错误");
-        QueryWrapper<Setmeal> wrapper = new QueryWrapper<>();
-        if (StringUtils.hasText(name)) wrapper.like("name", name.trim());
-        if (categoryId != null) wrapper.eq("category_id", categoryId);
-        if (status != null) wrapper.eq("status", status);
-        wrapper.orderByDesc("update_time").orderByDesc("id");
-        IPage<Setmeal> result = setmealService.page(new Page<>(page, pageSize), wrapper);
+        IPage<Setmeal> result = setmealService.pageCatalog(new Page<>(page, pageSize), name, categoryId, status);
 
         List<Long> categoryIds = new ArrayList<>();
         for (Setmeal s : result.getRecords()) {
@@ -190,10 +180,7 @@ public class SetmealApplicationServiceImpl implements SetmealApplicationService 
     @Override
     public List<com.codeying.vo.user.setmeal.SetmealDishVO> userDishes(Long setmealId) {
         if (setmealId == null) throw new SetmealBusinessException("参数错误");
-        QueryWrapper<SetmealDish> wrapper = new QueryWrapper<>();
-        wrapper.eq("setmeal_id", setmealId);
-        wrapper.orderByAsc("id");
-        List<SetmealDish> items = setmealDishService.list(wrapper);
+        List<SetmealDish> items = setmealDishService.listBySetmeal(setmealId);
         if (items.isEmpty()) return List.of();
 
         List<Long> dishIds = new ArrayList<>();
@@ -217,7 +204,7 @@ public class SetmealApplicationServiceImpl implements SetmealApplicationService 
     }
 
     private void saveSetmealDishes(Long setmealId, List<SetmealDishDTO> dishes) {
-        setmealDishService.remove(new QueryWrapper<SetmealDish>().eq("setmeal_id", setmealId));
+        setmealDishService.deleteBySetmeals(List.of(setmealId));
         if (dishes == null || dishes.isEmpty()) return;
         List<SetmealDish> entities = new ArrayList<>();
         for (SetmealDishDTO dto : dishes) {

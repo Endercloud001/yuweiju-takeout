@@ -9,5 +9,8 @@ public class SetmealBusinessException extends BusinessException {
     public SetmealBusinessException(String message) {
         super(message);
     }
+    public SetmealBusinessException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }
 

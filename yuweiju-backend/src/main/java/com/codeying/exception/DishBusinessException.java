@@ -9,5 +9,8 @@ public class DishBusinessException extends BusinessException {
     public DishBusinessException(String message) {
         super(message);
     }
+    public DishBusinessException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }
 

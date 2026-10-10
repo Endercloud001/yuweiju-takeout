@@ -1179,7 +1179,7 @@ onMounted(() => {
 .vanish-input[data-active='true'] .vanish-placeholder,
 .vanish-input[data-has-value='true'] .vanish-placeholder {
   transform: translateY(-18px) scale(0.94);
-  opacity: 0.72;
+  opacity: 0;
   color: rgba(110, 29, 32, 0.72);
 }
 

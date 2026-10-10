@@ -1,6 +1,5 @@
 package com.codeying.controller.user;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.codeying.result.ApiResult;
 import com.codeying.entity.Category;
 import com.codeying.service.CategoryService;
@@ -34,10 +33,6 @@ public class UserCategoryController {
      */
     @GetMapping("/list")
     public ApiResult<List<Category>> list(@RequestParam(value = "type", required = false) Integer type) {
-        QueryWrapper<Category> wrapper = new QueryWrapper<>();
-        wrapper.eq("status", 1);
-        if (type != null) wrapper.eq("type", type);
-        wrapper.orderByAsc("type").orderByAsc("sort").orderByDesc("id");
-        return ApiResult.successData(categoryService.list(wrapper));
+        return ApiResult.successData(categoryService.listEnabled(type));
     }
 }
