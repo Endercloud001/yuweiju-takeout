@@ -1,6 +1,6 @@
 # Issue #8 实施报告
 
-日期：2026-10-10（Asia/Shanghai）。[Issue #8](https://github.com/Endercloud001/yuweiju-takeout/issues/8) 的编码、精确提交独立验证已通过，隔离人工验收服务已就绪；人工验收与主线交付待维护者反馈。未推送、创建 PR、合并或关闭 issue。
+日期：2026-10-10（Asia/Shanghai）。[Issue #8](https://github.com/Endercloud001/yuweiju-takeout/issues/8) 的编码、精确提交独立验证及五组业务人工验收已通过；追加分类显示修复已提交并验证，维护者已调用交付技能。服务已停止，当前正在执行已授权主线交付，最终结果见 [交付记录](issue8-delivery-report.md)。
 
 ## 授权、来源与环境
 
@@ -73,7 +73,7 @@ supervisor exit 0，result 的 completion signal 为 COMPLETE，实际存在两�
 
 业务结果覆盖分类/菜品/口味/套餐各组筛选、分页/排序/空结果、停售/禁用与关联/混合批次拒绝、疑似SQL输入参数绑定、管理员未登录及错误scope拒绝、公开目录现有行为、管理员编辑后用户可售/口味/套餐明细。真实MyBatis/MySQL，经Spring代理强制第二口味和第二套餐明细insert失败：根编辑、首笔新关联及原关联IDs/值/份数全部回滚，独立商品及口味保持。finally移除任务触发器/自有行/mock用户/key，并比较所有原有五张目录表记录不变。自增值消耗是隔离测试副作用，未声称回滚自增、Redis、文件或HTTP。普通Mockito测试不作事务证据。
 
-独立检查没有失败，也未因未经验证的小修重跑。npm原有审计/构建提示未被本票解决或隐藏。官方小程序编译和维护者实际交互仍待人工检查。
+独立检查没有失败，也未因未经验证的小修重跑。npm原有审计/构建提示未被本票解决或隐藏。该独立检查完成时，官方小程序编译和维护者实际交互仍待人工检查；后续五组业务人工反馈见下方追加记录。
 
 ## 人工服务与交接
 
@@ -81,7 +81,7 @@ supervisor exit 0，result 的 completion signal 为 COMPLETE，实际存在两�
 
 Windows无代理readiness在13:38:38检查：HTML、Vite client/main资源、后端业务code、管理端三组未登录401/code0、前端代理四项用户目录/明细全部通过。记录 `readiness.json`，启动日志 `start.log`，容器归属 `containers.json`。合成账号 sandbox_admin / sandbox-only-login，仅用于该环境。小程序副本只将common/vendor.js的唯一baseUrl改为本机18080；原项目未改。live `mock-login=true`，便于隔离登录，不冒充真实微信身份交换。
 
-完整步骤见 [人工验收](issue8-human-acceptance.md)。等待维护者全部必需项反馈，服务保持运行，未安排静默到期/清卷。停止入口 `.scratch/issue8-live-20261010/stop.ps1` 已用PowerShell解析器检查无语法错误；只停止本项目，保留数据卷。启动过的coding/review数据库服务及出口网络已按具名归属停止/移除，日志 code-stop.log/review-stop.log，卷与证据保留，其他任务不操作。
+完整步骤见 [人工验收](issue8-human-acceptance.md)。首次交接时等待维护者反馈并保留服务运行；后续收到五组业务正常反馈，服务已按要求停止，数据卷保留。停止入口 `.scratch/issue8-live-20261010/stop.ps1` 已用PowerShell解析器检查无语法错误；只停止本项目，保留数据卷。启动过的coding/review数据库服务及出口网络已按具名归属停止/移除，日志 code-stop.log/review-stop.log，卷与证据保留，其他任务不操作。
 
 ## 一次全流程复盘
 
@@ -94,7 +94,7 @@ Windows无代理readiness在13:38:38检查：HTML、Vite client/main资源、后
 
 ## 待办与恢复
 
-人工全部验收、必要交付、issue关闭待维护者反馈。没有自动重启AFK。候选在项目内runtime任务分支可恢复，未提交原始产物在保留worktree及逐轮evidence。若反馈失败，先按具体验收步骤核对源码/日志和已用预算，遵守技能的失败后恢复授权；本次成功运行不构成任意新AFK许可。代码正常revert可回退本票，无schema迁移；不承诺撤销服务已提交目录/缓存副作用。
+五组业务人工验收及补充显示验证已完成，维护者已调用交付技能；必要交付和issue关闭正在执行，最终状态见交付记录。没有自动重启AFK。候选在项目内runtime任务分支可恢复，未提交原始产物在保留worktree及逐轮evidence。若反馈失败，先按具体验收步骤核对源码/日志和已用预算，遵守技能的失败后恢复授权；本次成功运行不构成任意新AFK许可。代码正常revert可回退本票，无schema迁移；不承诺撤销服务已提交目录/缓存副作用。
 
 ## 维护者验收反馈与分类显示修复（2026-10-10）
 
@@ -108,4 +108,4 @@ Windows无代理readiness在13:38:38检查：HTML、Vite client/main资源、后
 
 Linux非root、无网络容器复用已安装依赖，执行管理端lint/typecheck/test/build，四项exit0；Vitest仍为2文件/3tests，build成功。无后端差异，原64d5622的后端/真实SQL独立结果继续适用；显示修复浏览器结果单独记录，不冒称原提交含该修复。
 
-此追加显示修复保留为任务工作树中未提交的一行CSS；没有重启AFK、重新启动人工服务、额外提交、推送、PR、合并或关闭。维护者对修复后的显示尚未给出新人工反馈。此前“服务保留运行”仅描述首次交接，现在已按要求停止。
+此追加显示修复已在独立集成工作树提交为957d247，并通过精确候选管理端独立检查。维护者随后调用yuweiju-deliver继续交付；没有新增修复后人工显示检查声明。没有重启AFK或人工服务。此前“服务保留运行”仅描述首次交接，现在已按要求停止。

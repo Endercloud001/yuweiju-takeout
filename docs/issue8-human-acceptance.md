@@ -18,6 +18,6 @@
 
 请回复：`候选64d5622；1通过/2通过/3通过/4通过/5通过；异常：无或描述；服务：停止或继续保留。` 收到全部必需项通过后，按本聊天授权执行必要提交、推送、PR、合并、同步和关闭。如果未执行某组，会保留待验收状态。
 
-服务目前保留运行，没有设置自动到期。停止脚本为 `E:\Learning Files\yuweiju-takeout\.scratch\issue8-live-20261010\stop.ps1`，只停止本票具名Compose项目，保留合成数据库卷。重启入口为WSL中该目录 `environment/` 执行 `docker compose -p yuweiju-issue8-live-20261010 --profile dev up -d --wait`，仅在需要恢复该候选服务时使用。
+服务已按维护者要求停止，数据卷保留。停止脚本为 `E:\Learning Files\yuweiju-takeout\.scratch\issue8-live-20261010\stop.ps1`，只停止本票具名Compose项目，保留合成数据库卷。重启入口为WSL中该目录 `environment/` 执行 `docker compose -p yuweiju-issue8-live-20261010 --profile dev up -d --wait`，仅在需要恢复该候选服务时使用。
 
 启动/readiness/容器记录在 `.scratch/issue8-live-20261010/`；错误关联时间用Asia/Shanghai。详细实现和独立证据见 [执行报告](issue%238-executing-report.md)。隔离mock登录、自动浏览器结果不替代真实微信或原库验收，本票未进行这些操作。
