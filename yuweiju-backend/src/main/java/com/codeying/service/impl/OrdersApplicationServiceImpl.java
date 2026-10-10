@@ -211,8 +211,7 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
         List<ShoppingCart> carts = shoppingCartService.listForUser(userId);
         if (carts == null || carts.isEmpty()) throw new OrderBusinessException("购物车为空");
 
-        AddressBook address = addressBookService.getById(body.getAddressBookId());
-        if (address == null || !userId.equals(address.getUserId())) throw new OrderBusinessException("地址不存在");
+        AddressBook address = addressBookService.findOwned(userId, body.getAddressBookId());
 
         Integer packAmount = body.getPackAmount() == null ? 0 : body.getPackAmount();
         BigDecimal goodsTotal = BigDecimal.ZERO;
@@ -346,9 +345,7 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
 
         List<OrderDetail> details = listDetails(orderId);
 
-        QueryWrapper<ShoppingCart> clearWrapper = new QueryWrapper<>();
-        clearWrapper.eq("user_id", userId);
-        shoppingCartService.remove(clearWrapper);
+        shoppingCartService.clearForUser(userId);
 
         List<ShoppingCart> carts = new ArrayList<>(details.size());
         Date now = new Date();
@@ -371,12 +368,7 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
     @Override
     public String estimatedDeliveryTime(Long userId, Long addressBookId) {
         if (userId == null || addressBookId == null) throw new OrderBusinessException("参数错误");
-        QueryWrapper<AddressBook> wrapper = new QueryWrapper<>();
-        wrapper.eq("id", addressBookId);
-        wrapper.eq("user_id", userId);
-        wrapper.last("limit 1");
-        AddressBook address = addressBookService.getOne(wrapper);
-        if (address == null) throw new OrderBusinessException("地址不存在");
+        AddressBook address = addressBookService.findOwned(userId, addressBookId);
         Date estimated = calculateEstimatedDeliveryTime(address, new Date());
         return new SimpleDateFormat("HH:mm").format(estimated);
     }

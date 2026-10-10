@@ -2,6 +2,7 @@ package com.codeying.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.codeying.entity.ShoppingCart;
 import java.util.List;
 
@@ -13,6 +14,14 @@ public interface ShoppingCartMapper extends BaseMapper<ShoppingCart> {
     }
     default int deleteByUser(Long userId) {
         return delete(new QueryWrapper<ShoppingCart>().eq("user_id", userId));
+    }
+    /** Change only quantity under the owner/ID condition, preserving the original goods snapshot. */
+    default int updateQuantityOwned(Long userId, Long id, Integer number) {
+        return update(null, new UpdateWrapper<ShoppingCart>().eq("user_id", userId).eq("id", id).set("number", number));
+    }
+    /** Delete a single owned cart row when subtraction reaches one or less. */
+    default int deleteOwned(Long userId, Long id) {
+        return delete(new QueryWrapper<ShoppingCart>().eq("user_id", userId).eq("id", id));
     }
     default ShoppingCart findItem(Long userId, Long dishId, Long setmealId, String flavor) {
         QueryWrapper<ShoppingCart> query = new QueryWrapper<ShoppingCart>().eq("user_id", userId);
