@@ -48,7 +48,7 @@
 
 ## 剩余验收与交付
 
-最终代码、SQL/代理回滚、前端与浏览器检查已通过；正常本地业务任务提交即将保存，Git 元数据为精确候选来源。host 必须在新 fixture 数据库上对精确候选做独立验证（不依赖 agent 认证或模型），通过后才准备人工服务。维护者 ALL 人工验收（管理端目录完整交互、小程序开发者工具/实际选择与实登录环境）仍待完成。自动 synthetic PAGE/login/catalog 与本地 mock user 不代替人工验收。无 push、PR、merge、关闭 issue 或原数据操作。
+最终代码、SQL/代理回滚、前端与浏览器检查已通过；正常本地业务任务提交已保存：`b3e351fcce6d4801ac35fbf8e53127d71e6db464`。后续记录提交只更新报告/进度，业务源码与已检查的探针保持相同；最终 HEAD 由 Git 元数据给出，供 host 精确候选独立验证。host 必须在新 fixture 数据库上对精确候选做独立验证（不依赖 agent 认证或模型），通过后才准备人工服务。维护者 ALL 人工验收（管理端目录完整交互、小程序开发者工具/实际选择与实登录环境）仍待完成。自动 synthetic PAGE/login/catalog 与本地 mock user 不代替人工验收。无 push、PR、merge、关闭 issue 或原数据操作。
 
 代码回退：由维护者使用正常 Git 流程撤销本票业务提交；不恢复修改过的用户文件，不恢复 PLANS/旧 To-do/Thymeleaf。代码回退不回退已经提交的业务数据/Redis/文件/外部副作用，本轮隔离夹具按 own-only finally 清理。
 
