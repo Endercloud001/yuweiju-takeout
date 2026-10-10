@@ -12,9 +12,16 @@ $Config = (Resolve-Path -LiteralPath $Config).Path
 if (!$Evidence) { $Evidence = Join-Path $Checkout '.scratch/sandcastle-evidence' }
 $Evidence = [IO.Path]::GetFullPath($Evidence)
 function Convert-WslPath([string]$Path) {
-    $converted = & wsl.exe -d $Distribution --exec wslpath -a -u $Path
+    # Docker Desktop may make wslpath return a temporary bind-mount alias for
+    # an existing child path. Convert the drive root, then append the suffix.
+    $driveRoot = [IO.Path]::GetPathRoot($Path)
+    $drivePath = $driveRoot -match '^[A-Za-z]:[\\/]$'
+    $conversionTarget = if ($drivePath) { $driveRoot } else { $Path }
+    $converted = & wsl.exe -d $Distribution --exec wslpath -a -u $conversionTarget
     if ($LASTEXITCODE -ne 0) { throw "WSL path conversion failed: $Path" }
-    return ($converted -join "`n").Trim()
+    $linuxPath = ($converted -join "`n").Trim().TrimEnd('/')
+    if ($drivePath) { $linuxPath += '/' + $Path.Substring($driveRoot.Length).Replace('\', '/') }
+    return $linuxPath
 }
 $runner = Convert-WslPath (Join-Path $Checkout '.sandcastle/verify-task.py')
 $linuxConfig = Convert-WslPath $Config

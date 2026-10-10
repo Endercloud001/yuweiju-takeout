@@ -45,7 +45,7 @@ for (const scenario of scenarios) {
   };
   let outcome; let error: unknown;
   try { outcome = await boundedRun(provider, branch, true, {
-    idleTimeoutSeconds: scenario === 'idle' ? 1 : 10,
+    idleTimeoutSeconds: scenario === 'idle' ? 1 : scenario === 'deadline' ? 60 : 10,
     completionTimeoutSeconds: 1,
   // Guard checks and DrvFS setup must finish before this fixture tests an
   // agent deadline. Production limits remain unchanged in common.mts.
@@ -55,6 +55,15 @@ for (const scenario of scenarios) {
   assert.equal(records.length, 1, 'Actual Docker resource must be recorded');
   const resource = JSON.parse(readFileSync(resolve(evidence, records[0]), 'utf8'));
   assert.equal(resource.stopped, true, 'Container cleanup must be verified');
+  assert.ok(resource.iterationEvidence, 'Per-iteration evidence must be discoverable');
+  if (scenario === 'deadline') {
+    assert.ok(existsSync(resolve(resource.iterationEvidence, 'closing.json')));
+    const records = readdirSync(evidence).filter(file => file.startsWith(branch.replaceAll('/', '-') + '-') && file.endsWith('-result.json'));
+    const stoppedResult = JSON.parse(readFileSync(resolve(evidence, records[0]), 'utf8'));
+    assert.equal(stoppedResult.codingStatus, 'aborted');
+    assert.equal(stoppedResult.budget.totalMs, 20000);
+    assert.equal(stoppedResult.result, null);
+  }
   const inspect = (() => { try { return execFileSync('docker', ['inspect', resource.containerId], { encoding: 'utf8', stdio: ['ignore','pipe','pipe'] }); } catch { return null; } })();
   assert.equal(inspect, null, 'Specific container must have been removed');
   const processes = execFileSync('ps', ['-eo', 'pid,args'], { encoding: 'utf8' }).split('\n');
