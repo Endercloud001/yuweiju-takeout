@@ -2,6 +2,8 @@
 
 2026-10-10（Asia/Shanghai）。依据用户要求实施根目录 `docs/yuweiju-issue#7-retro.md` 的建议；该原始文档是用户保留的未提交材料，本轮没有改写其历史状态。方案见 [改进方案](issue7-retro-improvement-plan.md)。
 
+后续交付授权（2026-10-10）：维护者明确要求使用pr技能创建本次改进PR，进行必要提交、合并与同步。下文“尚未推送/合并”的描述保留本地实施结束时的历史状态；后续交付结果以对应PR远端状态及交付记录为准，不扩大为Release、部署或原库操作授权。
+
 ## 实际位置与范围
 
 根目录仍为用户的 `codex/issue-4-refimg-scripts`，保留原有未提交文件和 PLANS.md 删除状态。维护工作树：`E:\Learning Files\yuweiju-takeout\.scratch\issue7-retro-improve`；分支 `codex/issue7-retro-improve-20261010`，从已确认 `origin/main=815b5e9` 开始。实现提交为 `165ad42`、`9637011`；后续报告提交只增加本报告，不改变被测源码。
