@@ -38,6 +38,8 @@ For real SQL/Redis verification, configure `networks` as an explicit list of tas
 
 Confirm commands against the selected image. Python commands use `python3`; provide the actual check command, not only “check links.” A missing `python` alias when `python3` is available is an invocation error, not a missing capability. Inside the same authorized iteration, the agent may correct that command or a known path and rerun its affected check. The failed check is unresolved until a corrected execution passes. Persistent failures, new dependency requirements, unknown decisions, ownership or authorization problems stop the task. This does not authorize restarting a supervisor that has ended or changing iteration/time limits.
 
+For Python invocation evidence, distinguish the Windows host, WSL host and container. Record each actual executable/entrypoint, argument list, working directory, script location or bind mapping, exit code and sanitized error separately. Resolve the host executable before invoking it; a container's `command -v python3` does not establish the host entrypoint. If a relative invocation fails and a confirmed absolute executable succeeds, retain both attempts and their directories. Without reproduction evidence, report the cause as unconfirmed; success alone does not establish a dependency, PATH or working-directory fix. Apply the existing command-correction and recovery boundaries above.
+
 Supply these locations separately:
 
 - Reader's project root: the directory actually containing `yuweiju-backend`, `yuweiju-web-vue`, and `yuweiju-weixin-miniapp`; Windows onboarding `$RepoRoot` points here.
