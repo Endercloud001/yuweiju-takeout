@@ -13,7 +13,7 @@ public interface ShoppingCartService extends IService<ShoppingCart> {
     void addItem(Long userId, com.codeying.dto.user.shoppingcart.ShoppingCartChangeDTO body);
     /** Decrements/removes one owned cart item; missing item is rejected. */
     void subtractItem(Long userId, com.codeying.dto.user.shoppingcart.ShoppingCartChangeDTO body);
-    /** Lists only the authenticated user's cart in stable creation order. */
+    /** Lists only the authenticated user's cart in stable creation order with validated current catalog prices; no cart writes. */
     java.util.List<ShoppingCart> listForUser(Long userId);
     /** Deletes only this user's cart and returns actual affected rows. */
     int clearForUser(Long userId);

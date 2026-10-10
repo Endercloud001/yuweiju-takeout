@@ -19,7 +19,7 @@ public class OrdersSubmitDTO {
     private Integer deliveryStatus;
     /** 预计送达时间（客户端展示用，后端重新计算） */
     private String estimatedDeliveryTime;
-    /** 打包费 */
+    /** 客户端打包费声明（忽略；服务端按有效总份数计算） */
     private Integer packAmount;
     /** 支付方式：1-微信 */
     private Integer payMethod;
