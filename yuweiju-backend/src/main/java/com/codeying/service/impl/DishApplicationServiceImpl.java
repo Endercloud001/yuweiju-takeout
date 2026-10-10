@@ -1,6 +1,5 @@
 package com.codeying.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.codeying.assembler.DishAssembler;
@@ -11,7 +10,6 @@ import com.codeying.dto.admin.dish.DishPageQuery;
 import com.codeying.entity.Category;
 import com.codeying.entity.Dish;
 import com.codeying.entity.DishFlavor;
-import com.codeying.entity.SetmealDish;
 import com.codeying.exception.DishBusinessException;
 import com.codeying.service.CategoryService;
 import com.codeying.service.DishApplicationService;
@@ -73,7 +71,7 @@ public class DishApplicationServiceImpl implements DishApplicationService {
         try {
             dishService.save(entity);
         } catch (DuplicateKeyException e) {
-            throw new DishBusinessException("菜品名称已存在");
+            throw new DishBusinessException("菜品名称已存在", e);
         }
         saveFlavors(entity.getId(), body.getFlavors());
     }
@@ -98,7 +96,7 @@ public class DishApplicationServiceImpl implements DishApplicationService {
         try {
             dishService.updateById(entity);
         } catch (DuplicateKeyException e) {
-            throw new DishBusinessException("菜品名称已存在");
+            throw new DishBusinessException("菜品名称已存在", e);
         }
         saveFlavors(body.getId(), body.getFlavors());
     }
@@ -118,10 +116,10 @@ public class DishApplicationServiceImpl implements DishApplicationService {
         }
         if (idList.isEmpty()) throw new DishBusinessException("参数错误");
 
-        long inSetmeal = setmealDishService.count(new QueryWrapper<SetmealDish>().in("dish_id", idList));
+        long inSetmeal = setmealDishService.countByDishes(idList);
         if (inSetmeal > 0) throw new DishBusinessException("菜品已关联套餐，无法删除");
 
-        dishFlavorService.remove(new QueryWrapper<DishFlavor>().in("dish_id", idList));
+        dishFlavorService.deleteByDishes(idList);
         dishService.removeByIds(idList);
     }
 
@@ -145,28 +143,20 @@ public class DishApplicationServiceImpl implements DishApplicationService {
         if (dish == null) throw new DishBusinessException("菜品不存在");
         Category category = dish.getCategoryId() == null ? null : categoryService.getById(dish.getCategoryId());
         String categoryName = category == null ? null : category.getName();
-        List<DishFlavor> flavors = dishFlavorService.list(new QueryWrapper<DishFlavor>().eq("dish_id", id));
+        List<DishFlavor> flavors = dishFlavorService.listByDish(id);
         return DishAssembler.toAdminVO(dish, categoryName, flavors);
     }
 
     @Override
     public List<Dish> listByCategory(Long categoryId) {
         if (categoryId == null) throw new DishBusinessException("参数错误");
-        QueryWrapper<Dish> wrapper = new QueryWrapper<>();
-        wrapper.eq("category_id", categoryId);
-        wrapper.orderByDesc("update_time").orderByDesc("id");
-        return dishService.list(wrapper);
+        return dishService.listCatalog(categoryId, null);
     }
 
     @Override
     public PageData<com.codeying.vo.admin.dish.DishPageVO> page(Integer page, Integer pageSize, String name, Long categoryId, Integer status) {
         if (page == null || pageSize == null || page <= 0 || pageSize <= 0) throw new DishBusinessException("参数错误");
-        QueryWrapper<Dish> wrapper = new QueryWrapper<>();
-        if (StringUtils.hasText(name)) wrapper.like("name", name.trim());
-        if (categoryId != null) wrapper.eq("category_id", categoryId);
-        if (status != null) wrapper.eq("status", status);
-        wrapper.orderByDesc("update_time").orderByDesc("id");
-        IPage<Dish> result = dishService.page(new Page<>(page, pageSize), wrapper);
+        IPage<Dish> result = dishService.pageCatalog(new Page<>(page, pageSize), name, categoryId, status);
         List<com.codeying.vo.admin.dish.DishPageVO> records = new ArrayList<>();
         for (Dish d : result.getRecords()) {
             String categoryName = null;
@@ -191,21 +181,17 @@ public class DishApplicationServiceImpl implements DishApplicationService {
     @Override
     public List<com.codeying.vo.user.dish.DishVO> userList(Long categoryId) {
         if (categoryId == null) throw new DishBusinessException("参数错误");
-        QueryWrapper<Dish> wrapper = new QueryWrapper<>();
-        wrapper.eq("category_id", categoryId);
-        wrapper.eq("status", 1);
-        wrapper.orderByDesc("update_time").orderByDesc("id");
-        List<Dish> dishes = dishService.list(wrapper);
+        List<Dish> dishes = dishService.listCatalog(categoryId, 1);
         List<com.codeying.vo.user.dish.DishVO> result = new ArrayList<>();
         for (Dish d : dishes) {
-            List<DishFlavor> flavors = dishFlavorService.list(new QueryWrapper<DishFlavor>().eq("dish_id", d.getId()));
+            List<DishFlavor> flavors = dishFlavorService.listByDish(d.getId());
             result.add(DishAssembler.toUserVO(d, flavors));
         }
         return result;
     }
 
     private void saveFlavors(Long dishId, List<DishFlavorDTO> flavors) {
-        dishFlavorService.remove(new QueryWrapper<DishFlavor>().eq("dish_id", dishId));
+        dishFlavorService.deleteByDishes(List.of(dishId));
         if (flavors == null || flavors.isEmpty()) return;
         List<DishFlavor> list = new ArrayList<>();
         for (DishFlavorDTO dto : flavors) {

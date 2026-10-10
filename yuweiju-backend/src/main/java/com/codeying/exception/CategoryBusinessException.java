@@ -9,5 +9,8 @@ public class CategoryBusinessException extends BusinessException {
     public CategoryBusinessException(String message) {
         super(message);
     }
+    public CategoryBusinessException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }
 
