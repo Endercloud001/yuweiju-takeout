@@ -1,0 +1,11 @@
+{
+  "name": "yuweiju-checkout-source", "version": "1.0.0", "private": true,
+  "scripts": {"build": "node build.cjs", "test": "node --test tests/build.test.cjs tests/checkout.test.cjs"},
+  "engines": {"node": ">=22 <23"},
+  "devDependencies": {
+    "@dcloudio/uni-template-compiler": "2.0.0-22420190823021",
+    "vue-template-compiler": "2.6.10",
+    "vue-template-es2015-compiler": "1.9.1",
+    "esbuild": "0.25.12"
+  }
+}
