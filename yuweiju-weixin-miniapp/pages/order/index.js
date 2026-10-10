@@ -53,6 +53,7 @@ function createCheckout({ store, api, uni, tools, components }) {
     data() {
       return {
         platform: "ios",
+        pricingReady: false,
         orderDishPrice: 0,
         orderDishNumber: 0,
         showDisplay: false,
@@ -125,6 +126,7 @@ function createCheckout({ store, api, uni, tools, components }) {
         return store.state.orderListData;
       },
       orderDataes() {
+        if (!this.pricingReady) return [];
         return this.showDisplay ? this.orderListDataes : this.orderListDataes.slice(0, 3);
       }
     },
@@ -138,16 +140,18 @@ function createCheckout({ store, api, uni, tools, components }) {
       this.getAddressList();
     },
     onLoad() {
-      this.platform = uni.getSystemInfoSync().platform;
-      const user = store.state.baseUserInfo || {};
-      this.psersonUrl = user.avatarUrl;
-      this.nickName = user.nickName;
-      this.gender = user.gender;
-      this.remark = store.state.remarkData;
-      this.computOrderInfo();
-      const selected = store.state.addressData;
-      if (selected && selected.detail) return this.applyAddress(selected);
-      return this.getAddressBookDefault();
+      return __async(this, null, function* () {
+        this.platform = uni.getSystemInfoSync().platform;
+        const user = store.state.baseUserInfo || {};
+        this.psersonUrl = user.avatarUrl;
+        this.nickName = user.nickName;
+        this.gender = user.gender;
+        this.remark = store.state.remarkData;
+        yield this.refreshCart();
+        const selected = store.state.addressData;
+        if (selected && selected.detail) return this.applyAddress(selected);
+        return this.getAddressBookDefault();
+      });
     },
     onReady() {
       uni.getSystemInfo({ success: (res) => {
@@ -156,13 +160,42 @@ function createCheckout({ store, api, uni, tools, components }) {
     },
     methods: {
       computOrderInfo() {
-        this.orderDishNumber = 0;
-        this.orderDishPrice = 0;
+        let count = 0;
+        let cents = 0;
         this.orderListDataes.forEach((item) => {
-          this.orderDishNumber += item.number;
-          this.orderDishPrice += item.number * item.amount;
+          const price = String(item.amount);
+          if (!Number.isInteger(item.number) || item.number <= 0 || !/^\d+(\.\d{1,2})?$/.test(price)) {
+            throw { msg: "\u5546\u54C1\u6570\u91CF\u6216\u91D1\u989D\u65E0\u6548" };
+          }
+          const parts = price.split(".");
+          const unit = Number(parts[0]) * 100 + Number((parts[1] || "").padEnd(2, "0"));
+          count += item.number;
+          cents += unit * item.number;
+          if (count > 2147483647 || !Number.isSafeInteger(cents) || cents > 9999999999) throw { msg: "\u8BA2\u5355\u91D1\u989D\u8D85\u51FA\u8303\u56F4" };
         });
-        this.orderDishPrice += 6 + this.orderDishNumber;
+        const total = count ? cents + count * 100 + 200 : 0;
+        if (total > 9999999999) throw { msg: "\u8BA2\u5355\u91D1\u989D\u8D85\u51FA\u8303\u56F4" };
+        this.orderDishNumber = count;
+        this.orderDishPrice = total / 100;
+      },
+      refreshCart() {
+        return __async(this, null, function* () {
+          this.pricingReady = false;
+          try {
+            const res = yield api.getShoppingCartList();
+            if (res.code !== 1 || !Array.isArray(res.data)) throw res;
+            commit("initdishListMut", res.data);
+            this.computOrderInfo();
+            if (!this.orderDishNumber) throw { msg: "\u8D2D\u7269\u8F66\u4E3A\u7A7A" };
+            this.pricingReady = true;
+            return true;
+          } catch (error) {
+            this.orderDishPrice = 0;
+            this.orderDishNumber = 0;
+            toast(error);
+            return false;
+          }
+        });
       },
       applyAddress(address) {
         this.address = address.provinceName + address.cityName + address.districtName + address.detail;
@@ -227,6 +260,18 @@ function createCheckout({ store, api, uni, tools, components }) {
             return false;
           }
           this.isHandlePy = true;
+          const displayedAmount = this.orderDishPrice;
+          const displayedQuantity = this.orderDishNumber;
+          try {
+            if (!(yield this.refreshCart())) return;
+            if (displayedAmount !== this.orderDishPrice || displayedQuantity !== this.orderDishNumber) {
+              toast({ msg: "\u5546\u54C1\u4EF7\u683C\u6216\u6570\u91CF\u5DF2\u66F4\u65B0\uFF0C\u8BF7\u786E\u8BA4\u540E\u518D\u6B21\u63D0\u4EA4" });
+              return;
+            }
+          } finally {
+            this.isHandlePy = false;
+          }
+          this.isHandlePy = true;
           const params = {
             payMethod: 1,
             addressBookId: this.addressBookId,
@@ -244,6 +289,7 @@ function createCheckout({ store, api, uni, tools, components }) {
               toast(res);
               return;
             }
+            this.orderDishPrice = Number(res.data.orderAmount);
             commit("setOrderData", res.data);
             commit("setRemark", "");
             if (res.data && res.data.estimatedDeliveryTime) {

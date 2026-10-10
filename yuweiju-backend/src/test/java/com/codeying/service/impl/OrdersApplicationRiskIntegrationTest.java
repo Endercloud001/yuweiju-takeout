@@ -84,7 +84,7 @@ class OrdersApplicationRiskIntegrationTest {
         page.setRecords(List.of(row));
         page.setTotal(1);
         Mockito.when(ordersMapper.selectAdminConditionPage(any(), any(), any(), any(), any())).thenReturn(page);
-        Mockito.when(orderDetailService.list(any(QueryWrapper.class))).thenReturn(List.of());
+        Mockito.when(orderDetailService.listForOrder(any())).thenReturn(List.of());
 
         OrderRiskResult riskResult = new OrderRiskResult();
         riskResult.setOrderId(5001L);
@@ -121,7 +121,7 @@ class OrdersApplicationRiskIntegrationTest {
         row.setNumber("ORD-5001");
         row.setAmount(new BigDecimal("66.60"));
         Mockito.when(ordersService.getById(5001L)).thenReturn(row);
-        Mockito.when(orderDetailService.list(any(QueryWrapper.class))).thenReturn(List.of());
+        Mockito.when(orderDetailService.listForOrder(any())).thenReturn(List.of());
         return row;
     }
 

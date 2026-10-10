@@ -154,4 +154,18 @@ class CartAddressRulesTest {
         assertThrows(BusinessException.class, () -> service.subtractItem(2L, body));
         verify(mapper, never()).deleteOwned(eq(2L), any());
     }
+
+    @Test
+    void trustedCartReadReturnsCurrentRoundedCatalogPricesWithoutUpdatingStoredCart() {
+        var dishes=mock(DishService.class); var mapper=mock(ShoppingCartMapper.class);
+        var service=new ShoppingCartServiceImpl(dishes,mock(SetmealService.class),mock(AnalysisObservationService.class));
+        ReflectionTestUtils.setField(service,"baseMapper",mapper);
+        var cart=new ShoppingCart(); cart.setId(30L); cart.setUserId(1L); cart.setDishId(10L); cart.setNumber(2); cart.setAmount(new java.math.BigDecimal("0.01"));
+        var dish=new Dish(); dish.setStatus(1); dish.setPrice(new java.math.BigDecimal("18.375"));
+        when(mapper.findByUser(1L)).thenReturn(java.util.List.of(cart)); when(dishes.getById(10L)).thenReturn(dish);
+        var priced=service.listForUser(1L).get(0);
+        assertEquals(new java.math.BigDecimal("18.38"),priced.getAmount());
+        assertEquals(new java.math.BigDecimal("0.01"),cart.getAmount());
+        assertNotSame(cart,priced); verify(mapper).findByUser(1L); verifyNoMoreInteractions(mapper);
+    }
 }

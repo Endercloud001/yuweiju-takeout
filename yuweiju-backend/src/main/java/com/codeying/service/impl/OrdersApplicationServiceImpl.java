@@ -14,11 +14,9 @@ import com.codeying.dto.user.order.OrdersPaymentDTO;
 import com.codeying.dto.user.order.OrdersSubmitDTO;
 import com.codeying.dto.user.order.OrderHistoryQuery;
 import com.codeying.entity.AddressBook;
-import com.codeying.entity.Dish;
 import com.codeying.entity.OrderDetail;
 import com.codeying.entity.OrderRiskResult;
 import com.codeying.entity.Orders;
-import com.codeying.entity.Setmeal;
 import com.codeying.entity.ShoppingCart;
 import com.codeying.entity.User;
 import com.codeying.exception.OrderBusinessException;
@@ -48,11 +46,8 @@ import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -64,11 +59,10 @@ import java.util.concurrent.TimeUnit;
 public class OrdersApplicationServiceImpl implements OrdersApplicationService {
 
     private static final Logger log = LoggerFactory.getLogger(OrdersApplicationServiceImpl.class);
+    private final OrderChargingPolicy charging;
     private final OrdersMapper ordersMapper;
     private final OrdersService ordersService;
     private final OrderDetailService orderDetailService;
-    private final DishService dishService;
-    private final SetmealService setmealService;
     private final ShoppingCartService shoppingCartService;
     private final AddressBookService addressBookService;
     private final UserService userService;
@@ -95,11 +89,10 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
             OrderRiskService orderRiskService,
             OrdersMapper ordersMapper
     ) {
+        this.charging = new OrderChargingPolicy(dishService, setmealService);
         this.ordersMapper = ordersMapper;
         this.ordersService = ordersService;
         this.orderDetailService = orderDetailService;
-        this.dishService = dishService;
-        this.setmealService = setmealService;
         this.shoppingCartService = shoppingCartService;
         this.addressBookService = addressBookService;
         this.userService = userService;
@@ -124,87 +117,13 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
     }
 
     private List<OrderDetail> listDetails(Long orderId) {
-        QueryWrapper<OrderDetail> wrapper = new QueryWrapper<>();
-        wrapper.eq("order_id", orderId);
-        wrapper.orderByAsc("id");
-        List<OrderDetail> details = orderDetailService.list(wrapper);
-        refreshDetailImageSnapshots(details);
-        return details;
-    }
-
-    /**
-     * 历史订单图片兜底：使用当前菜品/套餐图片覆盖 order_detail.image 的旧值。
-     */
-    private void refreshDetailImageSnapshots(List<OrderDetail> details) {
-        if (details == null || details.isEmpty()) {
-            return;
-        }
-
-        Set<Long> dishIds = new HashSet<>();
-        Set<Long> setmealIds = new HashSet<>();
-        for (OrderDetail detail : details) {
-            if (detail.getDishId() != null) {
-                dishIds.add(detail.getDishId());
-            }
-            if (detail.getSetmealId() != null) {
-                setmealIds.add(detail.getSetmealId());
-            }
-        }
-
-        Map<Long, String> dishImageMap = new HashMap<>();
-        if (!dishIds.isEmpty()) {
-            QueryWrapper<Dish> dishWrapper = new QueryWrapper<>();
-            dishWrapper.in("id", dishIds);
-            dishWrapper.select("id", "image");
-            List<Dish> dishes = dishService.list(dishWrapper);
-            for (Dish dish : dishes) {
-                if (dish.getId() != null && StringUtils.hasText(dish.getImage())) {
-                    dishImageMap.put(dish.getId(), dish.getImage());
-                }
-            }
-        }
-
-        Map<Long, String> setmealImageMap = new HashMap<>();
-        if (!setmealIds.isEmpty()) {
-            QueryWrapper<Setmeal> setmealWrapper = new QueryWrapper<>();
-            setmealWrapper.in("id", setmealIds);
-            setmealWrapper.select("id", "image");
-            List<Setmeal> setmeals = setmealService.list(setmealWrapper);
-            for (Setmeal setmeal : setmeals) {
-                if (setmeal.getId() != null && StringUtils.hasText(setmeal.getImage())) {
-                    setmealImageMap.put(setmeal.getId(), setmeal.getImage());
-                }
-            }
-        }
-
-        List<OrderDetail> updates = new ArrayList<>();
-        for (OrderDetail detail : details) {
-            String latestImage = null;
-            if (detail.getDishId() != null) {
-                latestImage = dishImageMap.get(detail.getDishId());
-            } else if (detail.getSetmealId() != null) {
-                latestImage = setmealImageMap.get(detail.getSetmealId());
-            }
-            if (!StringUtils.hasText(latestImage) || latestImage.equals(detail.getImage())) {
-                continue;
-            }
-
-            detail.setImage(latestImage);
-            OrderDetail update = new OrderDetail();
-            update.setId(detail.getId());
-            update.setImage(latestImage);
-            updates.add(update);
-        }
-
-        if (!updates.isEmpty()) {
-            orderDetailService.updateBatchById(updates);
-        }
+        return orderDetailService.listForOrder(orderId);
     }
 
     @Override
     @Transactional
     public OrderSubmitVO submit(Long userId, OrdersSubmitDTO body) {
-        if (userId == null || body == null || body.getAddressBookId() == null) {
+        if (userId == null || userId <= 0 || body == null || body.getAddressBookId() == null || body.getAddressBookId() <= 0) {
             throw new OrderBusinessException("参数错误");
         }
 
@@ -213,20 +132,17 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
 
         AddressBook address = addressBookService.findOwned(userId, body.getAddressBookId());
 
-        Integer packAmount = body.getPackAmount() == null ? 0 : body.getPackAmount();
-        BigDecimal goodsTotal = BigDecimal.ZERO;
-        for (ShoppingCart c : carts) {
-            shoppingCartService.requireSaleable(c.getDishId(), c.getSetmealId());
-            BigDecimal unit = c.getAmount() == null ? BigDecimal.ZERO : c.getAmount();
-            int num = c.getNumber() == null ? 0 : c.getNumber();
-            goodsTotal = goodsTotal.add(unit.multiply(BigDecimal.valueOf(num)));
-        }
-        BigDecimal total = goodsTotal.add(BigDecimal.valueOf(packAmount));
+        if (address == null || !userId.equals(address.getUserId())) throw new OrderBusinessException("地址不存在");
+        User user = userService.getById(userId);
+        if (user == null || !userId.equals(user.getId())) throw new OrderBusinessException("用户信息异常");
+        // Re-read catalog at submission even if a caller already fetched a displayed cart.
+        var charge = charging.price(userId, carts);
+        carts = charge.items();
+        int packAmount = charge.quantity();
+        BigDecimal total = charge.total();
 
         Date now = new Date();
         Date estimatedDeliveryTime = calculateEstimatedDeliveryTime(address, now);
-
-        User user = userService.getById(userId);
 
         Orders order = new Orders();
         order.setNumber(generateOrderNumber());
@@ -234,19 +150,19 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
         order.setUserId(userId);
         order.setAddressBookId(body.getAddressBookId());
         order.setOrderTime(now);
-        order.setPayMethod(body.getPayMethod());
+        order.setPayMethod(body.getPayMethod() == null ? 1 : body.getPayMethod());
         order.setPayStatus(Orders.UN_PAID);
         order.setAmount(total);
         order.setRemark(body.getRemark());
         order.setPhone(address.getPhone());
         order.setConsignee(address.getConsignee());
-        order.setUserName(user == null ? null : user.getName());
+        order.setUserName(user.getName());
         order.setAddress(buildAddress(address));
         order.setEstimatedDeliveryTime(estimatedDeliveryTime);
-        order.setDeliveryStatus(body.getDeliveryStatus());
+        order.setDeliveryStatus(body.getDeliveryStatus() == null ? 1 : body.getDeliveryStatus());
         order.setPackAmount(packAmount);
         order.setTablewareNumber(body.getTablewareNumber());
-        order.setTablewareStatus(body.getTablewareStatus());
+        order.setTablewareStatus(body.getTablewareStatus() == null ? 0 : body.getTablewareStatus());
 
         if (!ordersService.save(order)) throw new OrderBusinessException("订单写入失败");
 
@@ -289,11 +205,7 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
             throw new OrderBusinessException("参数错误");
         }
 
-        QueryWrapper<Orders> wrapper = new QueryWrapper<>();
-        wrapper.eq("number", body.getOrderNumber().trim());
-        wrapper.eq("user_id", userId);
-        wrapper.last("limit 1");
-        Orders order = ordersService.getOne(wrapper);
+        Orders order = ordersMapper.findByNumberOwned(userId, body.getOrderNumber().trim());
         if (order == null) throw new OrderBusinessException("订单不存在");
 
         User user = userService.getById(userId);
@@ -318,11 +230,7 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
     @Transactional
     public void cancelByUser(Long userId, Long orderId) {
         if (userId == null || orderId == null) throw new OrderBusinessException("参数错误");
-        QueryWrapper<Orders> wrapper = new QueryWrapper<>();
-        wrapper.eq("id", orderId);
-        wrapper.eq("user_id", userId);
-        wrapper.last("limit 1");
-        Orders order = ordersService.getOne(wrapper);
+        Orders order = ordersMapper.findOwned(userId, orderId);
         if (order == null) throw new OrderBusinessException("订单不存在");
         Integer status = order.getStatus();
         if (status == null || (!Integer.valueOf(Orders.PENDING_PAYMENT).equals(status) && !Integer.valueOf(Orders.TO_BE_CONFIRMED).equals(status))) {
@@ -397,12 +305,7 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
         if (userId == null || page == null || pageSize == null || page <= 0 || pageSize <= 0) {
             throw new OrderBusinessException("参数错误");
         }
-        QueryWrapper<Orders> wrapper = new QueryWrapper<>();
-        wrapper.eq("user_id", userId);
-        if (status != null) wrapper.eq("status", status);
-        wrapper.orderByDesc("order_time").orderByDesc("id");
-
-        IPage<Orders> result = ordersService.page(new Page<>(page, pageSize), wrapper);
+        IPage<Orders> result = ordersMapper.findHistoryPage(new Page<>(page, pageSize), userId, status);
         List<com.codeying.vo.user.order.OrderVO> records = new ArrayList<>();
         for (Orders o : result.getRecords()) {
             records.add(buildUserOrderVO(o));
@@ -464,11 +367,7 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
     @Override
     public com.codeying.vo.user.order.OrderVO orderDetail(Long userId, Long orderId) {
         if (userId == null || orderId == null) throw new OrderBusinessException("参数错误");
-        QueryWrapper<Orders> wrapper = new QueryWrapper<>();
-        wrapper.eq("id", orderId);
-        wrapper.eq("user_id", userId);
-        wrapper.last("limit 1");
-        Orders order = ordersService.getOne(wrapper);
+        Orders order = ordersMapper.findOwned(userId, orderId);
         if (order == null) throw new OrderBusinessException("订单不存在");
         return buildUserOrderVO(order);
     }

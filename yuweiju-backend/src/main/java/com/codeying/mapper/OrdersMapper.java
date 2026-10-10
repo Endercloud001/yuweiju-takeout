@@ -14,6 +14,23 @@ import java.util.Date;
  * @author Endercloud
  */
 public interface OrdersMapper extends BaseMapper<Orders> {
+    /** Finds a stored order under the authenticated owner, without recomputing fees. */
+    default Orders findOwned(@Param("userId") Long userId, @Param("orderId") Long orderId) {
+        return selectOne(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<Orders>()
+                .eq("user_id", userId).eq("id", orderId).last("limit 1"));
+    }
+    /** Resolves the owned stored order for simulated payment. */
+    default Orders findByNumberOwned(@Param("userId") Long userId, @Param("number") String number) {
+        return selectOne(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<Orders>()
+                .eq("user_id", userId).eq("number", number).last("limit 1"));
+    }
+    /** User history with original latest-first ordering and optional status. */
+    default com.baomidou.mybatisplus.core.metadata.IPage<Orders> findHistoryPage(
+            com.baomidou.mybatisplus.extension.plugins.pagination.Page<Orders> page, @Param("userId") Long userId, @Param("status") Integer status) {
+        return selectPage(page, new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<Orders>()
+                .eq("user_id", userId).eq(status != null, "status", status).orderByDesc("order_time").orderByDesc("id"));
+    }
+
     /** Inclusive actual aggregation, SQL failures propagate to the use case. */
     com.codeying.vo.admin.report.OrderBusinessAggregate aggregateBusinessByOrderTimeRange(
             @Param("begin") Date begin, @Param("end") Date end, @Param("completed") int completed);

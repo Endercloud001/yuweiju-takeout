@@ -6,7 +6,7 @@ export function createCheckout({ store, api, uni, tools, components }) {
     components,
     data() {
       return {
-        platform: 'ios', orderDishPrice: 0, orderDishNumber: 0, showDisplay: false,
+        platform: 'ios', pricingReady: false, orderDishPrice: 0, orderDishNumber: 0, showDisplay: false,
         psersonUrl: '../../static/btn_waiter_sel.png', nickName: '', gender: '0',
         phoneNumber: '', address: '', addressBookId: '', addressLabel: '', tagLabel: '',
         remark: '', arrivalTime: '', scrollH: 0, addressList: [], isHandlePy: false,
@@ -24,7 +24,7 @@ export function createCheckout({ store, api, uni, tools, components }) {
     },
     computed: {
       orderListDataes() { return store.state.orderListData; },
-      orderDataes() { return this.showDisplay ? this.orderListDataes : this.orderListDataes.slice(0, 3); }
+      orderDataes() { if (!this.pricingReady) return []; return this.showDisplay ? this.orderListDataes : this.orderListDataes.slice(0, 3); }
     },
     created() {
       const now = new Date();
@@ -35,14 +35,14 @@ export function createCheckout({ store, api, uni, tools, components }) {
       this.weeks = [this.toDate, this.tomorrowStart].map(tools.getWeekDate);
       this.getAddressList();
     },
-    onLoad() {
+    async onLoad() {
       this.platform = uni.getSystemInfoSync().platform;
       const user = store.state.baseUserInfo || {};
       this.psersonUrl = user.avatarUrl;
       this.nickName = user.nickName;
       this.gender = user.gender;
       this.remark = store.state.remarkData;
-      this.computOrderInfo();
+      await this.refreshCart();
       const selected = store.state.addressData;
       if (selected && selected.detail) return this.applyAddress(selected);
       return this.getAddressBookDefault();
@@ -52,14 +52,40 @@ export function createCheckout({ store, api, uni, tools, components }) {
     },
     methods: {
       computOrderInfo() {
-        this.orderDishNumber = 0;
-        this.orderDishPrice = 0;
+        let count = 0;
+        let cents = 0;
         this.orderListDataes.forEach(item => {
-          this.orderDishNumber += item.number;
-          this.orderDishPrice += item.number * item.amount;
+          const price = String(item.amount);
+          if (!Number.isInteger(item.number) || item.number <= 0 || !/^\d+(\.\d{1,2})?$/.test(price)) {
+            throw { msg: '商品数量或金额无效' };
+          }
+          const parts = price.split('.');
+          const unit = Number(parts[0]) * 100 + Number((parts[1] || '').padEnd(2, '0'));
+          count += item.number;
+          cents += unit * item.number;
+          if (count > 2147483647 || !Number.isSafeInteger(cents) || cents > 9999999999) throw { msg: '订单金额超出范围' };
         });
-        // Issue #5 preserves the existing charging display; amount correction is a separate issue.
-        this.orderDishPrice += 6 + this.orderDishNumber;
+        const total = count ? cents + count * 100 + 200 : 0;
+        if (total > 9999999999) throw { msg: '订单金额超出范围' };
+        this.orderDishNumber = count;
+        this.orderDishPrice = total / 100;
+      },
+      async refreshCart() {
+        this.pricingReady = false;
+        try {
+          const res = await api.getShoppingCartList();
+          if (res.code !== 1 || !Array.isArray(res.data)) throw res;
+          commit('initdishListMut', res.data);
+          this.computOrderInfo();
+          if (!this.orderDishNumber) throw { msg: '购物车为空' };
+          this.pricingReady = true;
+          return true;
+        } catch (error) {
+          this.orderDishPrice = 0;
+          this.orderDishNumber = 0;
+          toast(error);
+          return false;
+        }
       },
       applyAddress(address) {
         this.address = address.provinceName + address.cityName + address.districtName + address.detail;
@@ -108,6 +134,16 @@ export function createCheckout({ store, api, uni, tools, components }) {
         if (this.isHandlePy) return;
         if (!this.address) { toast({ msg: '请选择收货地址' }); return false; }
         this.isHandlePy = true;
+        const displayedAmount = this.orderDishPrice;
+        const displayedQuantity = this.orderDishNumber;
+        try {
+          if (!await this.refreshCart()) return;
+          if (displayedAmount !== this.orderDishPrice || displayedQuantity !== this.orderDishNumber) {
+            toast({ msg: '商品价格或数量已更新，请确认后再次提交' });
+            return;
+          }
+        } finally { this.isHandlePy = false; }
+        this.isHandlePy = true;
         const params = {
           payMethod: 1, addressBookId: this.addressBookId, remark: this.remark,
           estimatedDeliveryTime: null, deliveryStatus: this.arrivalTime === '立即派送' ? 1 : 0,
@@ -117,6 +153,7 @@ export function createCheckout({ store, api, uni, tools, components }) {
         try {
           const res = await api.submitOrderSubmit(params);
           if (res.code !== 1) { toast(res); return; }
+          this.orderDishPrice = Number(res.data.orderAmount);
           commit('setOrderData', res.data);
           commit('setRemark', '');
           if (res.data && res.data.estimatedDeliveryTime) {

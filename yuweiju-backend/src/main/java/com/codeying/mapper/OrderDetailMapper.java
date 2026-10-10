@@ -14,6 +14,12 @@ import java.util.List;
  * @author Endercloud
  */
 public interface OrderDetailMapper extends BaseMapper<OrderDetail> {
+    /** Stored historical detail snapshots, stable ID order, with no catalog refresh/write. */
+    default List<OrderDetail> findByOrder(Long orderId) {
+        return selectList(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<OrderDetail>()
+                .eq("order_id", orderId).orderByAsc("id"));
+    }
+
 
     /**
      * 查询指定时间范围内销量 TOP10 商品。

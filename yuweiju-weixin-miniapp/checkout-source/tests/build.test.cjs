@@ -37,14 +37,15 @@ test('saved template and business source edits change genuinely compiled outputs
   assert.notEqual(modifiedTemplate['index.wxml'], original['index.wxml']);
   assert.match(modifiedTemplate['index.wxml'], /编译编辑探针/);
   const script = path.join(source, 'checkout.js');
-  fs.writeFileSync(script, fs.readFileSync(script, 'utf8').replace('this.orderDishPrice += 6 +', 'this.orderDishPrice += 7 +'));
+  fs.writeFileSync(script, fs.readFileSync(script, 'utf8').replace('cents + count * 100 + 200', 'cents + count * 100 + 300'));
   const modifiedScript = await compileCheckout(options);
   assert.notEqual(modifiedScript['index.js'], modifiedTemplate['index.js']);
   // Execute the edited bundle with actual old Vue/store, using synthetic IO, to prove changed behavior.
   const env = harness(); env.context.module = { exports: {} };
   vm.runInContext(modifiedScript['index.js'], env.context);
   const page = env.instance(env.context.module.exports.default);
-  page.computOrderInfo(); assert.equal(page.orderDishPrice, 7); page.$destroy();
+  env.store.commit('initdishListMut', [{ number: 1, amount: 18 }]);
+  page.computOrderInfo(); assert.equal(page.orderDishPrice, 22); page.$destroy();
   // Retain this small owned probe under .scratch for review; never overwrite the task source.
 });
 test('generated JavaScript syntax, template events/refs and component/static references resolve', async () => {

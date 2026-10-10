@@ -9,6 +9,7 @@ const cart = [
   { id: 4, name: '测试小吃', number: 1, amount: 6, image: '/static/test.png' }
 ];
 function response(options) {
+  if (options.url.endsWith('/shoppingCart/list')) return { code: 1, data: plain(cart) };
   if (options.url.endsWith('/addressBook/list')) return { code: 1, data: [address] };
   if (options.url.endsWith('/addressBook/default')) return { code: 1, data: address };
   if (options.url.endsWith('/estimatedDeliveryTime')) return { code: 1, data: '12:30' };
@@ -28,18 +29,18 @@ test('real generated page registers with old adapter; cart quantities, fees and 
   assert.equal(typeof env.registrations[0].methods.__e, 'function');
   assert.equal(env.options._scopeId, 'data-v-0ca91b30');
   assert.equal(page.orderDishNumber, 7);
-  assert.equal(page.orderDishPrice, 76);
+  assert.equal(page.orderDishPrice, 72);
   assert.equal(page.orderDataes.length, 3);
   assert.equal(page.orderDataes[0].number, 2);
   env.options.render.call(page);
   assert.equal(page.$mp.data.$root.l0[0].g0, '12.50');
-  assert.equal(page.$mp.data.$root.g1, '76.00');
-  assert.equal(page.$mp.data.$root.g2, '76.00');
+  assert.equal(page.$mp.data.$root.g1, '72.00');
+  assert.equal(page.$mp.data.$root.g2, '72.00');
   page.showDisplay = true;
   env.options.render.call(page);
   assert.equal(page.$mp.data.$root.l0.length, 4);
   env.store.commit('initdishListMut', []); page.computOrderInfo();
-  assert.equal(page.orderDishNumber, 0); assert.equal(page.orderDishPrice, 6);
+  assert.equal(page.orderDishNumber, 0); assert.equal(page.orderDishPrice, 0);
   page.$destroy();
 });
 test('default/selected address and actual old address/remark return handlers share the same store', async () => {
@@ -89,7 +90,7 @@ test('tableware confirmation/cancel and delivery date/time popups keep existing 
   page.$destroy();
 });
 test('submit sends public fields and current authentication, hands order to unchanged simulated payment', async () => {
-  const order = { id: 501, orderNumber: 'SYNTHETIC-501', amount: 76, estimatedDeliveryTime: '2026-10-10 12:35:00' };
+  const order = { id: 501, orderNumber: 'SYNTHETIC-501', orderAmount: 72, estimatedDeliveryTime: '2026-10-10 12:35:00' };
   const env = harness({ respond: options => {
     if (options.url.endsWith('/submit')) return { code: 1, data: order };
     if (options.url.endsWith('/payment')) return { code: 1, data: null };
@@ -104,7 +105,7 @@ test('submit sends public fields and current authentication, hands order to unch
   assert.equal(submit.header.authentication, 'synthetic-new-token');
   assert.equal(submit.header['Content-Type'], 'application/json');
   assert.deepEqual(submit.data, { payMethod: 1, addressBookId: 41, remark: '测试备注', estimatedDeliveryTime: null,
-    deliveryStatus: 0, tablewareStatus: 1, tablewareNumber: 7, packAmount: 7, amount: 76 });
+    deliveryStatus: 0, tablewareStatus: 1, tablewareNumber: 7, packAmount: 7, amount: 72 });
   assert.deepEqual(plain(env.store.state.orderData), order); assert.equal(env.store.state.remarkData, '');
   assert.equal(env.store.state.arrivals, '12:35'); assert.equal(env.redirects.at(-1), '/pages/pay/index?orderId=501');
   env.capture('pages/pay/index.js'); const payScript = env.load(61).default;
@@ -127,7 +128,7 @@ test('missing address and rejected business/network submit preserve remark/order
   assert.equal(env.store.state.remarkData, '保留备注'); assert.deepEqual(plain(env.store.state.orderData), {});
   answer = new Error('合成网络失败'); await page.payOrderHandle(); assert.equal(env.toasts.at(-1), '合成网络失败'); assert.equal(page.isHandlePy, false);
   assert.equal(env.redirects.length, 0);
-  answer = { code: 1, data: { id: 502 } }; await page.payOrderHandle(); assert.equal(env.redirects.at(-1), '/pages/pay/index?orderId=502');
+  answer = { code: 1, data: { id: 502, orderAmount: 72 } }; await page.payOrderHandle(); assert.equal(env.redirects.at(-1), '/pages/pay/index?orderId=502');
   page.$destroy();
 });
 test('in-flight submit prevents duplicate requests; authentication rejection never navigates to payment', async () => {
@@ -166,10 +167,58 @@ test('no default address remains editable; rejected estimation displays failure 
     if (options.url.endsWith('/addressBook/list')) return { code: 1, data: [] };
     if (options.url.endsWith('/addressBook/default')) return { code: 1, data: null };
     if (options.url.endsWith('/estimatedDeliveryTime')) return { code: 0, msg: '合成超出范围' };
+    if (options.url.endsWith('/shoppingCart/list')) return { code: 1, data: plain(cart) };
     throw new Error('Unexpected request');
   } });
   const page = await checkout(env); assert.equal(page.address, ''); assert.equal(page.addressBookId, '');
   page.goAddress(); assert.equal(env.redirects.at(-1), '/pages/addOrEditAddress/addOrEditAddress');
   await page.applyAddress(address); assert.equal(page.arrivalTime, '合成超出范围'); assert.equal(env.store.state.arrivals, '合成超出范围');
+  page.$destroy();
+});
+
+test('checkout refreshes trusted prices, computes cents, and confirms changed price before submitting', async () => {
+  let trusted = [{ number: 2, amount: '18.00', dishId: 10 }];
+  const env = harness({ respond: options => {
+    if (options.url.endsWith('/shoppingCart/list')) return { code: 1, data: plain(trusted) };
+    if (options.url.endsWith('/submit')) return { code: 1, data: { id: 700, orderAmount: 40.74, orderNumber: 'synthetic-700' } };
+    return response(options);
+  } });
+  env.store.commit('initdishListMut', [{ number: 2, amount: 1 }]);
+  const page = env.instance(); await env.options.onLoad.call(page);
+  assert.equal(page.orderDishPrice, 40); assert.equal(page.pricingReady, true);
+  trusted = [{ number: 2, amount: '18.37', dishId: 10 }];
+  await page.payOrderHandle();
+  assert.equal(page.orderDishPrice, 40.74); assert.equal(page.isHandlePy, false);
+  assert.equal(env.requests.filter(r => r.url.endsWith('/submit')).length, 0);
+  assert.equal(env.toasts.at(-1), '商品价格或数量已更新，请确认后再次提交');
+  await page.payOrderHandle();
+  assert.equal(env.store.state.orderData.orderAmount, 40.74);
+  assert.equal(env.redirects.at(-1), '/pages/pay/index?orderId=700');
+  page.$destroy();
+});
+test('failed/empty/malformed trusted cart cannot submit stale cached amount and allows recovery', async () => {
+  let trusted = { code: 401, msg: '合成价格读取未登录' };
+  const env = harness({ respond: options => options.url.endsWith('/shoppingCart/list') ? trusted : response(options) });
+  const page = await checkout(env);
+  assert.equal(page.pricingReady, false); assert.equal(page.orderDishPrice, 0);
+  for (const data of [[], [{ number: 0, amount: 18 }], [{ number: 1, amount: null }], [{ number: 1, amount: -1 }], [{ number: 2147483647, amount: 18 }]]) {
+    trusted = { code: 1, data }; await page.payOrderHandle();
+    assert.equal(page.pricingReady, false); assert.equal(page.isHandlePy, false);
+  }
+  assert.equal(env.requests.filter(r => r.url.endsWith('/submit')).length, 0);
+  trusted = { code: 1, data: [{ number: 1, amount: '0.10' }, { number: 1, amount: '0.20' }] };
+  await page.refreshCart(); assert.equal(page.orderDishPrice, 4.30); assert.equal(page.pricingReady, true);
+  page.$destroy();
+});
+
+
+test('old detail and payment reuse stored amounts even when current checkout policy changes', async () => {
+  const env = harness({ respond: response });
+  const detail = env.load(51).default;
+  const page = env.instance(detail);
+  page.orderDetailsData = { id: 974, amount: 19, packAmount: 1, number: 'historical-974', orderTime: '2026-10-01 12:00:00' };
+  page.handlePay(974);
+  assert.equal(env.store.state.orderData.orderAmount, 19);
+  assert.equal(env.redirects.at(-1), '/pages/pay/index?orderId=974');
   page.$destroy();
 });

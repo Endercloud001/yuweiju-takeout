@@ -12,4 +12,9 @@ import org.springframework.stereotype.Service;
  * @author Endercloud
  */
 @Service
-public class OrderDetailServiceImpl extends ServiceImpl<OrderDetailMapper, OrderDetail> implements OrderDetailService {}
+public class OrderDetailServiceImpl extends ServiceImpl<OrderDetailMapper, OrderDetail> implements OrderDetailService {
+    @Override
+    public java.util.List<OrderDetail> listForOrder(Long orderId) {
+        return baseMapper.findByOrder(orderId);
+    }
+}

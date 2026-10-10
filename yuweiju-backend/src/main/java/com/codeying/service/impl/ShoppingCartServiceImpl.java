@@ -17,11 +17,13 @@ public class ShoppingCartServiceImpl extends ServiceImpl<ShoppingCartMapper, Sho
     private final DishService dishes;
     private final SetmealService setmeals;
     private final AnalysisObservationService observation;
+    private final OrderChargingPolicy charging;
 
     public ShoppingCartServiceImpl(DishService dishes, SetmealService setmeals, AnalysisObservationService observation) {
         this.dishes = dishes;
         this.setmeals = setmeals;
         this.observation = observation;
+        this.charging = new OrderChargingPolicy(dishes, setmeals);
     }
 
     private void requireUser(Long userId) {
@@ -81,7 +83,7 @@ public class ShoppingCartServiceImpl extends ServiceImpl<ShoppingCartMapper, Sho
     }
 
     @Override
-    public List<ShoppingCart> listForUser(Long userId) { requireUser(userId); return baseMapper.findByUser(userId); }
+    public List<ShoppingCart> listForUser(Long userId) { requireUser(userId); return charging.price(userId, baseMapper.findByUser(userId)).items(); }
 
     @Override @Transactional
     public int clearForUser(Long userId) { requireUser(userId); return baseMapper.deleteByUser(userId); }

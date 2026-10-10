@@ -8,4 +8,7 @@ import com.codeying.entity.OrderDetail;
  *
  * @author Endercloud
  */
-public interface OrderDetailService extends IService<OrderDetail> {}
+public interface OrderDetailService extends IService<OrderDetail> {
+    /** Reads stored snapshots for one order, never updates historical images or prices. */
+    java.util.List<OrderDetail> listForOrder(Long orderId);
+}

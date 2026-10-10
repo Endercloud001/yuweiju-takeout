@@ -84,9 +84,9 @@
 <text class="may">￥</text>{{orderDishNumber+''}}</view>
 <view class="orderInfo">
 <text class="text">配送费</text>
-<text class="may">￥</text>6</view>
+<text class="may">￥</text>2</view>
 <view class="totalMoney">合计<text class="text">
-<text >￥</text>{{orderDishPrice.toFixed(2)}}</text>
+<text >￥</text>{{pricingReady?orderDishPrice.toFixed(2):'--'}}</text>
 </view>
 </view>
 </view>
@@ -190,7 +190,7 @@
 <view class="order_dish_num">{{''+orderDishNumber+''}}</view>
 </view>
 <view class="order_price">
-<text class="ico">￥</text>{{''+orderDishPrice.toFixed(2)+''}}</view>
+<text class="ico">￥</text>{{pricingReady?orderDishPrice.toFixed(2):'--'}}</view>
 <view class="order_but">
 <block v-if="isHandlePy">
 <view class="order_but_rit">去支付</view>
