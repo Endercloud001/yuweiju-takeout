@@ -76,6 +76,8 @@ Evidence summaries must identify historical host results, checks actually run by
 
 Keep full logs, data URLs and raw SDK results in task-local evidence files. Read Windows summaries with explicit UTF-8 (for example `Get-Content -Encoding utf8` or Python `read_text(encoding='utf-8-sig')`). Print only counts, image dimensions, exit/status, relevant errors and evidence paths; filter large responses before returning them to chat. If output is truncated, read the relevant portion of the saved file instead of fetching or printing the whole response again.
 
+For ordinary source discovery, use `rg --files` within the affected application/source directory. Discover task artifacts with a top-level listing of the named task directory, then read known result/resource/log files or search only that task's evidence subdirectory. A recursive listing of all `.scratch` clones and dependencies is unnecessary for these steps. When proving a historical file is unavailable, use the exact-filename full-project search in [startup](startup.md); keep its exit and search scope, rather than treating a narrow search as proof of absence.
+
 Check that the task branch is absent and the start commit includes the selected runtime and required project code. Inspect changes before forming a preparation commit. Keep preparation changes separate from task changes. If runtime support is missing, use the retained [parameter patch](runtime-parameters.patch) only after checking its applicability. Never patch the old pilot.
 
 ## 页面源码恢复的行为检查
@@ -100,5 +102,7 @@ Set a separate `SANDCASTLE_EVIDENCE` directory for the run and review. `checkCom
 For the project-local WSL checkout, set `TMPDIR` and `npm_config_cache` to project-local `.scratch/` directories before launch. Use the direct Node loader command above: the tsx CLI's Unix socket is unsupported on DrvFS.
 
 Review uses no authentication mount or model. It does not prove business acceptance unless its commands check the issue requirements. Missing required tools or unresolved acceptance criteria block launch. Report the missing item and the action needed to resolve it.
+
+Successful agent worktrees may be removed during cleanup. Select the exact candidate SHA from the recorded `result.commits` and task diff, confirm the Git object is available, and use the existing verifier to create a new independent snapshot. Read that snapshot for later review; the retained worktree path is optional, not a required success artifact. Keep `iteration-N/files`, result/resources and Git objects as recovery sources, and match existing verification evidence to its recorded commit. If the commit is unavailable, report the missing source and recover from retained task files/patch as a draft requiring fresh verification; an old path or a WIP recovery commit does not prove acceptance.
 
 For repeated independent admin checks, use the optional npm download-cache argument in the [verification entry](../../../../.sandcastle/verification.md#可选-npm-下载缓存). Each snapshot still runs lockfile installation and all configured checks; downloaded packages, installed node_modules and prior success evidence have different lifetimes.
