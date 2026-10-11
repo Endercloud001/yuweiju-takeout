@@ -1,6 +1,6 @@
 # Issue #11 实施方案
 
-本轮根目录与 Git root 为 `/home/agent/workspace`，挂载输入只读；新的隔离样本授权覆盖缺失的六份历史材料。#2 CLOSED，起点 86e866a 已包含 #13/#14/#9/#12 及 runtime 改进。共享截止时间 2026-10-11T14:01:16.063Z；最多两轮、累计六十分钟，独立验证由 host 另用二十分钟。不得重启 supervisor、使用并行代理、发布或写原库。
+本轮根目录与 Git root 为 `/home/agent/workspace`，挂载输入只读；新的隔离样本授权覆盖缺失的六份历史材料。#2 CLOSED，起点 86e866a 已包含 #13/#14/#9/#12 及 runtime 改进。首轮历史截止时间 2026-10-11T14:01:16.063Z 已失效。本次续跑为第二且最后编码轮，当前 supervisor deadline 为 2026-10-11T15:37:46.933Z；首轮已用538765ms，剩余3061235ms，累计六十分钟和总共两轮上限不变。独立验证由 host 另用二十分钟。恢复起点2c6c8fb是未验证WIP，不是完成候选。不得重启 supervisor、使用并行代理、发布或写原库。
 
 依据 [workflow](agents/workflow.md)、[后端规范](standards/backend.md)、[管理端规范](standards/admin.md)、[小程序规范](standards/miniapp.md)、[ADR0001](adr/0001-retain-conventional-backend-layering.md)、[ADR0002](adr/0002-preserve-historical-order-images.md) 与 [术语](../GLOSSARY.md)。
 
@@ -20,7 +20,7 @@
 
 公开 API/schema/JSON/code、token/authentication 与身份不变；控制器只协议与身份委派。管理员和小程序现有调用路径及 DTO 可继续使用，前端无需修改，仍运行管理员四项检查及 consumer 回归。小程序原生编译与人工体验由 host 提供，历史969/974不作为本轮证据。
 
-审计实际全仓调用点：markPaid仅paymentMock自调用，其他转换由两控制器进入；AI催单仅文字指引。当前无未付款超时/自动配送完成任务。OrderRiskTask只委派风险训练且有开关，保持原实现。WebSocketServer onMessage为空、sendToAllClient只传输，没有履约写入；支付/催单当前没有发送通知调用，不新增通知功能。
+审计实际全仓调用点：原始markPaid仅paymentMock自调用；最终paymentMock与markPaid各自通过公开代理事务进入共享私有支付步骤，生产代码没有其他markPaid调用者，其他转换由两控制器进入；AI催单仅文字指引。当前无未付款超时/自动配送完成任务。OrderRiskTask只委派风险训练且有开关，保持原实现。WebSocketServer onMessage为空、sendToAllClient只传输，没有履约写入；支付/催单当前没有发送通知调用，不新增通知功能。
 
 ## 步骤、检查与回退
 

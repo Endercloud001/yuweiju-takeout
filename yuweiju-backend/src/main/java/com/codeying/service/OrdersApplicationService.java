@@ -114,9 +114,9 @@ public interface OrdersApplicationService {
      */
     com.codeying.vo.admin.order.OrderVO adminOrderDetail(Long id);
     /**
-     * Execute adminStatistics.
+     * 按既有全历史口径统计待接单、已接单、配送中数量；SQL失败传播。
      *
-     * @return com.codeying.vo.admin.order.OrderStatisticsVO result
+     * @return 三种状态的数量，保留管理端既有整数字段
      */
     com.codeying.vo.admin.order.OrderStatisticsVO adminStatistics();
 

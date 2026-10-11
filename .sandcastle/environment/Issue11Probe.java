@@ -88,11 +88,35 @@ public class Issue11Probe {
     static JsonNode accepted(String name,JsonNode response) {
         check(name+"_business_success",success(response));return response.path("data");
     }
+    // Existing user VO uses Shanghai wall time; admin VO uses Jackson's default
+    // date representation. Compare the persisted instant without changing either API.
+    static long timeMillis(JsonNode value) {
+        if(value.isNumber()) return value.asLong();
+        String text=value.asText();
+        if(text.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}")) {
+            return java.time.LocalDateTime.parse(text,java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                    .atZone(java.time.ZoneId.of("Asia/Shanghai")).toInstant().toEpochMilli();
+        }
+        return java.time.OffsetDateTime.parse(text).toInstant().toEpochMilli();
+    }
+    static long storedTimeMillis(Object value) {
+        if(value instanceof java.time.LocalDateTime time) {
+            return time.atZone(java.time.ZoneId.of("Asia/Shanghai")).toInstant().toEpochMilli();
+        }
+        return ((java.util.Date)value).getTime();
+    }
     static Map<String,Object> row(long id) {return sql.queryForMap("SELECT * FROM orders WHERE id=?",id);}
     static List<Map<String,Object>> cart(long owner) {return sql.queryForList("SELECT * FROM shopping_cart WHERE user_id=? ORDER BY id",owner);}
     static Map<String,List<Map<String,Object>>> snapshot() {
         var result=new LinkedHashMap<String,List<Map<String,Object>>>();
-        for(String t:TABLES)result.put(t,sql.queryForList("SELECT * FROM `"+t+"` ORDER BY id"));
+        for(String t:TABLES) {
+            String key=switch(t) {
+                case "order_risk_feature_snapshot" -> "order_id,feature_version";
+                case "order_risk_result" -> "order_id,model_version";
+                default -> "id";
+            };
+            result.put(t,sql.queryForList("SELECT * FROM `"+t+"` ORDER BY "+key));
+        }
         return result;
     }
     static void createOrder(long id,int status,long owner) {
@@ -189,8 +213,13 @@ public class Issue11Probe {
     static void matchingReads(long id,int status) throws Exception {
         var u=accepted("chain_user_read_"+status,call("GET","/user/order/orderDetail/"+id,null,user,false));
         var a=accepted("chain_admin_read_"+status,call("GET","/admin/order/details/"+id,null,admin,true));
-        check("chain_two_consumers_same_checkout_"+status,u.path("checkoutTime").equals(a.path("checkoutTime")));
-        if(status==5)check("chain_two_consumers_same_delivery",u.path("deliveryTime").equals(a.path("deliveryTime")));
+        var stored=row(id);
+        long checkout=storedTimeMillis(stored.get("checkout_time"));
+        check("chain_two_consumers_same_checkout_"+status,timeMillis(u.path("checkoutTime"))==checkout && timeMillis(a.path("checkoutTime"))==checkout);
+        if(status==5) {
+            long delivery=storedTimeMillis(stored.get("delivery_time"));
+            check("chain_two_consumers_same_delivery",timeMillis(u.path("deliveryTime"))==delivery && timeMillis(a.path("deliveryTime"))==delivery);
+        }
         for(var data:List.of(u,a)) {
             check("chain_read_status_"+status,data.path("status").asInt()==status && data.path("payStatus").asInt()==1);
             check("chain_read_amount_image_"+status,data.path("amount").decimalValue().compareTo(new java.math.BigDecimal("19"))==0
@@ -199,7 +228,6 @@ public class Issue11Probe {
             check("chain_checkout_visible_"+status,!data.path("checkoutTime").isNull() && !data.path("checkoutTime").isMissingNode());
             if(status==5)check("chain_delivery_visible",!data.path("deliveryTime").isNull() && !data.path("deliveryTime").isMissingNode());
         }
-        var stored=row(id);
         check("chain_sql_status_"+status,((Number)stored.get("status")).intValue()==status && stored.get("checkout_time")!=null);
     }
     static void chain() throws Exception {
@@ -328,7 +356,8 @@ public class Issue11Probe {
             sql=context.getBean(JdbcTemplate.class);redis=context.getBean(StringRedisTemplate.class);service=context.getBean(OrdersApplicationService.class);
             check("DATABASE_is_sandcastle_fixture","sandcastle_fixture".equals(sql.queryForObject("SELECT DATABASE()",String.class)));
             for(String table:TABLES) {
-                check("unused_task_ids_"+table,sql.queryForObject("SELECT COUNT(*) FROM `"+table+"` WHERE id BETWEEN 911001 AND 911199",Integer.class)==0);
+                String identifier=table.startsWith("order_risk_")?"order_id":"id";
+                check("unused_task_ids_"+table,sql.queryForObject("SELECT COUNT(*) FROM `"+table+"` WHERE "+identifier+" BETWEEN 911001 AND 911199",Integer.class)==0);
                 var ddl=sql.queryForMap("SHOW CREATE TABLE `"+table+"`");check("transactional_"+table,ddl.values().stream().anyMatch(v->v.toString().contains("ENGINE=InnoDB")));
             }
             check("unused_task_child_rows",sql.queryForObject("SELECT COUNT(*) FROM order_detail WHERE order_id BETWEEN 911001 AND 911199",Integer.class)==0

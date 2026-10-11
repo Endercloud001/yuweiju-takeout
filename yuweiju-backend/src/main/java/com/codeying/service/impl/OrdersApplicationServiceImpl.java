@@ -364,9 +364,9 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
     @Override
     public OrderStatisticsVO adminStatistics() {
         OrderStatisticsVO vo = new OrderStatisticsVO();
-        vo.setToBeConfirmed((int) ordersMapper.countByStatus(Orders.TO_BE_CONFIRMED));
-        vo.setConfirmed((int) ordersMapper.countByStatus(Orders.CONFIRMED));
-        vo.setDeliveryInProgress((int) ordersMapper.countByStatus(Orders.DELIVERY_IN_PROGRESS));
+        vo.setToBeConfirmed(ordersMapper.countByStatus(Orders.TO_BE_CONFIRMED).intValue());
+        vo.setConfirmed(ordersMapper.countByStatus(Orders.CONFIRMED).intValue());
+        vo.setDeliveryInProgress(ordersMapper.countByStatus(Orders.DELIVERY_IN_PROGRESS).intValue());
         return vo;
     }
 
