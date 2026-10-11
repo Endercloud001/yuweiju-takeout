@@ -23,6 +23,12 @@ $candidate = git rev-parse HEAD
 
 容器无认证挂载、无模型调用、无原库连接，使用非登录 bash 和 C.UTF-8。现有 Git-safe 镜像必须已准备；依赖下载需联网。网络连接和业务验收仍由任务授权决定。指定 shell 文件由 `.gitattributes` 保证 Windows 新 checkout 为 LF；旧工作树不自动重写，保留其中修改。
 
+## 可选 npm 下载缓存
+
+重复独立检查可显式传入项目 `.scratch/` 内已有、仅存 npm 下载内容且容器 UID 1000 可写的目录：Windows 用 `-NpmCache <Windows路径>`，Linux 用 `--npm-cache <绝对Linux路径>`。verifier 将其挂载到 `/npm-cache`，设置 `npm_config_cache=/npm-cache`，在 resources 的 `npmCache` 记录来源；未指定时沿用原行为。保持目录为本任务/维护专用，缓存中不放 `.npmrc`、认证或业务文件，勿与正在写入的其他任务混用。
+
+缓存仅复用下载内容。每个新候选快照继续执行 `npm ci --no-audit --no-fund` 及完整 lint/typecheck/test/build；原检查命令若带 `--cache` 会覆盖该环境变量，应移除该参数或改为 `/npm-cache`。缺包时照常下载，锁文件错误或安装失败照常失败。`--offline` 只用于已充分缓存的诊断，不能作为默认安装选项。保留新日志/退出码，node_modules 与通过证据不从旧候选复制。停机保留缓存；源码普通回退可移除选项，清缓存不会回退业务数据。
+
 ## 已有检查如何触发
 
 | 检查 | 入口与结果 |
