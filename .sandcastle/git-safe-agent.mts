@@ -4,6 +4,7 @@ export const guardReadyCommand = '/usr/local/bin/node /opt/sandcastle/git-guard/
 export const gitSafetyInstructions = `Task inputs are mounted read-only at /home/agent/task-input; the project worktree is /home/agent/workspace. Read the named input files there first.
 Sandcastle Git safety:
 Report repeated validation commands as check batches. The host counts orchestration iterations from result/resource records; keep the configured iteration and time limits unchanged.
+Run container checks in a non-login shell (bash -c or sh -c). Confirm command -v java and command -v mvn in the selected image; a login shell may replace the installed tool PATH. Use only paths confirmed during preparation, and retain a failed command before correcting it within the same authorized iteration.
 Use ordinary Git inspection, explicit staging of authorized task files, and a normal local task commit.
 Push, hard reset, destructive clean, forced branch operations, forced checkout/switch, and restoration over modified files are blocked.
 On SANDCASTLE_GIT_BLOCKED, preserve the worktree and record the operation category, reason, and next step in progress. Do not log credentials or raw credential-bearing commands.
