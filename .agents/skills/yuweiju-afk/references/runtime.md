@@ -24,6 +24,8 @@ For GitHub TLS/HTTP failures, follow the linked issue tracker's session-only HTT
 
 ### Linux-consumed preparation files
 
+Read UTF-8 issue text, Markdown and JSON with an explicit encoding on Windows and Linux: `source.read_text(encoding='utf-8-sig')` accepts a possible BOM. Write project text with `encoding='utf-8'`; for JSON use `json.dumps(value, ensure_ascii=False)` when retaining Chinese text. Use the LF-writing form below for Linux consumers. Inspect actual files rather than relying on the host locale or `PYTHONUTF8`; a decoding failure is a preparation failure, and `errors='ignore'` would lose task content. Correct the affected preparation read/write and retain its failed attempt; do not regenerate a started run's inputs or reset its budget.
+
 Write generated shell scripts and copied runtime source with LF. On Windows Python, use `with destination.open('w', encoding='utf-8', newline='\n') as output: output.write(text.replace('\r\n', '\n'))`; default text writing can restore CRLF even after normalization. Change only the selected preparation copies, preserving host user files. Use ordinary `git diff --check` and inspect generated shell files before invoking them; whitespace checks alone do not prove that an untracked launch script uses LF.
 
 When borrowing an existing Linux `node_modules` via a symlink, exclude that exact untracked link in the selected checkout's local exclude file before checking cleanliness or staging preparation files. Find the file with `git rev-parse --git-path info/exclude` from that checkout, preserving its existing entries; linked worktrees may share the repository exclude file. Use an anchored path such as `/node_modules` for a root-level link, or the actual nested path. Verify with `git check-ignore -v -- node_modules` and `git status --short --untracked-files=all`; substitute the actual link path. An exclude does not hide tracked files: check `git ls-files -- node_modules` before proceeding. Keep the user `.gitignore` and global Git configuration unchanged, and explicitly stage preparation files.
@@ -69,6 +71,12 @@ From Windows, pass Linux tool arguments through `wsl.exe -d Ubuntu --exec` using
 Evidence summaries must identify historical host results, checks actually run by the agent, draft-only independent review, and verification of the exact task commit. Record working directories and exits for each; do not turn a planned or interrupted check into a completed one. A draft check or historical login result alone does not mark the new task complete.
 
 Check that the task branch is absent and the start commit includes the selected runtime and required project code. Inspect changes before forming a preparation commit. Keep preparation changes separate from task changes. If runtime support is missing, use the retained [parameter patch](runtime-parameters.patch) only after checking its applicability. Never patch the old pilot.
+
+## 页面源码恢复的行为检查
+
+转写旧页面前核对模板调用链的参数语义，尤其日期字符串、剩余毫秒和布尔条件。优先复用 `yuweiju-weixin-miniapp/history-source/tests/template.test.cjs` 的方式：编译保存的 SFC，在实际旧 Vue/store/API/tools 上渲染，从订单行选择器读取文案、按钮与绑定；触发模板事件后核对同 ID 路由和金额交接。覆盖未过期/过期待付款、返回刷新和本票受影响条件。顶部 tab 的同名文案不能证明订单行正确；直接调用底层 formatter 会绕过模板参数转换，也不能证明完整调用链。
+
+新增回归断言先在旧候选上确认预期失败，再检查修复后的实际模板与生成产物；其余未变场景复用精确版本证据。宿主断言失败时先确认它实际走了哪条调用链，保留原日志，修正错误断言后重跑受影响检查；不能仅因测试错误启动额外编码轮次，也不能修改正确业务代码迎合错误断言。普通模板测试不替代官方编译、实际交互或真实后端归属证明。
 
 ## Run and verify
 
