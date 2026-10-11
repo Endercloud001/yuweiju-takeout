@@ -79,8 +79,10 @@ public class AdminOrderController {
         if (body == null || body.getId() == null) return ApiResult.badRequest("参数错误");
         try {
             ordersApplicationService.confirm(body.getId());
-        } catch (Exception e) {
+        } catch (com.codeying.exception.OrderBusinessException e) {
             return ApiResult.badRequest(e.getMessage());
+        } catch (Exception e) {
+            return ApiResult.badRequest("操作失败，请稍后重试");
         }
         return ApiResult.success();
     }
@@ -96,8 +98,10 @@ public class AdminOrderController {
         if (body == null || body.getId() == null || !StringUtils.hasText(body.getRejectionReason())) return ApiResult.badRequest("参数错误");
         try {
             ordersApplicationService.reject(body.getId(), body.getRejectionReason().trim());
-        } catch (Exception e) {
+        } catch (com.codeying.exception.OrderBusinessException e) {
             return ApiResult.badRequest(e.getMessage());
+        } catch (Exception e) {
+            return ApiResult.badRequest("操作失败，请稍后重试");
         }
         return ApiResult.success();
     }
@@ -113,8 +117,10 @@ public class AdminOrderController {
         if (body == null || body.getId() == null || !StringUtils.hasText(body.getCancelReason())) return ApiResult.badRequest("参数错误");
         try {
             ordersApplicationService.cancelByAdmin(body.getId(), body.getCancelReason().trim());
-        } catch (Exception e) {
+        } catch (com.codeying.exception.OrderBusinessException e) {
             return ApiResult.badRequest(e.getMessage());
+        } catch (Exception e) {
+            return ApiResult.badRequest("操作失败，请稍后重试");
         }
         return ApiResult.success();
     }
@@ -130,8 +136,10 @@ public class AdminOrderController {
         if (id == null) return ApiResult.badRequest("参数错误");
         try {
             ordersApplicationService.deliver(id);
-        } catch (Exception e) {
+        } catch (com.codeying.exception.OrderBusinessException e) {
             return ApiResult.badRequest(e.getMessage());
+        } catch (Exception e) {
+            return ApiResult.badRequest("操作失败，请稍后重试");
         }
         return ApiResult.success();
     }
@@ -147,8 +155,10 @@ public class AdminOrderController {
         if (id == null) return ApiResult.badRequest("参数错误");
         try {
             ordersApplicationService.complete(id);
-        } catch (Exception e) {
+        } catch (com.codeying.exception.OrderBusinessException e) {
             return ApiResult.badRequest(e.getMessage());
+        } catch (Exception e) {
+            return ApiResult.badRequest("操作失败，请稍后重试");
         }
         return ApiResult.success();
     }

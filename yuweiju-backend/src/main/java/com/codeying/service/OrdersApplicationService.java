@@ -37,25 +37,25 @@ public interface OrdersApplicationService {
      */
     com.codeying.vo.user.order.OrderSubmitVO submit(Long userId, OrdersSubmitDTO body);
     /**
-     * Execute paymentMock.
+     * 模拟支付自己的存储订单；1→2写支付时间，已支付2/3/4/5重试不写入。
      *
-     * @param userId business identifier
-     * @param body request payload
-     * @return com.codeying.vo.user.order.OrderPaymentVO result
+     * @param userId authenticated positive owner ID
+     * @param body order number; missing, foreign or cancelled order fails
+     * @return mock payment response retaining the existing protocol
      */
     com.codeying.vo.user.order.OrderPaymentVO paymentMock(Long userId, OrdersPaymentDTO body);
     /**
-     * Change business status.
+     * 用户仅可取消自己的待付款/待接单订单；并发状态变化失败。
      *
-     * @param userId business identifier
-     * @param orderId business identifier
+     * @param userId authenticated positive owner ID
+     * @param orderId positive stored order ID
      */
     void cancelByUser(Long userId, Long orderId);
     /**
-     * Execute repetition.
+     * 原子替换自己的购物车为历史订单明细；缺单/越权失败，SQL错误回滚。
      *
-     * @param userId business identifier
-     * @param orderId business identifier
+     * @param userId authenticated positive owner ID
+     * @param orderId positive owned stored order ID
      */
     void repetition(Long userId, Long orderId);
     /**
@@ -67,10 +67,10 @@ public interface OrdersApplicationService {
      */
     String estimatedDeliveryTime(Long userId, Long addressBookId);
     /**
-     * Execute reminder.
+     * 校验自己的待接单订单后执行60秒限流；Redis故障保持已有降级。
      *
-     * @param userId business identifier
-     * @param orderId business identifier
+     * @param userId authenticated positive owner ID
+     * @param orderId positive owned stored order ID; missing/wrong state fails
      */
     void reminder(Long userId, Long orderId);
     /**
@@ -121,41 +121,41 @@ public interface OrdersApplicationService {
     com.codeying.vo.admin.order.OrderStatisticsVO adminStatistics();
 
     /**
-     * Change business status.
+     * 可信调用入口：自己校验缺单/状态；仅1→2，已支付2至5重试不写，取消拒绝。
      *
-     * @param orderId business identifier
+     * @param orderId positive stored ID; missing/invalid state throws OrderBusinessException
      */
     void markPaid(Long orderId);
     /**
-     * Change business status.
+     * 仅待接单→已接单；缺单/错误状态/并发冲突失败。
      *
-     * @param id business identifier
+     * @param id positive stored ID
      */
     void confirm(Long id);
     /**
-     * Change business status.
+     * 仅待接单→取消；记录拒单原因和取消时间，不改变支付状态。
      *
-     * @param id business identifier
-     * @param reason reason parameter
+     * @param id positive stored ID
+     * @param reason nonblank rejection reason, trimmed; invalid parameters/state fail
      */
     void reject(Long id, String reason);
     /**
-     * Change business status.
+     * 管理员仅取消待付款/待接单/已接单，记录原因/时间，不执行退款。
      *
-     * @param id business identifier
-     * @param reason reason parameter
+     * @param id positive stored ID
+     * @param reason nonblank cancellation reason, trimmed; invalid parameters/state fail
      */
     void cancelByAdmin(Long id, String reason);
     /**
-     * Change business status.
+     * 仅已接单→配送中；缺单/错误状态/并发冲突失败。
      *
-     * @param id business identifier
+     * @param id positive stored ID
      */
     void deliver(Long id);
     /**
-     * Change business status.
+     * 仅配送中→完成并记录送达时间；缺单/错误状态/并发冲突失败。
      *
-     * @param id business identifier
+     * @param id positive stored ID
      */
     void complete(Long id);
 }
