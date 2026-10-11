@@ -26,7 +26,7 @@ test('two real builds preserve all twelve other pages and shared runtime/vendor/
   for (const page of pages) for (const extension of ['js', 'json', 'wxml', 'wxss']) assert.ok(fs.existsSync(path.join(root, page + '.' + extension)), page + '.' + extension);
 });
 test('saved template and business source edits change genuinely compiled outputs in isolated project scratch', async () => {
-  const scratch = path.join(repo, '.scratch/issue5'); fs.mkdirSync(scratch, { recursive: true });
+  const scratch = process.env.YUWEIJU_TEST_SCRATCH || path.join(repo, '.scratch/issue5'); fs.mkdirSync(scratch, { recursive: true });
   const owned = fs.mkdtempSync(path.join(scratch, 'build-edit-'));
   const source = path.join(owned, 'src'); fs.mkdirSync(source);
   for (const file of ['Checkout.vue', 'checkout.js', 'legacy.js']) fs.copyFileSync(path.resolve(__dirname, '../src', file), path.join(source, file));
