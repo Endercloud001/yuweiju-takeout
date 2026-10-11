@@ -11,7 +11,7 @@
 <scroll-view :style="'height:'+scrollH+'px;'" scroll-y="true" @scrolltolower="lower">
 <view v-if="recentOrdersList && recentOrdersList.length>0" class="main recent_orders">
 <view v-for="(item, index) in recentOrdersList" :key="index" :class="['box', 'order_lists', index+1===recentOrdersList.length?'item-last':'']">
-<view class="date_type"><text class="time">{{item.orderTime}}</text><text :class="['type','status',item.status==2?'status':'']">{{statusWord(item.status,item.orderTime)}}</text></view>
+<view class="date_type"><text class="time">{{item.orderTime}}</text><text :class="['type','status',item.status==2?'status':'']">{{statusWord(item.status,getOvertime(item.orderTime))}}</text></view>
 <view class="orderBox" @tap="goDetail(item.id)">
 <view class="food_num"><scroll-view class="pic" style="width:100%;overflow:hidden;white-space:nowrap;" scroll-x="true">
 <view v-for="(num, y) in item.orderDetailList" :key="y" class="food_num_item"><view class="img"><image :src="num.image" /></view><view class="food">{{num.name}}</view></view>
@@ -19,7 +19,7 @@
 <view class="numAndAum"><view><text>{{'￥'+item.amount.toFixed(2)}}</text></view><view><text>{{'共'+numes(item.orderDetailList).count+'件'}}</text></view></view>
 </view>
 <view class="againBtn"><button class="new_btn" type="default" @tap="oneMoreOrder(item.id)">再来一单</button>
-<button v-if="item.status===1&&!getOvertime(item.orderTime)" class="new_btn btn" type="default" @tap="goDetail(item.id)">去支付</button>
+<button v-if="item.status===1&&getOvertime(item.orderTime)>0" class="new_btn btn" type="default" @tap="goDetail(item.id)">去支付</button>
 <button v-if="item.status===2" class="new_btn btn" type="default" @tap="handleReminder('center',item.id)">催单</button></view>
 </view>
 </view>

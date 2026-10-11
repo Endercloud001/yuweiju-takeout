@@ -275,7 +275,7 @@ var HistoryOrder_default = history_default;
 var render = function() {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;
   var l1 = _vm.__map(_vm.tabBars, function (tab, tabNumber) {
     var l0 = _vm.__map(_vm.recentOrdersList, function (item, index) {
-      var m0 = _vm.statusWord(item.status, item.orderTime);
+      var m0 = _vm.statusWord(item.status, _vm.getOvertime(item.orderTime));
       var g0 = item.amount.toFixed(2);
       var m1 = _vm.numes(item.orderDetailList);
       var m2 = _vm.getOvertime(item.orderTime);
