@@ -98,9 +98,44 @@ function failure(uni2, error) {
   uni2.showToast({ title: error && (error.msg || error.message || error.data && error.data.msg) || "\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5", icon: "none" });
 }
 
+// src/historical-image.js
+var fallback = "/static/history-dish-placeholder.png";
+var historical_image_default = {
+  data() {
+    return { failedHistoricalImages: [] };
+  },
+  created() {
+    this._historicalImageRows = /* @__PURE__ */ new WeakMap();
+    this._nextHistoricalImageRow = 0;
+  },
+  methods: {
+    historicalImageRow(row) {
+      const previous = this._historicalImageRows.get(row);
+      if (!previous || previous.source !== row.image) this._historicalImageRows.set(row, { id: ++this._nextHistoricalImageRow, source: row.image });
+      return this._historicalImageRows.get(row).id;
+    },
+    resetHistoricalImages() {
+      this.failedHistoricalImages = [];
+      this._historicalImageRows = /* @__PURE__ */ new WeakMap();
+    },
+    historicalImage(row) {
+      const source = row.image;
+      if (typeof source !== "string" || !source.trim()) return fallback;
+      return this.failedHistoricalImages.includes(this.historicalImageRow(row)) ? fallback : source;
+    },
+    historicalImageError(row, event) {
+      const source = event.currentTarget.dataset.historySrc;
+      if (String(event.currentTarget.dataset.historyRow) === String(this.historicalImageRow(row)) && source !== fallback && source === row.image && this.historicalImage(row) !== fallback) {
+        this.failedHistoricalImages.push(this.historicalImageRow(row));
+      }
+    }
+  }
+};
+
 // src/history.js
 var { store, api, uni, tools, components } = dependencies();
 var history_default = {
+  mixins: [historical_image_default],
   components,
   data() {
     return {
@@ -169,6 +204,7 @@ var history_default = {
       this.loading = false;
     },
     reload() {
+      this.resetHistoricalImages();
       this.requestVersion++;
       this.pageInfo = { page: 1, pageSize: 10, total: 0 };
       this.recentOrdersList = [];
@@ -273,28 +309,42 @@ var history_default = {
 var HistoryOrder_default = history_default;
 
 var render = function() {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;
-  var l1 = _vm.__map(_vm.tabBars, function (tab, tabNumber) {
-    var l0 = _vm.__map(_vm.recentOrdersList, function (item, index) {
+  var l2 = _vm.__map(_vm.tabBars, function (tab, tabNumber) {
+    var l1 = _vm.__map(_vm.recentOrdersList, function (item, index) {
       var m0 = _vm.statusWord(item.status, _vm.getOvertime(item.orderTime));
+      var l0 = _vm.__map(item.orderDetailList, function (num, y) {
+        var m1 = _vm.historicalImage(num);
+        var m2 = _vm.historicalImage(num);
+        var m3 = _vm.historicalImage(num);
+        var m4 = _vm.historicalImageRow(num);
+        return {
+          $orig: _vm.__get_orig(num),
+          m1: m1,
+          m2: m2,
+          m3: m3,
+          m4: m4
+        };
+      });
       var g0 = item.amount.toFixed(2);
-      var m1 = _vm.numes(item.orderDetailList);
-      var m2 = _vm.getOvertime(item.orderTime);
+      var m5 = _vm.numes(item.orderDetailList);
+      var m6 = _vm.getOvertime(item.orderTime);
       return {
         $orig: _vm.__get_orig(item),
         m0: m0,
+        l0: l0,
         g0: g0,
-        m1: m1,
-        m2: m2
+        m5: m5,
+        m6: m6
       };
     });
     return {
       $orig: _vm.__get_orig(tab),
-      l0: l0
+      l1: l1
     };
   });
   _vm.$mp.data = Object.assign({}, {
     $root: {
-      l1: l1
+      l2: l2
     }
   });
 }; var staticRenderFns = [];

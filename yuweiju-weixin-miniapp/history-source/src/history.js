@@ -1,6 +1,8 @@
 import { dependencies, accepted, failure } from './legacy.js';
+import historicalImage from './historical-image.js';
 const { store, api, uni, tools, components } = dependencies();
 export default {
+  mixins: [historicalImage],
   components,
   data() {
     return { recentOrdersList: [], pageInfo: { page: 1, pageSize: 10, total: 0 },
@@ -25,6 +27,7 @@ export default {
     getOvertime(time) { return tools.getOvertime(time); },
     dispose() { this.disposed = true; this.requestVersion++; this.showTitle = false; if (this.loading) uni.hideLoading(); this.loading = false; },
     reload() {
+      this.resetHistoricalImages();
       this.requestVersion++;
       this.pageInfo = { page: 1, pageSize: 10, total: 0 };
       this.recentOrdersList = []; this.isEmpty = false; this.loading = false; this.loadingType = 0;

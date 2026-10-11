@@ -1,7 +1,9 @@
 import { dependencies, accepted, failure } from './legacy.js';
+import historicalImage from './historical-image.js';
 const { store, api, uni, tools, components } = dependencies();
 const emptyOrder = () => ({ orderDetailList: [] });
 export default {
+  mixins: [historicalImage],
   components: { uniNavBar: components.uniNavBar, uniPopup: components.uniPopup },
   data() {
     return { showDisplay: false, rocallTime: '', textTip: '', showConfirm: false,
@@ -23,6 +25,7 @@ export default {
     clearTimer() { if (this.times !== null) clearTimeout(this.times); this.times = null; },
     dispose() { this.disposed = true; this.requestVersion++; this.clearTimer(); if (this.loading) uni.hideLoading(); this.loading = false; },
     clearDetails() {
+      this.resetHistoricalImages();
       this.clearTimer(); this.orderDetailsData = emptyOrder(); this.loaded = false;
       this.showDisplay = false; this.timeout = false; this.rocallTime = '';
       store.commit('initdishListMut', []);

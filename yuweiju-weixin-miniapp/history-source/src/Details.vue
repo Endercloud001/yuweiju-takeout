@@ -70,7 +70,7 @@
 <block v-for="(obj, index) in orderDataes" :key="index">
 <view class="type_item">
 <view class="dish_img">
-<image class="dish_img_url" mode="aspectFill" :src="obj.image">
+<image :key="historicalImage(obj)" class="dish_img_url" mode="aspectFill" :src="historicalImage(obj)" :data-history-src="historicalImage(obj)" :data-history-row="historicalImageRow(obj)" @error="historicalImageError(obj, $event)">
 </image>
 </view>
 <view class="dish_info">

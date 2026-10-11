@@ -98,10 +98,45 @@ function failure(uni2, error) {
   uni2.showToast({ title: error && (error.msg || error.message || error.data && error.data.msg) || "\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5", icon: "none" });
 }
 
+// src/historical-image.js
+var fallback = "/static/history-dish-placeholder.png";
+var historical_image_default = {
+  data() {
+    return { failedHistoricalImages: [] };
+  },
+  created() {
+    this._historicalImageRows = /* @__PURE__ */ new WeakMap();
+    this._nextHistoricalImageRow = 0;
+  },
+  methods: {
+    historicalImageRow(row) {
+      const previous = this._historicalImageRows.get(row);
+      if (!previous || previous.source !== row.image) this._historicalImageRows.set(row, { id: ++this._nextHistoricalImageRow, source: row.image });
+      return this._historicalImageRows.get(row).id;
+    },
+    resetHistoricalImages() {
+      this.failedHistoricalImages = [];
+      this._historicalImageRows = /* @__PURE__ */ new WeakMap();
+    },
+    historicalImage(row) {
+      const source = row.image;
+      if (typeof source !== "string" || !source.trim()) return fallback;
+      return this.failedHistoricalImages.includes(this.historicalImageRow(row)) ? fallback : source;
+    },
+    historicalImageError(row, event) {
+      const source = event.currentTarget.dataset.historySrc;
+      if (String(event.currentTarget.dataset.historyRow) === String(this.historicalImageRow(row)) && source !== fallback && source === row.image && this.historicalImage(row) !== fallback) {
+        this.failedHistoricalImages.push(this.historicalImageRow(row));
+      }
+    }
+  }
+};
+
 // src/details.js
 var { store, api, uni, tools, components } = dependencies();
 var emptyOrder = () => ({ orderDetailList: [] });
 var details_default = {
+  mixins: [historical_image_default],
   components: { uniNavBar: components.uniNavBar, uniPopup: components.uniPopup },
   data() {
     return {
@@ -171,6 +206,7 @@ var details_default = {
       this.loading = false;
     },
     clearDetails() {
+      this.resetHistoricalImages();
       this.clearTimer();
       this.orderDetailsData = emptyOrder();
       this.loaded = false;
@@ -320,9 +356,17 @@ var Details_default = details_default;
 var render = function() {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;
   var m0 = _vm.statusWord(_vm.orderDetailsData.status);
   var l0 = _vm.__map(_vm.orderDataes, function (obj, index) {
+    var m1 = _vm.historicalImage(obj);
+    var m2 = _vm.historicalImage(obj);
+    var m3 = _vm.historicalImage(obj);
+    var m4 = _vm.historicalImageRow(obj);
     var g0 = obj.amount.toFixed(2);
     return {
       $orig: _vm.__get_orig(obj),
+      m1: m1,
+      m2: m2,
+      m3: m3,
+      m4: m4,
       g0: g0
     };
   });

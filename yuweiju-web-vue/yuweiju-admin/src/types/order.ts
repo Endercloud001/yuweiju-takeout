@@ -47,6 +47,7 @@ export interface OrderDetail {
   remark?: string
   orderDetailList?: Array<{
     name: string
+    image?: string | null
     number?: number
     amount?: number
   }>
