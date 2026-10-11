@@ -4,6 +4,8 @@
 
 当前入口使用本文后半部分“Sandcastle Git 防误操作改进”的准备流程与 Git-safe 镜像。前半部分保留旧环境的历史记录；当前任务按 [AFK runtime](../.agents/skills/yuweiju-afk/references/runtime.md) 核实绝对工具路径、专属 networks、预算与独立验证。
 
+`task-config.example.json` 的空 `networks` 表示单独使用 Docker 默认网络。需要隔离数据加出站网络时，按上述 runtime 使用两个本票自定义网络；不能将内置 `bridge` 与自定义网络组合传入。模板路径、分支、提交与网络均须在任务准备时替换并用既有 preflight 核对。
+
 本目录首次纳入主分支。运行时入口与隔离环境是复盘改进的必要依赖，不包含业务代码变更。以下历史记录保留其原始日期与验证范围；当前任务必须通过 `SANDCASTLE_TASK_CONFIG` 显式指定，禁止复用历史任务分支或自动恢复失败任务。
 
 在 Linux / WSL 的项目目录执行：

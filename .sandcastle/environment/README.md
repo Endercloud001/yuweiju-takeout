@@ -40,6 +40,17 @@ python3 .sandcastle/environment/verify.py --commit ecd2029 --runtime-only /home/
 
 ## 宿主连接及正常停止
 
+### 管理端静态验收服务
+
+共享只读服务 `admin-server.py` 使用标准库处理 URL 编码的中文文件名、查询参数、资源 MIME 和 SPA 路由；缺失带扩展名资源、目录列表及 `/api` 请求返回 404。它只提供精确候选 dist，API 代理由验收网关另外配置到本票后端，不能将此服务单独当成完整业务验收环境。优先复用已就绪的 Vite/网关；需要静态服务时在实际候选根执行：
+
+```sh
+python3 .sandcastle/environment/admin-server.py --directory /absolute/candidate/yuweiju-web-vue/yuweiju-admin/dist --port 18113
+python3 .sandcastle/environment/admin-server.test.py
+```
+
+端口只是示例，先核对本票可用端口与资源归属。默认绑定 127.0.0.1；容器内部可显式 `--bind 0.0.0.0`，宿主发布仍绑定 127.0.0.1。服务前台用 Ctrl+C 停止；后台由任务记录 PID/容器并提供具名停止入口。交接前用真实浏览器登录并打开完整业务路由，检查中文资源成功、图片解码与页面错误，遵循 [人工验收](../../.agents/skills/yuweiju-afk/references/acceptance.md)。测试仅在项目 `.scratch/` 建合成文件，用临时 loopback 端口并关闭服务器，不调用业务接口。
+
 可将已构建隔离 jar 启动成独立开发服务：
 
 ```bash
