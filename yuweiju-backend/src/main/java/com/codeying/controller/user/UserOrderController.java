@@ -98,7 +98,13 @@ public class UserOrderController {
         Long userId = getUserId(request);
         if (userId == null) return ApiResult.unauthorized("未登录");
         if (body == null || !StringUtils.hasText(body.getOrderNumber())) return ApiResult.badRequest("参数错误");
-        return ApiResult.successData(ordersApplicationService.paymentMock(userId, body));
+        try {
+            return ApiResult.successData(ordersApplicationService.paymentMock(userId, body));
+        } catch (com.codeying.exception.OrderBusinessException e) {
+            return ApiResult.badRequest(e.getMessage());
+        } catch (Exception e) {
+            return ApiResult.badRequest("操作失败，请稍后重试");
+        }
     }
 
     /**
@@ -141,8 +147,14 @@ public class UserOrderController {
         Long userId = getUserId(request);
         if (userId == null) return ApiResult.unauthorized("未登录");
         if (id == null) return ApiResult.badRequest("参数错误");
-        ordersApplicationService.cancelByUser(userId, id);
-        return ApiResult.success();
+        try {
+            ordersApplicationService.cancelByUser(userId, id);
+            return ApiResult.success();
+        } catch (com.codeying.exception.OrderBusinessException e) {
+            return ApiResult.badRequest(e.getMessage());
+        } catch (Exception e) {
+            return ApiResult.badRequest("操作失败，请稍后重试");
+        }
     }
 
     /**
@@ -160,8 +172,10 @@ public class UserOrderController {
         try {
             ordersApplicationService.repetition(userId, id);
             return ApiResult.success();
-        } catch (Exception e) {
+        } catch (com.codeying.exception.OrderBusinessException e) {
             return ApiResult.badRequest(e.getMessage());
+        } catch (Exception e) {
+            return ApiResult.badRequest("操作失败，请稍后重试");
         }
     }
 

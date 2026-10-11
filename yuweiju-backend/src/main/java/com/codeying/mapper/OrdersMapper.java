@@ -14,6 +14,34 @@ import java.util.Date;
  * @author Endercloud
  */
 public interface OrdersMapper extends BaseMapper<Orders> {
+    /**
+     * Pays a pending order exactly once; optional owner binds a user payment.
+     * @param orderId stored order ID
+     * @param userId authenticated owner, null only for trusted markPaid callers
+     * @param checkoutTime first successful simulated payment time
+     * @return affected rows, zero when the expected old state/owner no longer matches
+     */
+    default int payPending(Long orderId, Long userId, Date checkoutTime) {
+        return update(null, new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<Orders>()
+                .eq("id", orderId).eq(userId != null, "user_id", userId)
+                .eq("status", Orders.PENDING_PAYMENT)
+                .set("status", Orders.TO_BE_CONFIRMED).set("pay_status", Orders.PAID)
+                .set("checkout_time", checkoutTime));
+    }
+
+    /**
+     * Persists only an expected fulfillment state; user transitions also bind ownership.
+     * @param update fields belonging to this transition, including the stored ID
+     * @param expectedStatus exact state observed by the use case
+     * @param userId authenticated owner, null for administrator transitions
+     * @return affected rows; zero is a conflict and must fail the use case
+     */
+    default int transitionFrom(Orders update, Integer expectedStatus, Long userId) {
+        return update(update, new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<Orders>()
+                .eq("id", update.getId()).eq("status", expectedStatus)
+                .eq(userId != null, "user_id", userId));
+    }
+
     /** Finds a stored order under the authenticated owner, without recomputing fees. */
     default Orders findOwned(@Param("userId") Long userId, @Param("orderId") Long orderId) {
         return selectOne(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<Orders>()

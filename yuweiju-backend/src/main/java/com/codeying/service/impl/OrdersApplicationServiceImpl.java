@@ -1,6 +1,5 @@
 package com.codeying.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.codeying.assembler.OrderAssembler;
@@ -201,7 +200,7 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
     @Override
     @Transactional
     public OrderPaymentVO paymentMock(Long userId, OrdersPaymentDTO body) {
-        if (userId == null || body == null || !StringUtils.hasText(body.getOrderNumber())) {
+        if (userId == null || userId <= 0 || body == null || !StringUtils.hasText(body.getOrderNumber())) {
             throw new OrderBusinessException("参数错误");
         }
 
@@ -214,7 +213,7 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
 
         String timeStamp = String.valueOf(System.currentTimeMillis() / 1000);
 
-        markPaid(order.getId());
+        payStoredOrder(order, userId);
 
         OrderPaymentVO vo = new OrderPaymentVO();
         vo.setTimeStamp(timeStamp);
@@ -229,7 +228,7 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
     @Override
     @Transactional
     public void cancelByUser(Long userId, Long orderId) {
-        if (userId == null || orderId == null) throw new OrderBusinessException("参数错误");
+        if (userId == null || userId <= 0 || orderId == null || orderId <= 0) throw new OrderBusinessException("参数错误");
         Orders order = ordersMapper.findOwned(userId, orderId);
         if (order == null) throw new OrderBusinessException("订单不存在");
         Integer status = order.getStatus();
@@ -241,14 +240,14 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
         update.setStatus(Orders.CANCELLED);
         update.setCancelReason("用户取消订单");
         update.setCancelTime(new Date());
-        ordersService.updateById(update);
+        requireTransition(ordersMapper.transitionFrom(update, status, userId), "当前订单状态不可取消");
     }
 
     @Override
     @Transactional
     public void repetition(Long userId, Long orderId) {
-        if (userId == null || orderId == null) throw new OrderBusinessException("参数错误");
-        Orders order = ordersService.getById(orderId);
+        if (userId == null || userId <= 0 || orderId == null || orderId <= 0) throw new OrderBusinessException("参数错误");
+        Orders order = ordersMapper.findOwned(userId, orderId);
         if (order == null || !userId.equals(order.getUserId())) throw new OrderBusinessException("订单不存在");
 
         List<OrderDetail> details = listDetails(orderId);
@@ -270,7 +269,9 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
             c.setCreateTime(now);
             carts.add(c);
         }
-        if (!carts.isEmpty()) shoppingCartService.saveBatch(carts);
+        if (!carts.isEmpty() && !shoppingCartService.saveBatch(carts)) {
+            throw new OrderBusinessException("购物车写入失败");
+        }
     }
 
     @Override
@@ -283,7 +284,12 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
 
     @Override
     public void reminder(Long userId, Long orderId) {
-        if (userId == null || orderId == null) throw new OrderBusinessException("参数错误");
+        if (userId == null || userId <= 0 || orderId == null || orderId <= 0) throw new OrderBusinessException("参数错误");
+        Orders order = ordersMapper.findOwned(userId, orderId);
+        if (order == null) throw new OrderBusinessException("订单不存在");
+        if (!Integer.valueOf(Orders.TO_BE_CONFIRMED).equals(order.getStatus())) {
+            throw new OrderBusinessException("当前订单状态不可催单");
+        }
         boolean allowed;
         try {
             allowed = Boolean.TRUE.equals(
@@ -358,9 +364,9 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
     @Override
     public OrderStatisticsVO adminStatistics() {
         OrderStatisticsVO vo = new OrderStatisticsVO();
-        vo.setToBeConfirmed((int) ordersService.count(new QueryWrapper<Orders>().eq("status", Orders.TO_BE_CONFIRMED)));
-        vo.setConfirmed((int) ordersService.count(new QueryWrapper<Orders>().eq("status", Orders.CONFIRMED)));
-        vo.setDeliveryInProgress((int) ordersService.count(new QueryWrapper<Orders>().eq("status", Orders.DELIVERY_IN_PROGRESS)));
+        vo.setToBeConfirmed(ordersMapper.countByStatus(Orders.TO_BE_CONFIRMED).intValue());
+        vo.setConfirmed(ordersMapper.countByStatus(Orders.CONFIRMED).intValue());
+        vo.setDeliveryInProgress(ordersMapper.countByStatus(Orders.DELIVERY_IN_PROGRESS).intValue());
         return vo;
     }
 
@@ -401,13 +407,41 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
     @Override
     @Transactional
     public void markPaid(Long orderId) {
-        Orders update = new Orders();
-        update.setId(orderId);
-        update.setPayStatus(Orders.PAID);
-        update.setStatus(Orders.TO_BE_CONFIRMED);
-        update.setCheckoutTime(new Date());
-        ordersService.updateById(update);
-        orderRiskService.scoreOrder(orderId, "paid");
+        requireId(orderId);
+        Orders order = ordersService.getById(orderId);
+        if (order == null) throw new OrderBusinessException("订单不存在");
+        payStoredOrder(order, null);
+    }
+
+    // Both public entry points provide the proxy transaction; this shared step never
+    // relies on self-invocation of @Transactional markPaid.
+    private void payStoredOrder(Orders order, Long userId) {
+        if (Integer.valueOf(Orders.PAID).equals(order.getPayStatus())
+                && order.getStatus() != null && order.getStatus() >= Orders.TO_BE_CONFIRMED
+                && order.getStatus() <= Orders.COMPLETED) {
+            return; // Compatible mock response, no timestamp or risk side effects on retry.
+        }
+        if (!Integer.valueOf(Orders.PENDING_PAYMENT).equals(order.getStatus())) {
+            throw new OrderBusinessException("当前订单状态不可支付");
+        }
+        requireTransition(ordersMapper.payPending(order.getId(), userId, new Date()), "当前订单状态不可支付");
+        try {
+            orderRiskService.scoreOrder(order.getId(), "paid");
+        } catch (RuntimeException failure) {
+            log.warn("Optional paid order risk scoring unavailable for orderId={}", order.getId(), failure);
+        }
+    }
+
+    private void requireId(Long id) {
+        if (id == null || id <= 0) throw new OrderBusinessException("参数错误");
+    }
+
+    private void requireReason(String reason) {
+        if (!StringUtils.hasText(reason)) throw new OrderBusinessException("参数错误");
+    }
+
+    private void requireTransition(int affected, String message) {
+        if (affected != 1) throw new OrderBusinessException(message);
     }
 
     private void enrichRiskFields(List<com.codeying.vo.admin.order.OrderVO> records) {
@@ -453,6 +487,7 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
     @Override
     @Transactional
     public void confirm(Long id) {
+        requireId(id);
         Orders orders = ordersService.getById(id);
         if (orders == null || !Integer.valueOf(Orders.TO_BE_CONFIRMED).equals(orders.getStatus())) {
             throw new OrderBusinessException("当前订单状态不可接单");
@@ -460,12 +495,14 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
         Orders update = new Orders();
         update.setId(id);
         update.setStatus(Orders.CONFIRMED);
-        ordersService.updateById(update);
+        requireTransition(ordersMapper.transitionFrom(update, orders.getStatus(), null), "当前订单状态不可接单");
     }
 
     @Override
     @Transactional
     public void reject(Long id, String reason) {
+        requireId(id);
+        requireReason(reason);
         Orders orders = ordersService.getById(id);
         if (orders == null || !Integer.valueOf(Orders.TO_BE_CONFIRMED).equals(orders.getStatus())) {
             throw new OrderBusinessException("当前订单状态不可拒单");
@@ -473,14 +510,16 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
         Orders update = new Orders();
         update.setId(id);
         update.setStatus(Orders.CANCELLED);
-        update.setRejectionReason(reason);
+        update.setRejectionReason(reason.trim());
         update.setCancelTime(new Date());
-        ordersService.updateById(update);
+        requireTransition(ordersMapper.transitionFrom(update, orders.getStatus(), null), "当前订单状态不可拒单");
     }
 
     @Override
     @Transactional
     public void cancelByAdmin(Long id, String reason) {
+        requireId(id);
+        requireReason(reason);
         Orders orders = ordersService.getById(id);
         if (orders == null) throw new OrderBusinessException("订单不存在");
         Integer s = orders.getStatus();
@@ -491,14 +530,15 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
         Orders update = new Orders();
         update.setId(id);
         update.setStatus(Orders.CANCELLED);
-        update.setCancelReason(reason);
+        update.setCancelReason(reason.trim());
         update.setCancelTime(new Date());
-        ordersService.updateById(update);
+        requireTransition(ordersMapper.transitionFrom(update, orders.getStatus(), null), "当前订单状态不可取消");
     }
 
     @Override
     @Transactional
     public void deliver(Long id) {
+        requireId(id);
         Orders orders = ordersService.getById(id);
         if (orders == null || !Integer.valueOf(Orders.CONFIRMED).equals(orders.getStatus())) {
             throw new OrderBusinessException("当前订单状态不可派送");
@@ -506,12 +546,13 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
         Orders update = new Orders();
         update.setId(id);
         update.setStatus(Orders.DELIVERY_IN_PROGRESS);
-        ordersService.updateById(update);
+        requireTransition(ordersMapper.transitionFrom(update, orders.getStatus(), null), "当前订单状态不可派送");
     }
 
     @Override
     @Transactional
     public void complete(Long id) {
+        requireId(id);
         Orders orders = ordersService.getById(id);
         if (orders == null || !Integer.valueOf(Orders.DELIVERY_IN_PROGRESS).equals(orders.getStatus())) {
             throw new OrderBusinessException("当前订单状态不可完成");
@@ -520,6 +561,6 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
         update.setId(id);
         update.setStatus(Orders.COMPLETED);
         update.setDeliveryTime(new Date());
-        ordersService.updateById(update);
+        requireTransition(ordersMapper.transitionFrom(update, orders.getStatus(), null), "当前订单状态不可完成");
     }
 }
