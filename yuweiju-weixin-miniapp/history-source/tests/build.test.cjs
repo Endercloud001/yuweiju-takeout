@@ -58,8 +58,9 @@ test('compiled templates resolve real components/events/refs/static assets and s
     if (name === 'Details') {
       await page.getBaseData(974); page.$options.render.call(page);
       assert.match(template, /以订单合计为准/); assert.match(template, /orderDetailsData.amount/); assert.match(template, /orderDetailsData.packAmount/);
-      assert.doesNotMatch(template, /配送费.*￥[26]/); assert.match(template, /obj.\$orig.image/);
-    } else { assert.match(template, /num.image/); assert.match(template, /<empty/); }
+      assert.doesNotMatch(template, /配送费.*￥[26]/);
+    } else { assert.match(template, /<empty/); }
+    // Image bindings/error recovery are exercised through actual template events in images.test.cjs.
     page.$destroy();
   }
 });

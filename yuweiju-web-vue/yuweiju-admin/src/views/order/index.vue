@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { formatRiskLevel } from '../../utils/order-risk'
+import HistoricalOrderImage from '../../components/HistoricalOrderImage.vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -702,7 +703,7 @@ onMounted(fetch)
 
                     <div class="dish-lines">
                       <div v-for="(d, i) in detail.orderDetailList || []" :key="i" class="dish-line">
-                        <span class="dish-name">{{ d.name }}</span>
+                        <span class="dish-name"><HistoricalOrderImage :image="d.image" :row="d" :name="d.name" />{{ d.name }}</span>
                         <span class="dish-qty">{{ d.number ? `×${d.number}` : '×1' }}</span>
                         <span class="dish-price">{{ d.amount ? formatCurrency(d.amount) : '—' }}</span>
                       </div>

@@ -14,7 +14,7 @@
 <view class="date_type"><text class="time">{{item.orderTime}}</text><text :class="['type','status',item.status==2?'status':'']">{{statusWord(item.status,getOvertime(item.orderTime))}}</text></view>
 <view class="orderBox" @tap="goDetail(item.id)">
 <view class="food_num"><scroll-view class="pic" style="width:100%;overflow:hidden;white-space:nowrap;" scroll-x="true">
-<view v-for="(num, y) in item.orderDetailList" :key="y" class="food_num_item"><view class="img"><image :src="num.image" /></view><view class="food">{{num.name}}</view></view>
+<view v-for="(num, y) in item.orderDetailList" :key="y" class="food_num_item"><view class="img"><image :key="historicalImage(num)" :src="historicalImage(num)" :data-history-src="historicalImage(num)" :data-history-row="historicalImageRow(num)" @error="historicalImageError(num, $event)" /></view><view class="food">{{num.name}}</view></view>
 </scroll-view></view>
 <view class="numAndAum"><view><text>{{'￥'+item.amount.toFixed(2)}}</text></view><view><text>{{'共'+numes(item.orderDetailList).count+'件'}}</text></view></view>
 </view>
