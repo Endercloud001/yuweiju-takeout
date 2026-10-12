@@ -15,6 +15,7 @@
     "check:git-guard": "python3 .sandcastle/verify-git-guard.py",
     "check:preflight": "python3 .sandcastle/verify-preflight.py",
     "check:evidence": "python3 .sandcastle/verify-evidence.py",
-    "check:config": "python3 .sandcastle/run-config-fixture.py"
+    "check:config": "python3 .sandcastle/run-config-fixture.py",
+    "check:input": "python3 .sandcastle/test-prepare-input.py"
   }
 }
