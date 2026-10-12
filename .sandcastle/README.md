@@ -1,8 +1,14 @@
 # Sandcastle 任务运行时与 issue #19 复盘改进
 
+新任务默认包含 [Ponytail 收尾](../.agents/skills/yuweiju-ponytail/SKILL.md)：首次内部检查后复查完整任务差异，有合理精简项才修改，最终检查与成功提交完成后才能 COMPLETE。`prepare-input.py` 默认复制项目技能、上游正文和许可；`common.mts` 在编码 prompt 中提供收尾入口。预算不足保留候选并报告未完成，既有 Git 防护、deadline、closing 和证据承接继续适用。
+
+项目内新增运行目录为 `.scratch/ponytail-afk/runtime`（Windows/WSL 路径见 [runtime](../.agents/skills/yuweiju-afk/references/runtime.md)）；准备版本由实际 HEAD 核对。它从已确认 main 独立 clone，再加入本次变更；不要使用下方旧 `prepare-runtime.py` 的根 overlay 覆盖它。旧 runtime 和历史任务保留。
+
+材料准备普通测试：`npm run check:input`；它通过 CLI 使用离线 GitHub 夹具，检查默认材料、缺失材料、额外材料及原有证据/路径边界。真实 Ponytail 模型执行仍需具体业务票的编码授权，接入验证不冒充真实试点。
+
 当前维护补齐启动前 [信息/授权/预算](../.agents/skills/yuweiju-afk/references/startup.md)、实际镜像网络 `preflight.py`、截止提醒与宿主逐轮证据；人工验收通过后走 [deliver](../.agents/skills/yuweiju-deliver/SKILL.md)，选定复盘改造走 [retro-improve](../.agents/skills/yuweiju-retro-improve/SKILL.md)。默认编码轮数/时限、认证设置与Git防护保持不变；监督器不自动续跑。下方日期化材料作为历史证据，实际入口以选定checkout的当前源码为准。
 
-当前入口使用本文后半部分“Sandcastle Git 防误操作改进”的准备流程与 Git-safe 镜像。前半部分保留旧环境的历史记录；当前任务按 [AFK runtime](../.agents/skills/yuweiju-afk/references/runtime.md) 核实绝对工具路径、专属 networks、预算与独立验证。
+当前任务使用上述 Ponytail clone 与既有 Git-safe 镜像，按 [AFK runtime](../.agents/skills/yuweiju-afk/references/runtime.md) 核实工具路径、准备版本、专属 networks、预算与独立验证。本文后半部分的 overlay 部署是旧环境历史记录，不是新 clone 的准备入口。
 
 `task-config.example.json` 的空 `networks` 表示单独使用 Docker 默认网络。需要隔离数据加出站网络时，按上述 runtime 使用两个本票自定义网络；不能将内置 `bridge` 与自定义网络组合传入。模板路径、分支、提交与网络均须在任务准备时替换并用既有 preflight 核对。
 
@@ -166,7 +172,7 @@ manual authorization; the verification entry never starts an agent or resumes it
 
 这里保存外部 WSL 通用环境的运行时覆盖文件和新增防护源码。完整可运行 clone 在本项目 `.scratch/sandcastle-git-safety/runtime`；外部旧环境、旧 #4 分支和成果保持不变。方案见 [实施方案](../docs/sandcastle-git-safety-plan.md)，依据见 [研究笔记](../docs/sandcastle-git-safety-review.md)。
 
-## 准备与使用
+## 准备与使用（旧环境部署记录）
 
 在 Ubuntu WSL 中从项目根目录执行：
 
@@ -190,7 +196,7 @@ clone 的本地提交身份默认为 `Sandcastle task agent <sandcastle@localhos
 
 未来任务按 AFK 流程选择本次 runtime 和准备提交，用任务专属配置将 image 指向 `sandcastle:yuweiju-dev-git-safe`；仅在任务另获编码授权后运行 `.sandcastle/main.ts`。本次维护及测试不启动真实编码代理。运行时默认 evidence 已改为 runtime 内的 `.scratch/sandcastle-evidence`，也可用项目内的 `SANDCASTLE_EVIDENCE` 覆盖。
 
-如果旧配置仍选择原镜像，准备检查会失败；请更新镜像字段，不得跳过检查。修改 overlay 后应将对应文件同步至项目内 runtime 并单独形成新的准备提交，任务 startCommit 必须包含该提交；不要把未提交的准备修改当成可供 worktree 使用的版本。
+在上述旧环境部署中，原镜像缺防护时准备检查会失败；需要正确镜像而不是跳过检查。旧 overlay 更新曾通过同步文件并形成新准备提交部署。新 Ponytail clone 使用当前维护分支的版本，保留自己的源码；所有任务的 startCommit 仍须包含选定准备版本，未提交修改不能冒称已进入 worktree。
 
 ## 保护范围
 

@@ -75,7 +75,8 @@ export async function boundedRun(agent: AgentProvider, branch: string, smoke = f
   const retainedAgent: AgentProvider = { ...guarded, buildPrintCommand(args) {
     iteration++;
     const instructions = `This is supervisor iteration ${iteration}/${options.maxIterations ?? limits.maxIterations}. Previous iteration commits are already on this branch. Read prior evidence under /afk-evidence. The shared coding deadline is ${new Date(deadline).toISOString()}; installation and checks count inside it. Before that deadline save a candidate commit, remaining changes, checks and blockers. Check /afk-evidence/closing.json between work steps. COMPLETE requires actual task commits and passed checks.\n`;
-    const original = guarded.buildPrintCommand({ ...args, prompt: smoke ? args.prompt : instructions + args.prompt });
+    const closeout = `After initial task checks pass, read /home/agent/task-input/.agents/skills/yuweiju-ponytail/SKILL.md and complete its Ponytail closeout for task changes since ${task?.startCommit} before the final successful candidate commit and COMPLETE. Missing closeout material or unfinished closeout leaves the task incomplete; preserve candidate commits and remaining work within the existing deadline.\n`;
+    const original = guarded.buildPrintCommand({ ...args, prompt: smoke ? args.prompt : instructions + closeout + args.prompt });
     return { ...original, command: `node /afk-tools/iteration-agent.mjs ${quote('/afk-evidence/iteration-' + iteration)} ${quote(JSON.stringify(task?.evidencePaths ?? [task?.progressFile ?? '.sandcastle/task-progress.md']))} ${quote(String(deadline))} ${quote(original.command)}` };
   } };
   try {
