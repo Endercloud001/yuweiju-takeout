@@ -10,6 +10,8 @@
 
 原工作区位于旧 issue4 分支，有既有修改；旧 protected runtime 和历史任务保留。依赖只读复用已有 Linux node_modules，使用已核实 Node `v22.23.3` 的绝对入口；npm cache、TMPDIR、夹具、容器证据与日志均在项目 `.scratch/ponytail-afk/` 或该 runtime 内。
 
+原项目安装了同一份 `yuweiju-ponytail` 三文件，并在原 `yuweiju-afk` 增加指向新 clone 技能的入口、更新 runtime 发现路径；原步骤作为历史对照保留，不用旧 overlay 启动新任务。这些本机入口与文档同步不覆盖原工作区其他变更，本轮提交位于独立 clone。
+
 ## 实施差异
 
 - 新增 [yuweiju-ponytail 技能](../.agents/skills/yuweiju-ponytail/SKILL.md)，上游 `5.1.0` 正文原样保留于 reference，附 MIT 许可。来源为 Git 提交 `9b58c1ffb790c075ca32e70a89cf1d80588f4abf`；没有执行上游插件脚本或修改用户配置。
@@ -43,11 +45,25 @@ Java 后端、Vue 管理端和微信小程序的业务代码、API、schema 均�
 
 静态技能场景由独立代理读取技能演练：接入前旧技能允许检查后直接提交，不要求精简；接入后覆盖重复 helper、无改动、精简后失败、剩余15秒、上轮提交后再修改、纯文档、缺材料等8个场景，均给出符合方案的处理。它是阅读指令的场景演练，不是容器 Codex 实际执行或质量收益验证。
 
-候选源码的精确提交独立快照检查、文档可移植性检查与两轴审查将在提交候选后记录于下节；上述宿主/夹具验证不能冒称为这项检查。
+候选源码的精确提交独立快照检查、文档可移植性检查与两轴审查另列下节，分别记录来源，不与上述宿主/夹具验证混同。
 
 ## 候选独立验证与审查
 
-待形成候选提交后运行现有 verifier，分别记录精确提交、命令、退出、容器停止和结果；code-review 的 Standards 与 Spec 两轴结果单列。不会用历史夹具的候选替代本次维护提交。
+代码候选为 `29765e7f6acd7b71baafabef7a3c67ed6fd78bf0`。在该 clone 使用现有 `verify-task.py --config <maintenance-checks.json> --commit 29765e7... --npm-cache <项目内缓存>`，从这一提交导出新快照，non-root、C.UTF-8、不挂认证、不调用模型。
+
+两组检查均 exit 0：第一组 `npm ci` 后运行 types/input/policy/evidence；第二组检查本次技能、运行时和方案/报告/流程图的本地链接，failures=[]。结果 resources 为 `independentVerification=passed`、`stopped=true`、`authMounted=false`、`modelCalled=false`。证据：项目 `.scratch/ponytail-afk/candidate-verification/task-review-1791808643946476190/{resources.json,check-0.log,check-1.log}`。
+
+code-review 固定点为 main `1e42c53...`，审查该点到上述代码候选的差异。独立验证后仅同步设计状态、README 历史标识和本报告，没有改变被验证的 runtime/技能/测试源码。最终文档仍执行本地链接与差异检查；实际最终提交从维护 clone 的 git log 获取。
+
+## Standards
+
+必须修复0项，初次判断建议1项：README 新入口与旧 overlay 段落同称“当前”可能误导。已将旧准备/同步明确标为历史部署，并统一当前入口到 runtime 指引。独立复核确认建议已消除，剩余判断建议0项。
+
+## Spec
+
+0项。默认启用、完整差异、原预算/保全、阶段证据、独立候选和权限均吻合已确认方案；无真实模型试点的限制有明确说明。
+
+两轴最终均无剩余问题；Standards 唯一入口歧义建议已处理，Spec 未发现实现缺项。
 
 ## 真实试点准备与限制
 
