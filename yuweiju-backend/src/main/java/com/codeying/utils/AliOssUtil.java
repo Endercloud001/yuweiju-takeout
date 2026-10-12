@@ -1,17 +1,21 @@
 package com.codeying.utils;
 
-import com.aliyun.oss.ClientException;
 import com.aliyun.oss.HttpMethod;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
-import com.aliyun.oss.OSSException;
 import com.aliyun.oss.model.GeneratePresignedUrlRequest;
 import com.aliyun.oss.model.ListObjectsRequest;
 import com.aliyun.oss.model.ObjectListing;
+import com.aliyun.oss.model.PutObjectRequest;
 import com.aliyun.oss.model.OSSObjectSummary;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.IOException;
 import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.function.Predicate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -50,16 +54,27 @@ public class AliOssUtil {
      * @return 文件访问 URL
      */
     public String upload(byte[] bytes, String objectName) {
+        try (ByteArrayInputStream input = new ByteArrayInputStream(bytes)) {
+            return upload(input, objectName);
+        } catch (IOException e) {
+            throw new IllegalStateException("OSS 上传失败", e);
+        }
+    }
+
+    /** 上传调用方拥有的流；调用方负责关闭流，本方法负责 SDK 客户端。 */
+    public String upload(InputStream input, String objectName) {
         OSS ossClient = createClient();
         try {
-            ossClient.putObject(bucketName, objectName, new ByteArrayInputStream(bytes));
-        } catch (OSSException | ClientException e) {
+            PutObjectRequest request = new PutObjectRequest(bucketName, objectName, input);
+            // SDK 默认请求错误日志包含上游正文；由 Service 记录不含正文的失败信息。
+            request.setLogEnabled(false);
+            ossClient.putObject(request);
+            return buildObjectUrl(objectName);
+        } catch (Exception e) {
             throw new IllegalStateException("OSS 上传失败", e);
         } finally {
             closeQuietly(ossClient);
         }
-
-        return buildObjectUrl(objectName);
     }
 
     /**
@@ -70,16 +85,34 @@ public class AliOssUtil {
      * @return 对象摘要列表
      */
     public List<OSSObjectSummary> listObjects(String prefix, int maxKeys) {
+        return listObjects(prefix, maxKeys, summary -> true);
+    }
+
+    /** 按 SDK marker 分页，过滤后累计到返回上限；保留 OSS 的对象顺序。 */
+    public List<OSSObjectSummary> listObjects(String prefix, int maxKeys, Predicate<OSSObjectSummary> filter) {
+        if (maxKeys <= 0) return List.of();
         OSS ossClient = createClient();
         try {
             ListObjectsRequest request = new ListObjectsRequest(bucketName);
-            if (prefix != null && !prefix.isBlank()) {
-                request.setPrefix(prefix);
+            request.setLogEnabled(false);
+            if (prefix != null && !prefix.isBlank()) request.setPrefix(prefix);
+            request.setMaxKeys(Math.min(maxKeys, 1000));
+            List<OSSObjectSummary> result = new ArrayList<>();
+            while (result.size() < maxKeys) {
+                ObjectListing listing = ossClient.listObjects(request);
+                for (OSSObjectSummary summary : listing.getObjectSummaries()) {
+                    if (filter.test(summary)) result.add(summary);
+                    if (result.size() == maxKeys) break;
+                }
+                if (!listing.isTruncated() || result.size() == maxKeys) break;
+                String marker = listing.getNextMarker();
+                if (marker == null || marker.isBlank() || marker.equals(request.getMarker())) {
+                    throw new IllegalStateException("OSS 列表分页未前进");
+                }
+                request.setMarker(marker);
             }
-            request.setMaxKeys(maxKeys);
-            ObjectListing listing = ossClient.listObjects(request);
-            return new ArrayList<>(listing.getObjectSummaries());
-        } catch (OSSException | ClientException e) {
+            return result;
+        } catch (Exception e) {
             throw new IllegalStateException("OSS 列表查询失败", e);
         } finally {
             closeQuietly(ossClient);
@@ -99,13 +132,18 @@ public class AliOssUtil {
         return buildPublicUrl(objectName);
     }
 
-    private OSS createClient() {
-        return new OSSClientBuilder().build(normalizeEndpoint(endpoint), accessKeyId, accessKeySecret);
+    protected OSS createClient() {
+        return new OSSClientBuilder().build(endpoint.trim(), accessKeyId, accessKeySecret);
     }
 
     private String buildPublicUrl(String objectName) {
         String baseUrl = org.springframework.util.StringUtils.hasText(publicBaseUrl) ? trimTrailingSlash(publicBaseUrl) : "https://" + bucketName + "." + normalizeEndpoint(endpoint);
-        return trimTrailingSlash(baseUrl) + "/" + objectName;
+        try {
+            String encodedPath = new URI(null, null, "/" + objectName, null).toASCIIString();
+            return trimTrailingSlash(baseUrl) + encodedPath;
+        } catch (URISyntaxException e) {
+            throw new IllegalStateException("OSS 对象地址无效", e);
+        }
     }
 
     private String buildSignedUrl(String objectName) {
