@@ -2,6 +2,7 @@ package com.codeying.service.impl;
 
 import com.aliyun.oss.model.OSSObjectSummary;
 import com.codeying.properties.AliOssProperties;
+import com.codeying.exception.BusinessException;
 import com.codeying.service.DefaultImageLibraryService;
 import com.codeying.utils.AliOssUtil;
 import com.codeying.vo.admin.common.DefaultImageVO;
@@ -22,11 +23,6 @@ import java.util.Locale;
  */
 @Service
 public class DefaultImageLibraryServiceImpl implements DefaultImageLibraryService {
-/**
- * LoggerFactory.getLogger
- * @return 
- */
-
     private static final Logger log = LoggerFactory.getLogger(DefaultImageLibraryServiceImpl.class);
 
     private final AliOssUtil aliOssUtil;
@@ -42,38 +38,38 @@ public class DefaultImageLibraryServiceImpl implements DefaultImageLibraryServic
      */
     @Override
     public List<DefaultImageVO> listDefaultImages(String scene, Integer limit) {
-        String prefix = resolvePrefix(scene);
+        String normalizedScene = normalizeScene(scene);
+        String prefix = resolvePrefix(normalizedScene);
         int maxCount = resolveLimit(limit);
-        List<OSSObjectSummary> summaries = aliOssUtil.listObjects(prefix, maxCount);
-        List<DefaultImageVO> result = new ArrayList<>(summaries.size());
-        for (OSSObjectSummary summary : summaries) {
-            if (summary == null || !StringUtils.hasText(summary.getKey())) {
-                continue;
+        try {
+            List<OSSObjectSummary> summaries = aliOssUtil.listObjects(prefix, maxCount, this::isImage);
+            List<DefaultImageVO> result = new ArrayList<>(summaries.size());
+            for (OSSObjectSummary summary : summaries) {
+                String objectKey = summary.getKey();
+                DefaultImageVO vo = new DefaultImageVO();
+                vo.setName(StringUtils.getFilename(objectKey));
+                vo.setObjectKey(objectKey);
+                vo.setUrl(aliOssUtil.buildObjectUrl(objectKey));
+                vo.setScene(normalizedScene);
+                vo.setSize(summary.getSize());
+                Date lastModified = summary.getLastModified();
+                vo.setLastModified(lastModified == null ? null : lastModified.toInstant().toString());
+                result.add(vo);
             }
-            String objectKey = summary.getKey();
-            if (objectKey.endsWith("/")) {
-                continue;
-            }
-            String extension = StringUtils.getFilenameExtension(objectKey);
-            if (!isAllowedExtension(extension)) {
-                continue;
-            }
-            DefaultImageVO vo = new DefaultImageVO();
-            vo.setName(StringUtils.getFilename(objectKey));
-            vo.setObjectKey(objectKey);
-            vo.setUrl(aliOssUtil.buildObjectUrl(objectKey));
-            vo.setScene(normalizeScene(scene));
-            vo.setSize(summary.getSize());
-            Date lastModified = summary.getLastModified();
-            vo.setLastModified(lastModified == null ? null : lastModified.toInstant().toString());
-            result.add(vo);
+            log.info("查询默认图片库完成，limit={}, count={}", maxCount, result.size());
+            return result;
+        } catch (Exception e) {
+            log.warn("默认图片库上游查询失败");
+            throw new BusinessException("获取默认图片失败", e);
         }
-        log.info("查询默认图片库完成，scene={}, prefix={}, limit={}, count={}", normalizeScene(scene), prefix, maxCount, result.size());
-        return result;
     }
 
-    private String resolvePrefix(String scene) {
-        String normalizedScene = normalizeScene(scene);
+    private boolean isImage(OSSObjectSummary summary) {
+        return summary != null && StringUtils.hasText(summary.getKey()) && !summary.getKey().endsWith("/")
+                && isAllowedExtension(StringUtils.getFilenameExtension(summary.getKey()));
+    }
+
+    private String resolvePrefix(String normalizedScene) {
         String prefix;
         if ("dish".equals(normalizedScene)) {
             prefix = aliOssProperties.getDishDefaultImagePrefix();
@@ -83,7 +79,7 @@ public class DefaultImageLibraryServiceImpl implements DefaultImageLibraryServic
             prefix = aliOssProperties.getDefaultImagePrefix();
         }
         if (!StringUtils.hasText(prefix)) {
-            log.warn("默认图片库前缀未配置，回退到 bucket 根目录，scene={}", normalizedScene);
+            log.warn("默认图片库前缀未配置，回退到 bucket 根目录");
             return "";
         }
         String normalized = prefix.trim().replace('\\', '/');

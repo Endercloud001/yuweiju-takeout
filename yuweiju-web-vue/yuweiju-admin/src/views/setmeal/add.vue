@@ -123,6 +123,10 @@ const handleUploadSuccess: UploadProps['onSuccess'] = (response) => {
   ElMessage.success('上传成功')
 }
 
+const handleUploadError: UploadProps['onError'] = () => {
+  ElMessage.error('上传失败，请稍后重试')
+}
+
 function gotoList() {
   router.push({ name: 'Setmeal' })
 }
@@ -367,6 +371,7 @@ onMounted(() => {
                           :headers="uploadHeaders"
                           :show-file-list="false"
                           :on-success="handleUploadSuccess"
+                          :on-error="handleUploadError"
                         >
                           <div class="upload-inner">
                             <div class="upload-icon" aria-hidden="true">↑</div>
