@@ -15,6 +15,10 @@ The protected runtime requires the Git-safe image named by its config example. R
 
 ## Prepare
 
+`prepare-input.py` 生成 `closeout-prompt.md` 和 `preparation-notes.md`；共享监督器从同一 `.sandcastle/closeout-prompt.md` 来源追加精确完成行，无需手工复制另一个版本。业务 prompt 仍需本票范围/命令/截止，普通 COMPLETE 不表示监督器完成。
+
+`launch.mts` 在本次 `SANDCASTLE_EVIDENCE` 内生成独立 `host-*` 目录，保留脱敏 stdout/stderr、worker exit/signal 和带来源的最后已知资源快照。只关联该 worker PID 的新记录；无记录、读取失败或失联保留 unknown。last-known-stopped 仅表示记录中的已知停止，不替代当下资源复查；宿主被强制终止时结束字段可能缺失。日志只屏蔽常见命名秘密，原输出仍需禁止敏感业务正文，分享前审查。原采样/预算/停止逻辑继续适用。
+
 First complete [startup handoff and evidence selection](startup.md). The selected runtime's `preflight.py` checks the actual image/networks before coding; business-worker repeats it with a read-only dedicated-login check. Use `verificationMs` for independent review and `closingMs` inside the original `totalMs`; defaults remain unchanged. See [human acceptance](acceptance.md) only after independent verification passes. Do not select an old verifier merely because this discovery hint names an old runtime.
 
 Use `.sandcastle/task-config.example.json` as the field source. Supply absolute Linux paths for the prompt, input, authentication, and optional skills. Set `maxIterations` to X and `totalMs` to Y × 60000. Use `.sandcastle/task-progress.md` as the retained progress file. Inspect `.sandcastle/prepare-input.py` before use; it reads GitHub and copies selected materials. Read native dependencies separately because that helper does not collect them.

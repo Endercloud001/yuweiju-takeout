@@ -1,5 +1,7 @@
 # 启动前交接
 
+准备入口先在实际任务执行器核对 `git var GIT_AUTHOR_IDENT` 和 `git var GIT_COMMITTER_IDENT`（只看退出，不输出身份正文）。缺少身份时用本票命令的 `git -c user.name=Codex -c user.email=codex@localhost commit ...`，沿既有 guard 执行；不改 global Git 或 wrapper。检查 Windows 执行器版本与脚本编码：Windows PowerShell 5 的 UTF-8 中文脚本需 BOM，或将窗标题/启动脚本写为 ASCII；Linux 消费文件继续 UTF-8/LF。Vite 需要加载配置并写临时文件时，配置和 preview 输出放本票可写目录；已有静态验收服务适用时优先复用，有限等待后核对实际 HTTP 资源，保留 EROFS/首次失败。
+
 先查 issue、依赖、当前代码、main 与旧报告。记录已确认 main 提交、runtime/verifier 来源，新准备默认复用该来源的工具，业务起点按 issue 单独确认；确需旧工具时说明兼容原因，不为更新工具偷偷升级业务范围。标记已解决项并跳过；本机工具、路径、网络、端口等可查事实由 Agent 核实。保留根目录用户修改；需要隔离时在项目 `.scratch/` 下建工作树。准备说明不表示已经启动 AFK。
 
 编写 HTTP/业务探针前，沿实际路由核对权限配置、拦截器的包含/排除路径及入口的身份/归属检查，记录每个待测端点的匿名、正确身份和错误身份预期及源码位置。公开目录按当前实现验证匿名读取；受保护端点保留未登录和错误身份拒绝断言。权限不能仅由 `/user/` 前缀或旧测试推定；预期与代码冲突时先查清原因，测试假设不授权修改认证。

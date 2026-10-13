@@ -57,6 +57,17 @@ class TaskInputTests(unittest.TestCase):
         self.assertIn('ponytail-upstream.md', result.stderr)
         self.assertFalse((self.output / 'fetches').exists())
 
+    def test_completion_instruction_is_executable_and_preserves_failed_runs(self):
+        result = self.prepare()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        prompt = (self.output / 'closeout-prompt.md').read_text(encoding='utf-8')
+        self.assertEqual(prompt, (RUNTIME / '.sandcastle/closeout-prompt.md').read_text(encoding='utf-8'))
+        self.assertIn('\n<promise>COMPLETE</promise>\n', prompt)
+        self.assertIn('last output line', prompt)
+        self.assertIn('without emitting the promise', prompt)
+        self.assertIn('startup.md', (self.output / 'preparation-notes.md').read_text())
+        self.assertNotIn(b'\r', (self.output / 'closeout-prompt.md').read_bytes())
+
     def test_extra_material_and_raw_issue_evidence_are_retained(self):
         extra = self.source / 'docs' / 'issue-summary.md'
         extra.parent.mkdir(parents=True)

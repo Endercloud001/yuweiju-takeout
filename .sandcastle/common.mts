@@ -8,6 +8,8 @@ import { protectAgent, guardReadyCommand } from './git-safe-agent.mts';
 import { prepareWorktree } from './prepare-worktree.mts';
 export const repo = repoRoot;
 export const evidence = process.env.SANDCASTLE_EVIDENCE ?? resolve(repo, '.scratch/sandcastle-evidence');
+export const prepareTaskPrompt = (instructions: string, prompt: string) =>
+  instructions + prompt + '\n' + readFileSync(resolve(repo, '.sandcastle/closeout-prompt.md'), 'utf8');
 export const image = task?.image ?? process.env.SANDCASTLE_IMAGE ?? 'sandcastle:yuweiju-dev-git-safe';
 export const quote = (s: string) => "'" + s.replaceAll("'", "'\\''") + "'";
 // Trusted dependency preparation keeps native Git semantics. This PATH is
@@ -67,7 +69,7 @@ export async function boundedRun(agent: AgentProvider, branch: string, smoke = f
       instruction: 'Save candidate commit, remaining changes, checks and unfinished items now; original deadline remains in force.' }));
     console.error('AFK closing window: preserve candidate and evidence before the original deadline.');
   }, totalMs - closingMs);
-  const command = `${quote(process.execPath)} --import ${quote(resolve(repo, 'node_modules/tsx/dist/loader.mjs'))} ${quote(resolve(repo, '.sandcastle/resource-check.mts'))} ${quote(resourceFile)} ${quote(branch)}`;
+  const command = `${quote(process.execPath)} --import ${quote(resolve(repo, 'node_modules/tsx/dist/loader.mjs'))} ${quote(resolve(repo, '.sandcastle/resource-check.mts'))} ${quote(resourceFile)} ${quote(branch)} ${process.pid}`;
   const started = new Date().toISOString();
   let result; let failure: unknown; let preparedWorktreePath: string | undefined;
   let iteration = 0;
@@ -75,8 +77,7 @@ export async function boundedRun(agent: AgentProvider, branch: string, smoke = f
   const retainedAgent: AgentProvider = { ...guarded, buildPrintCommand(args) {
     iteration++;
     const instructions = `This is supervisor iteration ${iteration}/${options.maxIterations ?? limits.maxIterations}. Previous iteration commits are already on this branch. Read prior evidence under /afk-evidence. The shared coding deadline is ${new Date(deadline).toISOString()}; installation and checks count inside it. Before that deadline save a candidate commit, remaining changes, checks and blockers. Check /afk-evidence/closing.json between work steps. COMPLETE requires actual task commits and passed checks.\n`;
-    const closeout = `After initial task checks pass, read /home/agent/task-input/.agents/skills/yuweiju-ponytail/SKILL.md and complete its Ponytail closeout for task changes since ${task?.startCommit} before the final successful candidate commit and COMPLETE. Missing closeout material or unfinished closeout leaves the task incomplete; preserve candidate commits and remaining work within the existing deadline.\n`;
-    const original = guarded.buildPrintCommand({ ...args, prompt: smoke ? args.prompt : instructions + closeout + args.prompt });
+    const original = guarded.buildPrintCommand({ ...args, prompt: smoke ? args.prompt : prepareTaskPrompt(instructions, args.prompt) });
     return { ...original, command: `node /afk-tools/iteration-agent.mjs ${quote('/afk-evidence/iteration-' + iteration)} ${quote(JSON.stringify(task?.evidencePaths ?? [task?.progressFile ?? '.sandcastle/task-progress.md']))} ${quote(String(deadline))} ${quote(original.command)}` };
   } };
   try {

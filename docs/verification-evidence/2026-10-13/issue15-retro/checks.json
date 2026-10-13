@@ -1,0 +1,150 @@
+{
+  "date": "2026-10-13",
+  "baseCommit": "5d90ea32723d92e4b1f56230828e77b8742f83c7",
+  "authMounted": false,
+  "modelCalled": false,
+  "testedSourcesUnchanged": [
+    "common.mts",
+    "config-fixture.mts",
+    "launch.mts",
+    "launch.check.mts",
+    "closeout-prompt.md",
+    "prepare-input.py",
+    "resource-check.mts",
+    "test-prepare-input.py",
+    "verify-lifecycle.py"
+  ],
+  "checks": [
+    {
+      "mode": "red",
+      "name": "input",
+      "command": [
+        "python3",
+        ".sandcastle/test-prepare-input.py"
+      ],
+      "exitCode": 1,
+      "evidenceLocation": "project-local .scratch/verification/1791887157109929842/red-input.log"
+    },
+    {
+      "mode": "red",
+      "name": "host",
+      "command": [
+        "node",
+        "--import",
+        "./node_modules/tsx/dist/loader.mjs",
+        ".sandcastle/launch.check.mts"
+      ],
+      "exitCode": 1,
+      "evidenceLocation": "project-local .scratch/verification/1791887157109929842/red-host.log"
+    },
+    {
+      "mode": "green",
+      "name": "input",
+      "command": [
+        "python3",
+        ".sandcastle/test-prepare-input.py"
+      ],
+      "exitCode": 0,
+      "evidenceLocation": "project-local .scratch/verification/1791887157109929842/green-input.log"
+    },
+    {
+      "mode": "green",
+      "name": "host",
+      "command": [
+        "node",
+        "--import",
+        "./node_modules/tsx/dist/loader.mjs",
+        ".sandcastle/launch.check.mts"
+      ],
+      "exitCode": 0,
+      "evidenceLocation": "project-local .scratch/verification/1791887157109929842/green-host.log"
+    },
+    {
+      "mode": "green",
+      "name": "types",
+      "command": [
+        "npm",
+        "run",
+        "check:types"
+      ],
+      "exitCode": 0,
+      "evidenceLocation": "project-local .scratch/verification/1791887157109929842/green-types.log"
+    },
+    {
+      "mode": "green",
+      "name": "lifecycle",
+      "command": [
+        "npm",
+        "run",
+        "check:lifecycle"
+      ],
+      "exitCode": 0,
+      "evidenceLocation": "project-local .scratch/verification/1791887157109929842/green-lifecycle.log"
+    },
+    {
+      "mode": "green",
+      "name": "config",
+      "command": [
+        "npm",
+        "run",
+        "check:config"
+      ],
+      "exitCode": 0,
+      "evidenceLocation": "project-local .scratch/verification/1791887157109929842/green-config.log"
+    },
+    {
+      "mode": "green",
+      "name": "policy",
+      "command": [
+        "npm",
+        "run",
+        "check:git-policy"
+      ],
+      "exitCode": 0,
+      "evidenceLocation": "project-local .scratch/verification/1791887157109929842/green-policy.log"
+    }
+  ],
+  "cases": {
+    "input": 5,
+    "host": 5,
+    "lifecycle": 9,
+    "gitPolicy": 6
+  },
+  "before": {
+    "input": "test_completion_instruction_is_executable_and_preserves_failed_runs (__main__.TaskInputTests.test_completion_instruction_is_executable_and_preserves_failed_runs)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/mnt/e/Learning Files/yuweiju-takeout/.scratch/issue15-retro-improve-20261013/.scratch/verification/1791887157109929842/red/.sandcastle/test-prepare-input.py\", line 63, in test_completion_instruction_is_executable_and_preserves_failed_runs\n    prompt = (self.output / 'closeout-prompt.md').read_text(encoding='utf-8')\n  File \"/usr/lib/python3.14/pathlib/__init__.py\", line 788, in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:\n         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.14/pathlib/__init__.py\", line 772, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: '/mnt/e/Learning Files/yuweiju-takeout/.scratch/issue15-retro-improve-20261013/.scratch/verification/1791887157109929842/red/.scratch/prepare-input-tests/tmp3azxgjh4/input/closeout-prompt.md'\n\n----------------------------------------------------------------------\nRan 5 tests in 3.988s\n\nFAILED (errors=1)\n",
+    "host": "瀹夸富杈撳嚭\ntoken=fixture-sensitive\ntrailing-outputengine-disconnected\nnode:internal/modules/run_main:123\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: Host record must survive a nonzero worker exit with no resource record\n    at <anonymous> (/mnt/e/Learning Files/yuweiju-takeout/.scratch/issue15-retro-improve-20261013/.scratch/verification/1791887157109929842/red/.sandcastle/launch.check.mts:38:10)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: undefined,\n  expected: true,\n  operator: '==',\n  diff: 'simple'\n}\n\nNode.js v22.23.3\n"
+  },
+  "layout": [
+    {
+      "mode": "green",
+      "container": "issue15-retro-layout-1791887001731738582",
+      "snapshot": "/mnt/e/Learning Files/yuweiju-takeout/.scratch/issue15-retro-improve-20261013",
+      "command": [
+        "node",
+        ".sandcastle/environment/issue15-layout-check.cjs"
+      ],
+      "authMounted": false,
+      "modelCalled": false,
+      "exitCode": 0,
+      "stopped": true
+    },
+    {
+      "mode": "red-public-entry",
+      "container": "issue15-retro-layout-1791887004213932146",
+      "snapshot": "/mnt/e/Learning Files/yuweiju-takeout/.scratch/issue15-retro-improve-20261013/.scratch/layout-verification/1791887001527143391/overflow-source",
+      "command": [
+        "bash",
+        "/environment/runtime-check.sh"
+      ],
+      "authMounted": false,
+      "modelCalled": false,
+      "exitCode": 1,
+      "stopped": true
+    }
+  ],
+  "limitations": [
+    "Browser geometry fixture is not official WeChat rendering.",
+    "Full shared runtime, real model/auth, original business database and deployment were not run.",
+    "Launch records its Node worker; Windows/WSL failure before Node starts needs outer caller evidence."
+  ]
+}

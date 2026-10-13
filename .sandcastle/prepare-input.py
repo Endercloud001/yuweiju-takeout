@@ -25,6 +25,14 @@ record.update(finishedAt=datetime.datetime.now(datetime.timezone.utc).isoformat(
 if result.returncode:raise subprocess.CalledProcessError(result.returncode,command)
 issue=json.loads(result.stdout.decode('utf-8'))
 (args.output/'issue.json').write_text(json.dumps(issue,ensure_ascii=False,indent=2),encoding='utf-8')
+closeout = Path(__file__).with_name('closeout-prompt.md').read_text(encoding='utf-8')
+with (args.output/'closeout-prompt.md').open('w', encoding='utf-8', newline='\n') as output:
+ output.write(closeout)
+with (args.output/'preparation-notes.md').open('w', encoding='utf-8', newline='\n') as output:
+ output.write('Read the selected runtime .agents/skills/yuweiju-afk/references/startup.md for probe types, '
+              'Mockito fixtures, command environment and budget recovery. '
+              'Read references/acceptance.md for screenshot failures. '
+              'The generated closeout-prompt.md comes from the same source the supervisor appends.\n')
 refs=sorted(set(re.findall(r'docs/verification-evidence/2026-10-05/[A-Za-z0-9_.-]+',issue['body'])))
 (args.output/'material-status.json').write_text(json.dumps([{'path':f,'exists':(r/f).is_file(),'note':'inspect side effects before reuse' if (r/f).is_file() else 'cleaned historical evidence; do not restore or rerun original writes'} for f in refs],indent=2))
 for f in ['AGENTS.md','docs/agents/workflow.md','docs/standards/backend.md','docs/standards/admin.md','docs/standards/miniapp.md','docs/sandcastle-afk-complement-report.md','GLOSSARY.md','docs/agents/domain.md','docs/adr/0001-retain-conventional-backend-layering.md','docs/adr/0002-preserve-historical-order-images.md','yuweiju-backend/AGENTS.md','yuweiju-web-vue/AGENTS.md','yuweiju-weixin-miniapp/AGENTS.md']+ponytail_materials+args.material:
