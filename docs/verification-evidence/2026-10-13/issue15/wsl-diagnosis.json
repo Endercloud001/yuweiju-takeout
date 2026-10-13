@@ -1,0 +1,48 @@
+{
+  "historicalEvidence": [
+    {
+      "source": "com.docker.backend.exe.log.20261013-140731.503",
+      "line": 917,
+      "time": "2026-10-13T05:28:20.534379200Z",
+      "category": "wsl.exe --version exit1",
+      "decodedStderr": "系统无法访问此文件。"
+    }
+  ],
+  "currentChecks": [
+    {
+      "command": [
+        "wsl",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "WSL 版本: 3.0.3.0\r\n内核版本: 6.18.54.1-1\r\nWSLg 版本: 1.0.79\r\nMSRDC 版本: 1.2.7391\r\nDirect3D 版本: 1.611.1-81528511\r\nDXCore 版本: 10.0.26100.1-240331-1435.ge-release\r\nWindows 版本: 10.0.26200.9457",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "version",
+        "--format",
+        "{{.Server.Version}}"
+      ],
+      "exit": 0,
+      "stdout": "29.8.1",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "ps",
+        "--filter",
+        "name=yuweiju-issue15",
+        "--format",
+        "{{.Names}} {{.Status}}"
+      ],
+      "exit": 0,
+      "stdout": "yuweiju-issue15-acceptance-admin-1 Up 19 minutes\nyuweiju-issue15-acceptance-backend-1 Up 21 minutes\nyuweiju-issue15-acceptance-gateway-1 Up 21 minutes\nyuweiju-issue15-mysql-1 Up 54 minutes (healthy)\nyuweiju-issue15-redis-1 Up 54 minutes (healthy)",
+      "stderr": ""
+    }
+  ],
+  "conclusion": "Host WSL command/engine startup failure coincided with interrupted coding; currently recovered. No reproducible present failure; root cause not confirmed. Missing componentsVersion warning alone does not establish cause. No global repair applied.",
+  "time": "2026-10-13T06:27:13.028613+00:00"
+}

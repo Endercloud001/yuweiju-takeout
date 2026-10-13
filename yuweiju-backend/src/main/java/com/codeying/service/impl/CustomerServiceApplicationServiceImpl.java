@@ -1,12 +1,13 @@
 package com.codeying.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.codeying.exception.BusinessException;
+import com.codeying.mapper.CustomerServiceSessionMapper;
+import com.codeying.mapper.CustomerServiceMessageMapper;
+import org.springframework.transaction.annotation.Transactional;
 import com.codeying.entity.CustomerServiceMessage;
 import com.codeying.entity.CustomerServiceSession;
 import com.codeying.entity.User;
 import com.codeying.service.CustomerServiceApplicationService;
-import com.codeying.service.CustomerServiceMessageService;
-import com.codeying.service.CustomerServiceSessionService;
 import com.codeying.service.UserService;
 import com.codeying.vo.admin.customer_service.CustomerServiceSessionSummaryVO;
 import com.codeying.vo.common.customer_service.CustomerServiceMessageVO;
@@ -33,17 +34,17 @@ public class CustomerServiceApplicationServiceImpl implements CustomerServiceApp
     private static final int DEFAULT_LIMIT = 50;
     private static final int MAX_LIMIT = 200;
 
-    private final CustomerServiceSessionService sessionService;
-    private final CustomerServiceMessageService messageService;
+    private final CustomerServiceSessionMapper sessionMapper;
+    private final CustomerServiceMessageMapper messageMapper;
     private final UserService userService;
 
     public CustomerServiceApplicationServiceImpl(
-            CustomerServiceSessionService sessionService,
-            CustomerServiceMessageService messageService,
+            CustomerServiceSessionMapper sessionMapper,
+            CustomerServiceMessageMapper messageMapper,
             UserService userService
     ) {
-        this.sessionService = sessionService;
-        this.messageService = messageService;
+        this.sessionMapper = sessionMapper;
+        this.messageMapper = messageMapper;
         this.userService = userService;
     }
 
@@ -52,12 +53,8 @@ public class CustomerServiceApplicationServiceImpl implements CustomerServiceApp
      */
     @Override
     public CustomerServiceSessionVO openSession(Long userId) {
-        if (userId == null) return null;
-        CustomerServiceSession existing = sessionService.getOne(new QueryWrapper<CustomerServiceSession>()
-                .eq("user_id", userId)
-                .eq("status", CustomerServiceSession.STATUS_OPEN)
-                .orderByDesc("update_time")
-                .last("limit 1"));
+        requireIdentity(userId);
+        CustomerServiceSession existing = sessionMapper.findLatestOpenByUser(userId);
         if (existing != null) {
             return toSessionVO(existing);
         }
@@ -68,7 +65,7 @@ public class CustomerServiceApplicationServiceImpl implements CustomerServiceApp
         session.setStatus(CustomerServiceSession.STATUS_OPEN);
         session.setCreateTime(now);
         session.setUpdateTime(now);
-        sessionService.save(session);
+        if (sessionMapper.insert(session) != 1) throw new BusinessException("打开会话失败");
         return toSessionVO(session);
     }
 
@@ -77,9 +74,7 @@ public class CustomerServiceApplicationServiceImpl implements CustomerServiceApp
      */
     @Override
     public List<CustomerServiceSessionSummaryVO> listOpenSessions() {
-        List<CustomerServiceSession> sessions = sessionService.list(new QueryWrapper<CustomerServiceSession>()
-                .eq("status", CustomerServiceSession.STATUS_OPEN)
-                .orderByDesc("update_time"));
+        List<CustomerServiceSession> sessions = sessionMapper.findOpenSessions();
         if (sessions == null || sessions.isEmpty()) return Collections.emptyList();
 
         List<Long> userIds = sessions.stream()
@@ -114,18 +109,11 @@ public class CustomerServiceApplicationServiceImpl implements CustomerServiceApp
      * {@inheritDoc}
      */
     @Override
-    public List<CustomerServiceMessageVO> listMessages(Long sessionId, Long beforeId, Integer limit) {
+    public List<CustomerServiceMessageVO> listAdminMessages(Long sessionId, Long beforeId, Integer limit) {
         if (sessionId == null) return Collections.emptyList();
         int size = normalizeLimit(limit);
 
-        QueryWrapper<CustomerServiceMessage> wrapper = new QueryWrapper<CustomerServiceMessage>()
-                .eq("session_id", sessionId);
-        if (beforeId != null) {
-            wrapper.lt("id", beforeId);
-        }
-        wrapper.orderByDesc("id").last("limit " + size);
-
-        List<CustomerServiceMessage> messages = messageService.list(wrapper);
+        List<CustomerServiceMessage> messages = messageMapper.findHistory(sessionId, beforeId, size);
         if (messages == null || messages.isEmpty()) return Collections.emptyList();
 
         List<CustomerServiceMessageVO> result = new ArrayList<>(messages.size());
@@ -139,21 +127,78 @@ public class CustomerServiceApplicationServiceImpl implements CustomerServiceApp
      * {@inheritDoc}
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void closeSession(Long sessionId, String closeReason) {
         if (sessionId == null) return;
-        CustomerServiceSession session = sessionService.getById(sessionId);
-        if (session == null) return;
-        if (CustomerServiceSession.STATUS_CLOSED == session.getStatus()) return;
-
-        CustomerServiceSession update = new CustomerServiceSession();
-        update.setId(sessionId);
-        update.setStatus(CustomerServiceSession.STATUS_CLOSED);
-        update.setCloseTime(new Date());
-        update.setUpdateTime(new Date());
-        if (StringUtils.hasText(closeReason)) {
-            update.setCloseReason(closeReason.trim());
+        CustomerServiceSession session = sessionMapper.findByIdForUpdate(sessionId);
+        if (session == null || Integer.valueOf(CustomerServiceSession.STATUS_CLOSED).equals(session.getStatus())) return;
+        if (sessionMapper.closeOpenSession(sessionId, new Date(),
+                StringUtils.hasText(closeReason) ? closeReason.trim() : null) != 1) {
+            throw new BusinessException("关闭会话失败");
         }
-        sessionService.updateById(update);
+    }
+
+    @Override
+    public List<CustomerServiceMessageVO> listUserMessages(Long userId, Long sessionId, Long beforeId, Integer limit) {
+        requireOwner(userId, sessionId == null ? null : sessionMapper.selectById(sessionId));
+        return listAdminMessages(sessionId, beforeId, limit);
+    }
+
+    @Override
+    public void validateUserConnection(Long userId, Long sessionId) {
+        CustomerServiceSession session = sessionId == null ? null : sessionMapper.selectById(sessionId);
+        requireOpen(session);
+        requireOwner(userId, session);
+    }
+
+    @Override
+    public void validateAdminSession(Long sessionId) {
+        requireOpen(sessionId == null ? null : sessionMapper.selectById(sessionId));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public MessageDelivery storeUserMessage(Long userId, Long sessionId, String content) {
+        return storeMessage(userId, sessionId, content, CustomerServiceMessage.SENDER_USER);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public MessageDelivery storeAdminMessage(Long adminId, Long sessionId, String content) {
+        return storeMessage(adminId, sessionId, content, CustomerServiceMessage.SENDER_ADMIN);
+    }
+
+    private MessageDelivery storeMessage(Long actorId, Long sessionId, String content, int senderType) {
+        String normalized = content == null ? null : content.trim();
+        if (sessionId == null || !StringUtils.hasText(normalized)) throw new BusinessException("参数错误");
+        CustomerServiceSession session = sessionMapper.findByIdForUpdate(sessionId);
+        requireOpen(session);
+        if (senderType == CustomerServiceMessage.SENDER_USER) requireOwner(actorId, session);
+        else requireIdentity(actorId);
+        Date now = new Date();
+        CustomerServiceMessage message = new CustomerServiceMessage();
+        message.setSessionId(sessionId);
+        message.setSenderType(senderType);
+        message.setSenderId(actorId);
+        message.setContent(normalized);
+        message.setCreateTime(now);
+        if (messageMapper.insert(message) != 1) throw new BusinessException("消息发送失败，请重试");
+        if (sessionMapper.touchOpenSession(sessionId, now) != 1) throw new BusinessException("会话不存在或已关闭");
+        return new MessageDelivery(toMessageVO(message), session.getUserId());
+    }
+
+    private void requireIdentity(Long actorId) {
+        if (actorId == null) throw new BusinessException("未登录");
+    }
+
+    private void requireOwner(Long userId, CustomerServiceSession session) {
+        if (userId == null || session == null || !userId.equals(session.getUserId())) throw new BusinessException("无权限");
+    }
+
+    private void requireOpen(CustomerServiceSession session) {
+        if (session == null || !Integer.valueOf(CustomerServiceSession.STATUS_OPEN).equals(session.getStatus())) {
+            throw new BusinessException("会话不存在或已关闭");
+        }
     }
 
     private Map<Long, User> buildUserMap(List<Long> userIds) {
@@ -194,10 +239,7 @@ public class CustomerServiceApplicationServiceImpl implements CustomerServiceApp
 
     private CustomerServiceMessage findLastMessage(Long sessionId) {
         if (sessionId == null) return null;
-        return messageService.getOne(new QueryWrapper<CustomerServiceMessage>()
-                .eq("session_id", sessionId)
-                .orderByDesc("id")
-                .last("limit 1"));
+        return messageMapper.findLastMessage(sessionId);
     }
 
     private int normalizeLimit(Integer limit) {

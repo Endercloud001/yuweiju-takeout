@@ -36,7 +36,25 @@ public interface CustomerServiceApplicationService {
      * @param limit     条数（默认 50，最大 200）
      * @return 消息列表（按 id 升序）
      */
-    List<CustomerServiceMessageVO> listMessages(Long sessionId, Long beforeId, Integer limit);
+    List<CustomerServiceMessageVO> listAdminMessages(Long sessionId, Long beforeId, Integer limit);
+
+    /** User history checks ownership even when reused outside HTTP; closed history remains readable. */
+    List<CustomerServiceMessageVO> listUserMessages(Long userId, Long sessionId, Long beforeId, Integer limit);
+
+    /** Reject missing, closed or other-owned sessions before accepting a user WS connection. */
+    void validateUserConnection(Long userId, Long sessionId);
+
+    /** Check state before transport-owned admin typing contention; storage checks state again. */
+    void validateAdminSession(Long sessionId);
+
+    /** Trusted authenticated user identity, never an inbound sender ID; atomic insert and session touch. */
+    MessageDelivery storeUserMessage(Long userId, Long sessionId, String content);
+
+    /** Trusted authenticated admin identity; typing locks belong to the transport lifecycle. */
+    MessageDelivery storeAdminMessage(Long adminId, Long sessionId, String content);
+
+    /** Core committed message plus its owner for transport delivery after the proxy returns. */
+    record MessageDelivery(CustomerServiceMessageVO message, Long userId) {}
 
     /**
      * 关闭会话（管理端）。
