@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import AnalysisStatus from './AnalysisStatus.vue'
+import { ApiError } from '../../api/http'
+import { getOfflineMetrics, type AnalysisRun } from '../../api/modules/analysis'
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
@@ -85,6 +88,10 @@ const top10Data = ref<Top10 | null>(null)
 const heatPredictionRaw = ref<HeatPredictionItem[]>([])
 const userClustersRaw = ref<UserClusterItem[]>([])
 const analysisError = ref('')
+const analysisTargetDate = ref('')
+const analysisRun = ref<AnalysisRun | null>(null)
+const offlineMetrics = ref<Record<string, unknown>>({})
+const trainingError = ref('')
 const analysisTrainingLoading = ref(false)
 const riskTrainingLoading = ref(false)
 const riskModelLoading = ref(false)
@@ -118,7 +125,7 @@ const dateRangeText = computed(() => {
   return `${query.begin} 至 ${query.end}`
 })
 
-const analysisQueryDate = computed(() => query.end || dayjs().format('YYYY-MM-DD'))
+const analysisQueryDate = computed(() => analysisTargetDate.value || query.end || dayjs().format('YYYY-MM-DD'))
 
 const heatInsights = computed<HeatInsightItem[]>(() => {
   return heatPredictionRaw.value.slice(0, 5).map((item) => {
@@ -294,14 +301,16 @@ async function fetchAllData() {
     const { begin, end } = getDateRange()
     query.begin = begin
     query.end = end
+    const analysisDate = analysisTargetDate.value || end
 
-    const [turnoverRes, userRes, ordersRes, top10Res, heatRes, clusterRes] = await Promise.all([
+    const [turnoverRes, userRes, ordersRes, top10Res, heatRes, clusterRes, offlineRes] = await Promise.all([
       getTurnoverStatistics(query),
       getUserStatistics(query),
       getOrdersStatistics(query),
       getTop10(query),
-      getHeatPredictionList({ date: end, limit: 20 }),
-      getUserClusterList({ date: end, limit: 100 }),
+      getHeatPredictionList({ date: analysisDate, limit: 20 }),
+      getUserClusterList({ date: analysisDate, limit: 100 }),
+      getOfflineMetrics(analysisDate),
     ])
 
     turnoverData.value = turnoverRes.data
@@ -310,6 +319,7 @@ async function fetchAllData() {
     top10Data.value = top10Res.data
     heatPredictionRaw.value = heatRes.data
     userClustersRaw.value = clusterRes.data
+    offlineMetrics.value = offlineRes.data
 
     await hydrateClusterDishNames()
 
@@ -374,11 +384,17 @@ async function handleRunAnalysisTraining() {
   if (analysisTrainingLoading.value) return
   analysisTrainingLoading.value = true
   try {
-    await runAnalysisTraining(query.end ? { date: query.end } : undefined)
-    ElMessage.success('热度分析与数据挖掘重训已完成，结果已刷新')
+    trainingError.value = ''
+    analysisRun.value = null
+    const result = await runAnalysisTraining({ date: analysisQueryDate.value })
+    analysisRun.value = result.data
+    if (result.data.status === 'COMPLETE') ElMessage.success('分析执行完成，请核对阶段与效果指标')
+    else ElMessage.warning('分析部分完成，请核对阶段原因')
     await fetchAllData()
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '触发热度分析重训失败')
+    if (error instanceof ApiError && error.response.data) analysisRun.value = error.response.data as AnalysisRun
+    trainingError.value = error instanceof Error ? error.message : '热度分析执行失败'
+    ElMessage.error(trainingError.value)
   } finally {
     analysisTrainingLoading.value = false
   }
@@ -715,6 +731,12 @@ watch(
   { deep: true },
 )
 
+watch(analysisTargetDate, () => {
+  analysisRun.value = null
+  trainingError.value = ''
+  fetchAllData()
+})
+
 watch(selectedRiskModelVersion, (value) => {
   if (!value) {
     riskReplay.value = {}
@@ -854,6 +876,8 @@ onUnmounted(() => {
           </button>
         </div>
 
+        <el-date-picker v-model="analysisTargetDate" type="date" value-format="YYYY-MM-DD" placeholder="分析目标日期（默认查询截止日）" :disabled="analysisTrainingLoading" />
+        <AnalysisStatus :run="analysisRun" :metrics="offlineMetrics" :loading="analysisTrainingLoading" :error="trainingError" />
         <div class="console-list">
           <div class="console-item">
             <span class="console-label">当前分析时间窗</span>

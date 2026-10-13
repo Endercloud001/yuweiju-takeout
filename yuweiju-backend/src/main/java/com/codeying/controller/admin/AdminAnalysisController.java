@@ -27,6 +27,25 @@ import java.util.Map;
 @RestController
 @RequestMapping("/admin/analysis")
 public class AdminAnalysisController {
+    @org.springframework.web.bind.annotation.ExceptionHandler({
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
+            org.springframework.web.bind.MethodArgumentNotValidException.class,
+            org.springframework.http.converter.HttpMessageNotReadableException.class})
+    public ApiResult<Object> invalidParameter(Exception failure) {
+        return ApiResult.badRequest("分析日期或参数无效，请使用 yyyy-MM-dd 日期及有效范围");
+    }
+
+
+    @org.springframework.web.bind.annotation.ExceptionHandler(com.codeying.exception.BusinessException.class)
+    public ApiResult<Object> businessFailure(com.codeying.exception.BusinessException failure) {
+        return ApiResult.badRequest(failure.getMessage());
+    }
+
+    @org.springframework.web.bind.annotation.ExceptionHandler(Exception.class)
+    public ApiResult<Object> dependencyFailure(Exception failure) {
+        org.slf4j.LoggerFactory.getLogger(getClass()).warn("Analysis request unavailable, causeType={}", failure.getClass().getSimpleName());
+        return ApiResult.fail("分析服务暂不可用，请检查依赖后重试");
+    }
 
     private final AnalysisApplicationService analysisApplicationService;
     private final AnalysisObservationService analysisObservationService;
@@ -51,9 +70,7 @@ public class AdminAnalysisController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate date
     ) {
-        LocalDate targetDate = date == null ? LocalDate.now() : date;
-        analysisApplicationService.generateDailySnapshots(targetDate);
-        return ApiResult.successData(Map.of("snapshotDate", targetDate, "message", "快照生成完成"));
+        return response(analysisApplicationService.runSnapshotUseCase(date));
     }
 
     /**
@@ -68,21 +85,7 @@ public class AdminAnalysisController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate date
     ) {
-        LocalDate targetDate = date == null ? LocalDate.now() : date;
-        analysisApplicationService.generateDailySnapshots(targetDate);
-        AnalysisApplicationService.WeeklyTrainingResult trainingResult = analysisApplicationService.runWeeklyTraining(targetDate);
-        if (!trainingResult.executed()) {
-            return ApiResult.badRequest("训练任务未执行，请先确认快照数据是否可用");
-        }
-        analysisApplicationService.runDailyPrediction(targetDate);
-        return ApiResult.successData(Map.of(
-                "snapshotDate", targetDate,
-                "message", "重训任务完成（已完成快照、训练、预测）",
-                "userSnapshotCount", trainingResult.userSnapshotCount(),
-                "clusterCount", trainingResult.clusterCount(),
-                "clusterModelVersion", trainingResult.clusterModelVersion(),
-                "heatModelTrained", trainingResult.heatModelTrained()
-        ));
+        return response(analysisApplicationService.runManualTraining(date));
     }
 
     /**
@@ -97,9 +100,15 @@ public class AdminAnalysisController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate date
     ) {
-        LocalDate targetDate = date == null ? LocalDate.now() : date;
-        analysisApplicationService.runDailyPrediction(targetDate);
-        return ApiResult.successData(Map.of("windowStart", targetDate, "message", "预测任务完成"));
+        return response(analysisApplicationService.runPredictionUseCase(date));
+    }
+
+    private ApiResult<Map<String, Object>> response(com.codeying.vo.admin.analysis.AnalysisRun run) {
+        Map<String, Object> data = run.response();
+        if (!run.executed() || "FAILED".equals(run.status())) {
+            return new ApiResult<>(0, false, (String) data.get("message"), data);
+        }
+        return ApiResult.successData(data);
     }
 
     /**

@@ -79,6 +79,13 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
             return false;
         }
 
+        // Issue #17 analysis writes/reads require the actual administrator token scope as well as its signature.
+        if (isAdmin && ("/admin/analysis".equals(path) || path.startsWith("/admin/analysis/"))
+                && !"admin".equals(claims.getSubject())) {
+            writeUnauthorized(response, "无管理员分析权限");
+            return false;
+        }
+
         String jti = claims.getId();
         if (tokenBlacklistService.isBlacklisted(jti)) {
             writeUnauthorized(response, "登录已失效");

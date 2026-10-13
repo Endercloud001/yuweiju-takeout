@@ -38,4 +38,9 @@ public interface OrderDetailMapper extends BaseMapper<OrderDetail> {
                 .in("order_id", ids).isNotNull("dish_id"));
     }
 
+    /** Completed sales with existing catalog membership and half-open date bounds. */
+    List<com.codeying.vo.admin.analysis.AnalysisDishSales> aggregateAnalysisSales(
+            @Param("begin") Date begin, @Param("end") Date end,
+            @Param("userIds") List<Long> userIds, @Param("district") String district,
+            @Param("limit") Integer limit);
 }

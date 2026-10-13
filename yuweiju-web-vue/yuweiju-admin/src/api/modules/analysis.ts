@@ -45,10 +45,31 @@ export function getUserClusterList(params: AnalysisListQuery): Promise<ApiRespon
   })
 }
 
-export function runAnalysisTraining(params?: { date?: string }): Promise<ApiResponse<{ message: string }>> {
-  return request<{ message: string }>({
-    url: '/admin/analysis/training/run',
-    method: 'POST',
-    params,
+export interface AnalysisStage {
+  stage: string
+  status: 'COMPLETE' | 'PARTIAL' | 'SKIPPED' | 'FAILED'
+  reason: string | null
+  windowStart: string
+  windowEnd: string
+  outputs: Record<string, unknown>
+}
+
+export interface AnalysisRun {
+  message: string
+  snapshotDate: string
+  executed: boolean
+  status: AnalysisStage['status']
+  executionMode: 'SYNCHRONOUS'
+  heatModelTrained?: boolean
+  stages: AnalysisStage[]
+}
+
+export function runAnalysisTraining(params?: { date?: string }): Promise<ApiResponse<AnalysisRun>> {
+  return request<AnalysisRun>({
+    url: '/admin/analysis/training/run', method: 'POST', params,
   })
+}
+
+export function getOfflineMetrics(date: string): Promise<ApiResponse<Record<string, unknown>>> {
+  return request<Record<string, unknown>>({ url: '/admin/analysis/metrics/offline', method: 'GET', params: { date } })
 }

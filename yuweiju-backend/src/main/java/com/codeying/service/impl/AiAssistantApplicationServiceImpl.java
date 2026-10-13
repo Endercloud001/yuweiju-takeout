@@ -1002,13 +1002,13 @@ Desired dish count: %s
     }
 
     private Date todayStart() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(APP_ZONE);
         LocalDateTime todayStart = today.atStartOfDay();
         return Date.from(todayStart.atZone(APP_ZONE).toInstant());
     }
 
     private Date tomorrowStart() {
-        LocalDate tomorrow = LocalDate.now().plusDays(1);
+        LocalDate tomorrow = LocalDate.now(APP_ZONE).plusDays(1);
         LocalDateTime tomorrowStart = tomorrow.atStartOfDay();
         return Date.from(tomorrowStart.atZone(APP_ZONE).toInstant());
     }

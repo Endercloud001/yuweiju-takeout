@@ -8,4 +8,18 @@
           and o.order_time &gt;= #{begin} and o.order_time &lt;= #{end}
         group by od.name order by number desc limit 10
     </select>
+    <select id="aggregateAnalysisSales" resultType="com.codeying.vo.admin.analysis.AnalysisDishSales">
+        select od.dish_id as dishId, sum(greatest(coalesce(od.number, 1), 1)) as quantity
+        from order_detail od join orders o on od.order_id = o.id
+        join dish d on d.id = od.dish_id
+        <if test="district != null">join address_book a on a.id = o.address_book_id</if>
+        where o.status = 5 and o.order_time &gt;= #{begin} and o.order_time &lt; #{end}
+        <if test="userIds != null">
+            and o.user_id in
+            <foreach collection="userIds" item="userId" open="(" separator="," close=")">#{userId}</foreach>
+        </if>
+        <if test="district != null">and a.district_name = #{district}</if>
+        group by od.dish_id order by quantity desc
+        <if test="limit != null">limit #{limit}</if>
+    </select>
 </mapper>

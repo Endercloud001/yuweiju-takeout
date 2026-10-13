@@ -13,6 +13,15 @@ import java.util.Map;
  * @author Endercloud
  */
 public interface AnalysisApplicationService {
+    /** Manual complete synchronous pipeline; skipped training never runs prediction. */
+    com.codeying.vo.admin.analysis.AnalysisRun runManualTraining(LocalDate date);
+    /** Truthful synchronous snapshot output. */
+    com.codeying.vo.admin.analysis.AnalysisRun runSnapshotUseCase(LocalDate date);
+    /** Truthful prediction output, including baseline fallback when no model exists. */
+    com.codeying.vo.admin.analysis.AnalysisRun runPredictionUseCase(LocalDate date);
+    /** Scheduled weekly training delegates the same stage orchestration, without rebuilding snapshots. */
+    com.codeying.vo.admin.analysis.AnalysisRun runTrainingUseCase(LocalDate date);
+
 
     /**
      * 生成单日特征快照。

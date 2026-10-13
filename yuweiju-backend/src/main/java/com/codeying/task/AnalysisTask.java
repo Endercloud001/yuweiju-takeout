@@ -38,7 +38,7 @@ public class AnalysisTask {
         }
         LocalDate snapshotDate = LocalDate.now();
         log.info("开始执行分析快照任务，snapshotDate={}", snapshotDate);
-        analysisApplicationService.generateDailySnapshots(snapshotDate);
+        log.info("分析快照结果 {}", analysisApplicationService.runSnapshotUseCase(snapshotDate).status());
     }
 
     /**
@@ -51,7 +51,7 @@ public class AnalysisTask {
         }
         LocalDate windowStart = LocalDate.now();
         log.info("开始执行热度预测任务，windowStart={}", windowStart);
-        analysisApplicationService.runDailyPrediction(windowStart);
+        log.info("分析预测结果 {}", analysisApplicationService.runPredictionUseCase(windowStart).status());
     }
 
     /**
@@ -64,9 +64,7 @@ public class AnalysisTask {
         }
         LocalDate snapshotDate = LocalDate.now();
         log.info("开始执行模型训练任务，snapshotDate={}", snapshotDate);
-        AnalysisApplicationService.WeeklyTrainingResult result = analysisApplicationService.runWeeklyTraining(snapshotDate);
-        if (!result.executed()) {
-            log.warn("模型训练任务跳过，snapshotDate={}, reason={}", result.snapshotDate(), result.skipReason());
-        }
+        var result = analysisApplicationService.runTrainingUseCase(snapshotDate);
+        log.info("分析训练结果 {}", result.status());
     }
 }
