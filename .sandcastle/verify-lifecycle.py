@@ -23,6 +23,9 @@ environment['TMPDIR'] = str(temporary)
 log = fixture / '.scratch/lifecycle.log'
 log.parent.mkdir(parents=True, exist_ok=True)
 with log.open('w') as output:
+    host = subprocess.run(['node', '--import', str(runtime / 'node_modules/tsx/dist/loader.mjs'), '.sandcastle/launch.check.mts'], cwd=fixture, env=environment, stdout=output, stderr=subprocess.STDOUT)
+    if host.returncode:
+        raise SystemExit(f'Host supervisor fixture failed ({host.returncode}); inspect {log}')
     # The tsx CLI creates a Unix socket, which DrvFS does not support. The
     # loader is the same entry used by the existing process supervisor.
     result = subprocess.run(['node', '--import', str(runtime / 'node_modules/tsx/dist/loader.mjs'), '.sandcastle/smoke-run.mts'], cwd=fixture, env=environment, stdout=output, stderr=subprocess.STDOUT)

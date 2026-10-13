@@ -1,5 +1,7 @@
 # Sandcastle 任务运行时与 issue #19 复盘改进
 
+Issue15 维护准备与验证见 [方案](../docs/issue15-retro-improvement-plan.md) 和 [实施报告](../docs/issue15-retro-improvement-report.md)。`prepare-input.py` 和编码监督器共用 `closeout-prompt.md`，实际尾行须为精确 promise；宿主证据见本次 evidence 内 `host-*/host.json` 与输出日志，失联继续保留 unknown。`check:lifecycle` 包含宿主退出/信号/记录缺失/记录损坏夹具，原 Docker 生命周期检查继续保留。客服布局回归已经接入公共 `environment/runtime-check.sh`，仍属普通渲染测试，不代替官方 SDK 和人工验收。使用本维护源码需明确准备新的项目内 runtime；不自动覆盖历史 Ponytail clone。
+
 新任务默认包含 [Ponytail 收尾](../.agents/skills/yuweiju-ponytail/SKILL.md)：首次内部检查后复查完整任务差异，有合理精简项才修改，最终检查与成功提交完成后才能 COMPLETE。`prepare-input.py` 默认复制项目技能、上游正文和许可；`common.mts` 在编码 prompt 中提供收尾入口。预算不足保留候选并报告未完成，既有 Git 防护、deadline、closing 和证据承接继续适用。
 
 项目内新增运行目录为 `.scratch/ponytail-afk/runtime`（Windows/WSL 路径见 [runtime](../.agents/skills/yuweiju-afk/references/runtime.md)）；准备版本由实际 HEAD 核对。它从已确认 main 独立 clone，再加入本次变更；不要使用下方旧 `prepare-runtime.py` 的根 overlay 覆盖它。旧 runtime 和历史任务保留。

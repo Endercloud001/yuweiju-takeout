@@ -1,12 +1,12 @@
 import { matchingContainers } from './common.mts';
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-const [file, branch] = process.argv.slice(2);
+const [file, branch, workerPid] = process.argv.slice(2);
 const entries = matchingContainers(process.cwd());
 if (entries.length !== 1) throw new Error(`Expected exactly one container for ${process.cwd()}, got ${entries.length}`);
 const c = entries[0];
 const previous = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {};
-const record = { branch, hookPid: process.pid, worktree: process.cwd(),
+const record = { branch, workerPid: Number(workerPid), hookPid: process.pid, worktree: process.cwd(),
   containerId: c.Id, containerName: c.Name, containerHostPid: c.State.Pid,
   mounts: c.Mounts.map((m: any) => ({ source: m.Source, destination: m.Destination, writable: m.RW })),
   privileged: c.HostConfig.Privileged, devices: c.HostConfig.Devices,
