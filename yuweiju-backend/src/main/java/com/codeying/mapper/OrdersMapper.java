@@ -112,4 +112,18 @@ public interface OrdersMapper extends BaseMapper<Orders> {
      * @return 营业额（单位：元）
      */
     BigDecimal sumAmountByStatusAndOrderTimeRange(@Param("status") Integer status, @Param("begin") Date begin, @Param("end") Date end);
+
+    /** Recent owned orders used by the existing AI history preference rule. */
+    default java.util.List<Orders> listRecentForRecommendation(Long userId, int limit) {
+        return selectList(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<Orders>()
+                .eq("user_id", userId).orderByDesc("order_time").last("limit " + limit));
+    }
+
+
+    /** Completed orders in the existing half-open analysis/history window. */
+    default java.util.List<Orders> listCompletedInWindow(Date begin, Date end) {
+        return selectList(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<Orders>()
+                .eq("status", Orders.COMPLETED).ge("order_time", begin).lt("order_time", end));
+    }
+
 }

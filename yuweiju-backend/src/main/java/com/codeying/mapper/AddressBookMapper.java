@@ -47,4 +47,10 @@ public interface AddressBookMapper extends BaseMapper<AddressBook> {
     default int deleteOwned(Long userId, Long id) {
         return delete(new QueryWrapper<AddressBook>().eq("user_id", userId).eq("id", id));
     }
+
+    /** Addresses in the requested district for recommendation history matching. */
+    default List<AddressBook> listByDistrict(String districtName) {
+        return selectList(new QueryWrapper<AddressBook>().eq("district_name", districtName));
+    }
+
 }

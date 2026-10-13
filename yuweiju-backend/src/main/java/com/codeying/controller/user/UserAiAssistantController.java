@@ -2,11 +2,9 @@ package com.codeying.controller.user;
 
 import com.codeying.dto.common.ai_assistant.AiAssistantMessageListQuery;
 import com.codeying.dto.common.ai_assistant.AiAssistantMessageSendDTO;
-import com.codeying.entity.AiAssistantSession;
 import com.codeying.interceptor.JwtAuthInterceptor;
 import com.codeying.result.ApiResult;
 import com.codeying.service.AiAssistantApplicationService;
-import com.codeying.service.AiAssistantSessionService;
 import com.codeying.vo.common.ai_assistant.AiAssistantMessageVO;
 import com.codeying.vo.common.ai_assistant.AiAssistantSendReplyVO;
 import com.codeying.vo.user.ai_assistant.AiAssistantSessionVO;
@@ -30,14 +28,8 @@ import java.util.List;
 public class UserAiAssistantController {
 
     private final AiAssistantApplicationService aiAssistantApplicationService;
-    private final AiAssistantSessionService aiAssistantSessionService;
-
-    public UserAiAssistantController(
-            AiAssistantApplicationService aiAssistantApplicationService,
-            AiAssistantSessionService aiAssistantSessionService
-    ) {
+    public UserAiAssistantController(AiAssistantApplicationService aiAssistantApplicationService) {
         this.aiAssistantApplicationService = aiAssistantApplicationService;
-        this.aiAssistantSessionService = aiAssistantSessionService;
     }
 
     /**
@@ -71,7 +63,7 @@ public class UserAiAssistantController {
         if (userId == null) {
             return ApiResult.unauthorized("未登录");
         }
-        if (!isUserSession(userId, body.getSessionId())) {
+        if (!aiAssistantApplicationService.isUserSession(userId, body.getSessionId())) {
             return ApiResult.forbidden("无权限");
         }
         return ApiResult.successData(aiAssistantApplicationService.sendMessage(userId, body));
@@ -93,11 +85,11 @@ public class UserAiAssistantController {
         if (userId == null) {
             return ApiResult.unauthorized("未登录");
         }
-        if (!isUserSession(userId, query.getSessionId())) {
+        if (!aiAssistantApplicationService.isUserSession(userId, query.getSessionId())) {
             return ApiResult.forbidden("无权限");
         }
-        List<AiAssistantMessageVO> list = aiAssistantApplicationService.listMessages(
-                query.getSessionId(),
+        List<AiAssistantMessageVO> list = aiAssistantApplicationService.listUserMessages(
+                userId, query.getSessionId(),
                 query.getBeforeId(),
                 query.getLimit()
         );
@@ -109,15 +101,4 @@ public class UserAiAssistantController {
         return raw instanceof Long ? (Long) raw : null;
     }
 
-    private boolean isUserSession(Long userId, Long sessionId) {
-        if (userId == null || sessionId == null) {
-            return false;
-        }
-        AiAssistantSession session = aiAssistantSessionService.getById(sessionId);
-        if (session == null) {
-            return false;
-        }
-        return userId.equals(session.getUserId());
-    }
 }
-

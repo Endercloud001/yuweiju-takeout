@@ -32,8 +32,14 @@ public interface AiAssistantApplicationService {
      */
     AiAssistantSendReplyVO sendMessage(Long userId, AiAssistantMessageSendDTO body);
 
+    /** Whether a session belongs to the supplied authenticated user; missing IDs return false. */
+    boolean isUserSession(Long userId, Long sessionId);
+
+    /** Owned user history; rejects absent/foreign sessions even when reused outside HTTP. */
+    List<AiAssistantMessageVO> listUserMessages(Long userId, Long sessionId, Long beforeId, Integer limit);
+
     /**
-     * 查询会话消息列表。
+     * 查询管理端可信入口的会话消息列表。
      *
      * @param sessionId 会话 ID
      * @param beforeId  游标

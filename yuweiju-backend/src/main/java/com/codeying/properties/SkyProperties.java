@@ -72,5 +72,9 @@ public class SkyProperties {
         private String credentialId;
         private String privateKey;
         private Boolean failFast = false;
+        @jakarta.validation.constraints.Min(1)
+        private int connectTimeoutMs = 2000;
+        @jakarta.validation.constraints.Min(1)
+        private int readTimeoutMs = 3000;
     }
 }
