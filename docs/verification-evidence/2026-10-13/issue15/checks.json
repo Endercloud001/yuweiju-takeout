@@ -1,0 +1,107 @@
+{
+  "acceptedCandidate": "66faf5dfe5ab4ea899515db446796f7832618509",
+  "base": "4ef7679b203dbfb8832d8f8234bde7afdbfdf7bd",
+  "independentVerifications": [
+    {
+      "commit": "b5070c9dfb9cc17746a1cc2f8a928acb9ff233cc",
+      "independentVerification": "passed",
+      "commands": [
+        "mvn -B -f yuweiju-backend/pom.xml compile && mvn -B -f yuweiju-backend/pom.xml package",
+        "cd yuweiju-web-vue/yuweiju-admin && npm ci --no-audit --no-fund && npm run lint && npm run typecheck && npm run test && npm run build",
+        "bash .sandcastle/environment/issue15-check.sh"
+      ],
+      "checks": [
+        {
+          "index": 0,
+          "exitCode": 0,
+          "status": "passed"
+        },
+        {
+          "index": 1,
+          "exitCode": 0,
+          "status": "passed"
+        },
+        {
+          "index": 2,
+          "exitCode": 0,
+          "status": "passed"
+        }
+      ],
+      "stopped": true,
+      "authMounted": false,
+      "modelCalled": false
+    },
+    {
+      "commit": "66faf5dfe5ab4ea899515db446796f7832618509",
+      "independentVerification": "passed",
+      "commands": [
+        "node .sandcastle/environment/issue15-layout-check.cjs"
+      ],
+      "checks": [
+        {
+          "index": 0,
+          "exitCode": 0,
+          "status": "passed"
+        }
+      ],
+      "stopped": true,
+      "authMounted": false,
+      "modelCalled": false
+    }
+  ],
+  "reusedUnchangedChecks": {
+    "backendTests": 107,
+    "adminTests": 17,
+    "realSqlHttpWsAssertions": 207
+  },
+  "layoutRenderedMessages": 32,
+  "phoneWidths": [
+    320,
+    375,
+    390,
+    430
+  ],
+  "officialBefore": {
+    "viewport": 390,
+    "list": 422,
+    "right": 400
+  },
+  "officialAfter": {
+    "viewport": 390,
+    "list": 390,
+    "right": 368
+  },
+  "humanAcceptance": "all-required-passed",
+  "feedback": {
+    "candidate": "b5070c9",
+    "businessAcceptance": {
+      "bidirectionalHistory": "passed",
+      "closedReopen": "passed"
+    },
+    "visualAcceptance": "failed: own-message bubble extends past right viewport",
+    "authorization": "User explicitly delegated decision to add one AFK iteration and revise issue15 executing report for Docker/WSL diagnosis and bubble layout correction; retain original delivery conditions.",
+    "receivedAt": "2026-10-13T15:09:00.742495+08:00",
+    "status": "all-required-human-acceptance-passed",
+    "currentCandidate": "66faf5dfe5ab4ea899515db446796f7832618509",
+    "visualFeedback": "候选66faf5d；外观通过",
+    "visualPassed": true,
+    "allRequiredPassed": true,
+    "servicesStopAuthorized": true,
+    "retroAgainRequested": true,
+    "deliveryAuthorized": true
+  },
+  "servicesStopped": true,
+  "volumesRetained": true,
+  "codingRuns": [
+    "first interrupted/missing result",
+    "authorized recovery saved candidate but missing promise",
+    "authorized supplement completed with promise"
+  ],
+  "independentReviewAgents": "failed due model capacity; host manual two-axis review, no blocker identified",
+  "limits": [
+    "not all concurrency/reconnect branches",
+    "not real WeChat identity",
+    "WSL root cause unconfirmed"
+  ],
+  "originalEvidence": "Project-local .scratch/issue15-afk-20261013; not included in fresh remote clone"
+}

@@ -48,7 +48,7 @@ public class AdminCustomerServiceController {
      */
     @GetMapping("/message/list")
     public ApiResult<List<CustomerServiceMessageVO>> messageList(@Valid CustomerServiceMessageListQuery query) {
-        return ApiResult.successData(customerServiceApplicationService.listMessages(
+        return ApiResult.successData(customerServiceApplicationService.listAdminMessages(
                 query.getSessionId(),
                 query.getBeforeId(),
                 query.getLimit()

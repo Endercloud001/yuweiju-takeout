@@ -1,14 +1,11 @@
 package com.codeying.websocket;
 
 import com.codeying.config.SpringContextHolder;
-import com.codeying.entity.CustomerServiceMessage;
-import com.codeying.entity.CustomerServiceSession;
 import com.codeying.properties.SkyProperties;
 import com.codeying.security.TokenBlacklistService;
-import com.codeying.service.CustomerServiceMessageService;
-import com.codeying.service.CustomerServiceSessionService;
+import com.codeying.exception.BusinessException;
+import com.codeying.service.CustomerServiceApplicationService;
 import com.codeying.utils.JwtUtil;
-import com.codeying.vo.common.customer_service.CustomerServiceMessageVO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -25,7 +22,6 @@ import org.springframework.util.StringUtils;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -152,52 +148,35 @@ public class CustomerServiceWebSocketServer {
             return;
         }
 
-        CustomerServiceSessionService sessionService = SpringContextHolder.getBean(CustomerServiceSessionService.class);
-        CustomerServiceMessageService messageService = SpringContextHolder.getBean(CustomerServiceMessageService.class);
-
-        CustomerServiceSession chatSession = sessionService.getById(sessionId);
-        if (chatSession == null || chatSession.getStatus() == null || chatSession.getStatus() != CustomerServiceSession.STATUS_OPEN) {
-            sendError(session, "会话不存在或已关闭");
-            return;
-        }
-
         Long uid = asLong(session.getUserProperties().get("uid"));
-        if ("user".equals(clientType)) {
-            if (uid == null || !uid.equals(chatSession.getUserId())) {
-                sendError(session, "无权限");
-                return;
+        CustomerServiceApplicationService service = SpringContextHolder.getBean(CustomerServiceApplicationService.class);
+        CustomerServiceApplicationService.MessageDelivery delivery;
+        try {
+            if ("admin".equals(clientType)) {
+                service.validateAdminSession(sessionId);
+                if (!canSendAsAdmin(uid, sessionId)) {
+                    sendError(session, "当前会话已有其他客服在回复");
+                    return;
+                }
+                delivery = service.storeAdminMessage(uid, sessionId, content);
+            } else {
+                delivery = service.storeUserMessage(uid, sessionId, content);
             }
-        }
-
-        if ("admin".equals(clientType) && !canSendAsAdmin(uid, sessionId)) {
-            sendError(session, "当前会话已有其他客服在回复");
+        } catch (BusinessException e) {
+            sendError(session, e.getMessage());
+            return;
+        } catch (Exception e) {
+            // Do not log database exception text: it can contain the conversation being inserted.
+            log.warn("客服消息持久化失败 sessionId={}", sessionId);
+            sendError(session, "消息发送失败，请重试");
             return;
         }
 
-        Date now = new Date();
-        CustomerServiceMessage entity = new CustomerServiceMessage();
-        entity.setSessionId(sessionId);
-        entity.setSenderType("admin".equals(clientType)
-                ? CustomerServiceMessage.SENDER_ADMIN
-                : CustomerServiceMessage.SENDER_USER);
-        entity.setSenderId(uid);
-        entity.setContent(content);
-        entity.setCreateTime(now);
-        messageService.save(entity);
-
-        CustomerServiceSession update = new CustomerServiceSession();
-        update.setId(sessionId);
-        update.setUpdateTime(now);
-        sessionService.updateById(update);
-
-        CustomerServiceMessageVO vo = toMessageVO(entity);
-        OutboundMessage outbound = new OutboundMessage("CHAT_MESSAGE", vo, null);
+        // Proxy transaction has committed. Delivery failure cannot roll back SQL.
+        OutboundMessage outbound = new OutboundMessage("CHAT_MESSAGE", delivery.message(), null);
         broadcastToAdmins(outbound);
-        sendToUser(chatSession.getUserId(), outbound);
-
-        if ("admin".equals(clientType)) {
-            unlockIfOwner(uid, sessionId);
-        }
+        sendToUser(delivery.userId(), outbound);
+        if ("admin".equals(clientType)) unlockIfOwner(uid, sessionId);
     }
 
     private void handleTypingLock(Session session, String clientType, InboundMessage inbound) {
@@ -311,11 +290,12 @@ public class CustomerServiceWebSocketServer {
     }
 
     private boolean isUserSession(Long userId, Long sessionId) {
-        CustomerServiceSessionService sessionService = SpringContextHolder.getBean(CustomerServiceSessionService.class);
-        CustomerServiceSession session = sessionService.getById(sessionId);
-        if (session == null) return false;
-        if (!userId.equals(session.getUserId())) return false;
-        return session.getStatus() != null && session.getStatus() == CustomerServiceSession.STATUS_OPEN;
+        try {
+            SpringContextHolder.getBean(CustomerServiceApplicationService.class).validateUserConnection(userId, sessionId);
+            return true;
+        } catch (BusinessException e) {
+            return false;
+        }
     }
 
     private InboundMessage parseInbound(String message) {
@@ -323,7 +303,7 @@ public class CustomerServiceWebSocketServer {
         try {
             return mapper().readValue(message, InboundMessage.class);
         } catch (Exception e) {
-            log.warn("解析 WebSocket 消息失败: {}", e.getMessage());
+            log.warn("解析客服 WebSocket 消息失败");
             return null;
         }
     }
@@ -342,7 +322,7 @@ public class CustomerServiceWebSocketServer {
             ObjectMapper mapper = SpringContextHolder.getBean(ObjectMapper.class);
             session.getBasicRemote().sendText(mapper.writeValueAsString(payload));
         } catch (Exception e) {
-            log.error("发送 WebSocket 消息失败: {}", e.getMessage(), e);
+            log.warn("客服 WebSocket 投递失败");
         }
     }
 
@@ -350,19 +330,8 @@ public class CustomerServiceWebSocketServer {
         try {
             session.close(new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, reason));
         } catch (Exception e) {
-            log.warn("关闭 WebSocket 连接失败: {}", e.getMessage());
+            log.warn("关闭客服 WebSocket 连接失败");
         }
-    }
-
-    private CustomerServiceMessageVO toMessageVO(CustomerServiceMessage message) {
-        CustomerServiceMessageVO vo = new CustomerServiceMessageVO();
-        vo.setId(message.getId());
-        vo.setSessionId(message.getSessionId());
-        vo.setSenderType(message.getSenderType());
-        vo.setSenderId(message.getSenderId());
-        vo.setContent(message.getContent());
-        vo.setCreateTime(message.getCreateTime());
-        return vo;
     }
 
     private ObjectMapper mapper() {

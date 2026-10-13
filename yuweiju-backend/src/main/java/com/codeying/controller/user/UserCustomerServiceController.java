@@ -1,11 +1,9 @@
 package com.codeying.controller.user;
 
 import com.codeying.dto.common.customer_service.CustomerServiceMessageListQuery;
-import com.codeying.entity.CustomerServiceSession;
 import com.codeying.interceptor.JwtAuthInterceptor;
 import com.codeying.result.ApiResult;
 import com.codeying.service.CustomerServiceApplicationService;
-import com.codeying.service.CustomerServiceSessionService;
 import com.codeying.vo.common.customer_service.CustomerServiceMessageVO;
 import com.codeying.vo.user.customer_service.CustomerServiceSessionVO;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,14 +25,11 @@ import java.util.List;
 public class UserCustomerServiceController {
 
     private final CustomerServiceApplicationService customerServiceApplicationService;
-    private final CustomerServiceSessionService sessionService;
 
     public UserCustomerServiceController(
-            CustomerServiceApplicationService customerServiceApplicationService,
-            CustomerServiceSessionService sessionService
+            CustomerServiceApplicationService customerServiceApplicationService
     ) {
         this.customerServiceApplicationService = customerServiceApplicationService;
-        this.sessionService = sessionService;
     }
 
     /**
@@ -62,9 +57,9 @@ public class UserCustomerServiceController {
     public ApiResult<List<CustomerServiceMessageVO>> messageList(@Valid CustomerServiceMessageListQuery query, HttpServletRequest request) {
         Long userId = getUserId(request);
         if (userId == null) return ApiResult.unauthorized("未登录");
-        if (!isUserSession(userId, query.getSessionId())) return ApiResult.forbidden("无权限");
 
-        List<CustomerServiceMessageVO> list = customerServiceApplicationService.listMessages(
+        List<CustomerServiceMessageVO> list = customerServiceApplicationService.listUserMessages(
+                userId,
                 query.getSessionId(),
                 query.getBeforeId(),
                 query.getLimit()
@@ -77,10 +72,4 @@ public class UserCustomerServiceController {
         return raw instanceof Long ? (Long) raw : null;
     }
 
-    private boolean isUserSession(Long userId, Long sessionId) {
-        if (userId == null || sessionId == null) return false;
-        CustomerServiceSession session = sessionService.getById(sessionId);
-        if (session == null) return false;
-        return userId.equals(session.getUserId());
-    }
 }

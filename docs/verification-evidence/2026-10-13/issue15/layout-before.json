@@ -1,0 +1,57 @@
+{
+  "stage": "layout-before",
+  "project": "E:\\Learning Files\\yuweiju-takeout\\.scratch\\issue15-afk-20261013/miniapp",
+  "endpoint": "ws://127.0.0.1:9425",
+  "fixtureOnly": true,
+  "results": [
+    {
+      "size": {
+        "width": 177.92709350585938,
+        "height": 61.395835876464844
+      },
+      "offset": {
+        "left": 222.0729217529297,
+        "top": 56.59375
+      },
+      "right": 400.00001525878906,
+      "inside": false
+    },
+    {
+      "size": {
+        "width": 112.44792175292969,
+        "height": 61.395835876464844
+      },
+      "offset": {
+        "left": 19,
+        "top": 125.98958587646484
+      },
+      "right": 131.4479217529297,
+      "inside": true
+    },
+    {
+      "size": {
+        "width": 245.75,
+        "height": 271.9583435058594
+      },
+      "offset": {
+        "left": 154.25,
+        "top": 195.3854217529297
+      },
+      "right": 400,
+      "inside": false
+    }
+  ],
+  "viewport": 390,
+  "list": {
+    "size": {
+      "width": 422,
+      "height": 596.7396240234375
+    },
+    "offset": {
+      "left": 0,
+      "top": 54.59375
+    }
+  },
+  "passed": false,
+  "error": "AssertionError: bubble extends outside actual miniapp viewport"
+}
