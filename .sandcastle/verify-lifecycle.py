@@ -22,18 +22,18 @@ temporary.mkdir(parents=True)
 environment['TMPDIR'] = str(temporary)
 log = fixture / '.scratch/lifecycle.log'
 log.parent.mkdir(parents=True, exist_ok=True)
-with log.open('w') as output:
+with log.open('w', encoding='utf-8') as output:
     host = subprocess.run(['node', '--import', str(runtime / 'node_modules/tsx/dist/loader.mjs'), '.sandcastle/launch.check.mts'], cwd=fixture, env=environment, stdout=output, stderr=subprocess.STDOUT)
     if host.returncode:
         raise SystemExit(f'Host supervisor fixture failed ({host.returncode}); inspect {log}')
     # The tsx CLI creates a Unix socket, which DrvFS does not support. The
     # loader is the same entry used by the existing process supervisor.
     result = subprocess.run(['node', '--import', str(runtime / 'node_modules/tsx/dist/loader.mjs'), '.sandcastle/smoke-run.mts'], cwd=fixture, env=environment, stdout=output, stderr=subprocess.STDOUT)
-cases = [json.loads(path.read_text()) for path in evidence.glob('*-verdict.json')]
+cases = [json.loads(path.read_text(encoding='utf-8')) for path in evidence.glob('*-verdict.json')]
 record = {'passed': result.returncode == 0 and len(cases) == 9 and all(case['passed'] for case in cases),
           'exit': result.returncode, 'fixture': str(fixture), 'log': str(log), 'cases': cases, 'modelCalled': False, 'authMounted': False}
-(parent / 'lifecycle-verdict.json').write_text(json.dumps(record, indent=2) + '\n')
+(parent / 'lifecycle-verdict.json').write_text(json.dumps(record, indent=2) + '\n', encoding='utf-8')
 print(json.dumps({key: record[key] for key in ['passed', 'exit', 'fixture', 'log']} | {'cases': len(cases)}))
 if not record['passed']:
-    print('\n'.join(log.read_text().splitlines()[-20:]))
+    print('\n'.join(log.read_text(encoding='utf-8').splitlines()[-20:]))
     raise SystemExit(result.returncode or 1)

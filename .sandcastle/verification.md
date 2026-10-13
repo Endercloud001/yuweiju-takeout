@@ -23,6 +23,12 @@ $candidate = git rev-parse HEAD
 
 容器无认证挂载、无模型调用、无原库连接，使用非登录 bash 和 C.UTF-8。现有 Git-safe 镜像必须已准备；依赖下载需联网。网络连接和业务验收仍由任务授权决定。指定 shell 文件由 `.gitattributes` 保证 Windows 新 checkout 为 LF；旧工作树不自动重写，保留其中修改。
 
+## 宿主证据摘要
+
+在实际 checkout 执行 `python .sandcastle/read-verification.py <本票resources.json绝对路径>`。读取固定 UTF-8（兼容 BOM），输出来源、候选、退出状态、停机、独立/人工验收和最多40项检查；对应 check-N.log 仅提取每文件最后3条 Maven 数字摘要。完整日志与 commands 保留原文件，输出不包含原始正文、凭据或业务消息。超量项以 checksOmitted 明示；该工具只读，不运行检查，也不以自身 exit0 宣称业务通过。坏编码/JSON 返回非零及 errorType，不能使用 replace/ignore 解码制造成功。
+
+PowerShell 手动读取中文日志用 `Get-Content -LiteralPath <路径> -Encoding utf8`；Python 使用显式 `encoding='utf-8-sig'`。查看失败上下文时按所需范围脱敏读取，不打印完整 resources/日志。容器 C.UTF-8 与宿主文件解码各自设置，不能互相代替。
+
 ## 可选 npm 下载缓存
 
 重复独立检查可显式传入项目 `.scratch/` 内已有、仅存 npm 下载内容且容器 UID 1000 可写的目录：Windows 用 `-NpmCache <Windows路径>`，Linux 用 `--npm-cache <绝对Linux路径>`。verifier 将其挂载到 `/npm-cache`，设置 `npm_config_cache=/npm-cache`，在 resources 的 `npmCache` 记录来源；未指定时沿用原行为。保持目录为本任务/维护专用，缓存中不放 `.npmrc`、认证或业务文件，勿与正在写入的其他任务混用。

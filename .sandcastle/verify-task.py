@@ -23,7 +23,7 @@ record['npmCache']=str(npm_cache) if npm_cache else None
 def stop(sig,frame):raise KeyboardInterrupt()
 signal.signal(signal.SIGTERM,stop)
 try:
- with (run/'runner.log').open('w') as out:
+ with (run/'runner.log').open('w', encoding='utf-8') as out:
   process=subprocess.Popen(['docker','run','--rm','--name',name,*sum((['--network',n] for n in c.get('networks',[])),[]),'--user','1000:1000','-e','LANG=C.UTF-8','-e','LC_ALL=C.UTF-8',*cache_options,'--entrypoint','bash','--mount',f'type=bind,src={snapshot},dst=/workspace','--mount',f'type=bind,src={run},dst=/evidence',c['image'],'/evidence/check.sh'],stdout=out,stderr=subprocess.STDOUT)
   try:record['exitCode']=process.wait(timeout=c.get('verificationMs',c.get('totalMs',1800000))/1000)
   except subprocess.TimeoutExpired:record['exitCode']=124
@@ -32,11 +32,11 @@ finally:
  observed=subprocess.run(['docker','inspect',name],capture_output=True)
  if observed.returncode==0:subprocess.run(['docker','stop','--time','10',name],capture_output=True)
  observed=subprocess.run(['docker','inspect',name],capture_output=True);record['stopped']=observed.returncode!=0 and b'no such' in observed.stderr.lower()
- statuses=(run/'exit-status.tsv').read_text().splitlines() if (run/'exit-status.tsv').exists() else []
+ statuses=(run/'exit-status.tsv').read_text(encoding='utf-8').splitlines() if (run/'exit-status.tsv').exists() else []
  executed={int(line.split('\t')[0]):int(line.split('\t')[1]) for line in statuses}
  record['checks']=[{'index':i,'exitCode':executed.get(i),'status':'passed' if executed.get(i)==0 else 'failed' if i in executed else 'not-performed'} for i in range(len(commands))]
  record['verificationMs']=c.get('verificationMs',c.get('totalMs',1800000))
  record['independentVerification']='passed' if record.get('exitCode')==0 and record['stopped'] and len(executed)==len(commands) and all(value==0 for value in executed.values()) else 'failed'
  record['humanAcceptance']='not-performed'
- (run/'resources.json').write_text(json.dumps(record,indent=2))
+ (run/'resources.json').write_text(json.dumps(record,indent=2),encoding='utf-8')
 print(json.dumps(record));raise SystemExit(0 if record['independentVerification']=='passed' else record['exitCode'] or 1)
