@@ -72,7 +72,7 @@ sys.exit(0 if all(check['passed'] for check in checks) else 1)
     command += [config['image'], '/evidence/preflight.sh']
     process = None
     try:
-        with (evidence / 'runner.log').open('w') as output:
+        with (evidence / 'runner.log').open('w', encoding='utf-8') as output:
             process = subprocess.Popen(command, stdout=output, stderr=subprocess.STDOUT)
             try:
                 record['exitCode'] = process.wait(timeout=90)
@@ -94,7 +94,7 @@ sys.exit(0 if all(check['passed'] for check in checks) else 1)
         record['stopped'] = observed.returncode != 0 and b'no such' in observed.stderr.lower()
         if (evidence / 'network.json').exists():
             try:
-                record['checks'] = json.loads((evidence / 'network.json').read_text())
+                record['checks'] = json.loads((evidence / 'network.json').read_text(encoding='utf-8'))
             except (json.JSONDecodeError, OSError):
                 record['checks'] = [{'kind': 'network-probe', 'passed': False, 'status': 'interrupted-or-unreadable'}]
         record['passed'] = record.get('exitCode') == 0 and record['stopped']

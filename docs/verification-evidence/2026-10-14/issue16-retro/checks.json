@@ -1,0 +1,30 @@
+{
+  "scope": "issue16 retro maintenance",
+  "cwd": "repository root",
+  "python": "3.10.8 (Windows initial verification)",
+  "checks": [
+    {
+      "command": "python .sandcastle/test-issue16-retro.py",
+      "exitCode": 0,
+      "tests": 7,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "command": "python .agents/skills/yuweiju-afk/scripts/check-doc-links.py --root . .agents/skills/yuweiju-afk/references/acceptance.md .agents/skills/yuweiju-afk/references/acceptance-examples.md .sandcastle/verification.md docs/issue16-retro-improvement-plan.md docs/issue16-retro-improvement-report.md",
+      "exitCode": 0
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  ],
+  "realModelCalled": false,
+  "authMounted": false,
+  "businessServicesStarted": false,
+  "limits": [
+    "No fresh official SDK run",
+    "No full Docker lifecycle suite; actual entry tested with process substitutes",
+    "Independent exact-commit check recorded separately in publication evidence"
+  ]
+}
