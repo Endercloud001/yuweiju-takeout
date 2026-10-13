@@ -17,14 +17,14 @@ import com.codeying.mapper.DishTimeseriesFeatureSnapshotMapper;
 import com.codeying.mapper.UserBehaviorFeatureSnapshotMapper;
 import com.codeying.mapper.UserClusterResultMapper;
 import com.codeying.properties.AnalysisProperties;
-import com.codeying.service.AddressBookService;
+import com.codeying.mapper.AddressBookMapper;
 import com.codeying.service.AiWeatherService;
 import com.codeying.service.AnalysisApplicationService;
 import com.codeying.service.AnalysisObservationService;
 import com.codeying.service.DishFlavorService;
 import com.codeying.service.DishService;
-import com.codeying.service.OrderDetailService;
-import com.codeying.service.OrdersService;
+import com.codeying.mapper.OrderDetailMapper;
+import com.codeying.mapper.OrdersMapper;
 import com.codeying.service.UserService;
 import com.codeying.vo.admin.analysis.DishHeatPredictionVO;
 import com.codeying.vo.admin.analysis.UserClusterResultVO;
@@ -93,12 +93,12 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
     private static final float MISSING_VALUE = Float.NaN;
     private static final int HEAT_FEATURE_COUNT = 21;
 
-    private final OrdersService ordersService;
-    private final OrderDetailService orderDetailService;
+    private final OrdersMapper ordersMapper;
+    private final OrderDetailMapper orderDetailMapper;
     private final DishService dishService;
     private final DishFlavorService dishFlavorService;
     private final UserService userService;
-    private final AddressBookService addressBookService;
+    private final AddressBookMapper addressBookMapper;
     private final UserBehaviorFeatureSnapshotMapper userBehaviorFeatureSnapshotMapper;
     private final DishTimeseriesFeatureSnapshotMapper dishTimeseriesFeatureSnapshotMapper;
     private final DishHeatPredictionResultMapper dishHeatPredictionResultMapper;
@@ -110,12 +110,12 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
     private final AnalysisObservationService analysisObservationService;
 
     public AnalysisApplicationServiceImpl(
-            OrdersService ordersService,
-            OrderDetailService orderDetailService,
+            OrdersMapper ordersMapper,
+            OrderDetailMapper orderDetailMapper,
             DishService dishService,
             DishFlavorService dishFlavorService,
             UserService userService,
-            AddressBookService addressBookService,
+            AddressBookMapper addressBookMapper,
             UserBehaviorFeatureSnapshotMapper userBehaviorFeatureSnapshotMapper,
             DishTimeseriesFeatureSnapshotMapper dishTimeseriesFeatureSnapshotMapper,
             DishHeatPredictionResultMapper dishHeatPredictionResultMapper,
@@ -126,12 +126,12 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
             AiWeatherService aiWeatherService,
             AnalysisObservationService analysisObservationService
     ) {
-        this.ordersService = ordersService;
-        this.orderDetailService = orderDetailService;
+        this.ordersMapper = ordersMapper;
+        this.orderDetailMapper = orderDetailMapper;
         this.dishService = dishService;
         this.dishFlavorService = dishFlavorService;
         this.userService = userService;
-        this.addressBookService = addressBookService;
+        this.addressBookMapper = addressBookMapper;
         this.userBehaviorFeatureSnapshotMapper = userBehaviorFeatureSnapshotMapper;
         this.dishTimeseriesFeatureSnapshotMapper = dishTimeseriesFeatureSnapshotMapper;
         this.dishHeatPredictionResultMapper = dishHeatPredictionResultMapper;
@@ -366,11 +366,7 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
     public List<DishHeatPredictionVO> listHeatPredictions(LocalDate windowStart, Integer limit) {
         LocalDate targetDate = normalizeDate(windowStart);
         int size = normalizeLimit(limit);
-        List<DishHeatPredictionResult> results = dishHeatPredictionResultMapper.selectList(new QueryWrapper<DishHeatPredictionResult>()
-                .eq("window_start", targetDate)
-                .eq("status", 1)
-                .orderByDesc("heat_score")
-                .last("limit " + size));
+        List<DishHeatPredictionResult> results = dishHeatPredictionResultMapper.listActiveByHeat(targetDate, size);
         if (results == null || results.isEmpty()) {
             return Collections.emptyList();
         }
@@ -451,11 +447,7 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
         }
 
         LocalDate today = LocalDate.now(APP_ZONE);
-        List<DishHeatPredictionResult> heatResults = dishHeatPredictionResultMapper.selectList(new QueryWrapper<DishHeatPredictionResult>()
-                .eq("window_start", today)
-                .eq("status", 1)
-                .orderByDesc("heat_score")
-                .last("limit " + size));
+        List<DishHeatPredictionResult> heatResults = dishHeatPredictionResultMapper.listActiveByHeat(today, size);
         if (heatResults != null && !heatResults.isEmpty()) {
             return heatResults.stream().map(DishHeatPredictionResult::getDishId).filter(Objects::nonNull).toList();
         }
@@ -627,10 +619,7 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
     private AnalysisWindowData loadWindowData(LocalDate endExclusive, int lookbackDays) {
         Date beginTime = toDate(endExclusive.minusDays(lookbackDays));
         Date endTime = toDate(endExclusive);
-        List<Orders> orders = ordersService.list(new QueryWrapper<Orders>()
-                .eq("status", Orders.COMPLETED)
-                .ge("order_time", beginTime)
-                .lt("order_time", endTime));
+        List<Orders> orders = ordersMapper.listCompletedInWindow(beginTime, endTime);
         if (orders == null || orders.isEmpty()) {
             return new AnalysisWindowData(Collections.emptyList(), Collections.emptyMap());
         }
@@ -639,9 +628,7 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
         if (orderIds.isEmpty()) {
             return new AnalysisWindowData(Collections.emptyList(), Collections.emptyMap());
         }
-        List<OrderDetail> details = orderDetailService.list(new QueryWrapper<OrderDetail>()
-                .in("order_id", orderIds)
-                .isNotNull("dish_id"));
+        List<OrderDetail> details = orderDetailMapper.listDishDetailsForOrders(orderIds);
         if (details == null || details.isEmpty()) {
             return new AnalysisWindowData(Collections.emptyList(), orders.stream()
                     .filter(order -> order.getId() != null)
@@ -902,15 +889,11 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
             try {
                 return objectMapper.readValue(cached, ClusterCachePayload.class);
             } catch (Exception ex) {
-                log.warn("Read user cluster cache failed, userId={}, error={}", userId, ex.getMessage());
+                log.warn("Read user cluster cache unavailable: {}", ex.getClass().getSimpleName());
             }
         }
 
-        UserClusterResult result = userClusterResultMapper.selectOne(new QueryWrapper<UserClusterResult>()
-                .eq("user_id", userId)
-                .orderByDesc("snapshot_date")
-                .orderByDesc("id")
-                .last("limit 1"));
+        UserClusterResult result = userClusterResultMapper.findLatestForUser(userId);
         if (result == null) {
             return null;
         }
@@ -924,10 +907,7 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
     }
 
     private List<Long> listDistrictHotDishIds(Long userId, Integer limit) {
-        List<AddressBook> userAddresses = addressBookService.list(new QueryWrapper<AddressBook>()
-                .eq("user_id", userId)
-                .orderByDesc("is_default")
-                .orderByDesc("id"));
+        List<AddressBook> userAddresses = addressBookMapper.findByUser(userId);
         if (userAddresses == null || userAddresses.isEmpty()) {
             return Collections.emptyList();
         }
@@ -939,7 +919,7 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
             return Collections.emptyList();
         }
 
-        Map<Long, AddressBook> addressMap = addressBookService.list().stream()
+        Map<Long, AddressBook> addressMap = addressBookMapper.listByDistrict(targetAddress.getDistrictName()).stream()
                 .filter(address -> address != null && address.getId() != null)
                 .collect(Collectors.toMap(AddressBook::getId, address -> address, (a, b) -> a));
         AnalysisWindowData windowData = loadWindowData(LocalDate.now(APP_ZONE), 30);

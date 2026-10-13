@@ -1,6 +1,5 @@
 package com.codeying.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.codeying.dto.common.ai_assistant.AiAssistantMessageSendDTO;
 import com.codeying.entity.AddressBook;
 import com.codeying.entity.AiAssistantMessage;
@@ -11,20 +10,20 @@ import com.codeying.entity.DishFlavor;
 import com.codeying.entity.OrderDetail;
 import com.codeying.entity.Orders;
 import com.codeying.entity.User;
-import com.codeying.service.AddressBookService;
+import com.codeying.mapper.AddressBookMapper;
 import com.codeying.service.AiAssistantApplicationService;
-import com.codeying.service.AiAssistantMessageService;
-import com.codeying.service.AiAssistantSessionService;
+import com.codeying.mapper.AiAssistantMessageMapper;
+import com.codeying.mapper.AiAssistantSessionMapper;
 import com.codeying.service.AiModelService;
 import com.codeying.service.AiWeatherService;
 import com.codeying.service.AnalysisApplicationService;
 import com.codeying.service.AnalysisObservationService;
-import com.codeying.service.CategoryService;
-import com.codeying.service.DishFlavorService;
-import com.codeying.service.DishService;
-import com.codeying.service.OrderDetailService;
-import com.codeying.service.OrdersService;
-import com.codeying.service.UserService;
+import com.codeying.mapper.CategoryMapper;
+import com.codeying.mapper.DishFlavorMapper;
+import com.codeying.mapper.DishMapper;
+import com.codeying.mapper.OrderDetailMapper;
+import com.codeying.mapper.OrdersMapper;
+import com.codeying.mapper.UserMapper;
 import com.codeying.vo.admin.analysis.DishHeatPredictionVO;
 import com.codeying.vo.admin.ai_assistant.AiAssistantSessionSummaryVO;
 import com.codeying.vo.common.ai_assistant.AiAssistantDishCardVO;
@@ -86,11 +85,6 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
  * Pattern.compile
  * @return 
  */
-    private static final Pattern JSON_BLOCK_PATTERN = Pattern.compile("\\{.*}", Pattern.DOTALL);
-/**
- * Pattern.compile
- * @return 
- */
     private static final Pattern REJECT_DISH_PATTERN = Pattern.compile("\\[(.+?)]");
 /**
  * Pattern.compile
@@ -117,6 +111,7 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
  * @return 
  */
     private static final Pattern MULTI_DISH_REPLY_PATTERN = Pattern.compile("(几道|几款|多道|多个|以下菜品)");
+    private static final String INTENT_UNAVAILABLE = "unavailable";
     private static final String INTENT_RECOMMEND = "recommend_dish";
     private static final String INTENT_ONE_KEY = "one_key_recommend";
     private static final String INTENT_ORDER_QUERY = "order_query";
@@ -139,15 +134,15 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
     );
     private static final double INTENT_CONFIDENCE_THRESHOLD = 0.70D;
 
-    private final AiAssistantSessionService sessionService;
-    private final AiAssistantMessageService messageService;
-    private final CategoryService categoryService;
-    private final DishService dishService;
-    private final DishFlavorService dishFlavorService;
-    private final AddressBookService addressBookService;
-    private final OrdersService ordersService;
-    private final OrderDetailService orderDetailService;
-    private final UserService userService;
+    private final AiAssistantSessionMapper sessionMapper;
+    private final AiAssistantMessageMapper messageMapper;
+    private final CategoryMapper categoryMapper;
+    private final DishMapper dishMapper;
+    private final DishFlavorMapper dishFlavorMapper;
+    private final AddressBookMapper addressBookMapper;
+    private final OrdersMapper ordersMapper;
+    private final OrderDetailMapper orderDetailMapper;
+    private final UserMapper userMapper;
     private final AiWeatherService aiWeatherService;
     private final AnalysisApplicationService analysisApplicationService;
     private final AnalysisObservationService analysisObservationService;
@@ -155,30 +150,30 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
     private final ObjectMapper objectMapper;
 
     public AiAssistantApplicationServiceImpl(
-            AiAssistantSessionService sessionService,
-            AiAssistantMessageService messageService,
-            CategoryService categoryService,
-            DishService dishService,
-            DishFlavorService dishFlavorService,
-            AddressBookService addressBookService,
-            OrdersService ordersService,
-            OrderDetailService orderDetailService,
-            UserService userService,
+            AiAssistantSessionMapper sessionMapper,
+            AiAssistantMessageMapper messageMapper,
+            CategoryMapper categoryMapper,
+            DishMapper dishMapper,
+            DishFlavorMapper dishFlavorMapper,
+            AddressBookMapper addressBookMapper,
+            OrdersMapper ordersMapper,
+            OrderDetailMapper orderDetailMapper,
+            UserMapper userMapper,
             AiWeatherService aiWeatherService,
             AnalysisApplicationService analysisApplicationService,
             AnalysisObservationService analysisObservationService,
             AiModelService aiModelService,
             ObjectMapper objectMapper
     ) {
-        this.sessionService = sessionService;
-        this.messageService = messageService;
-        this.categoryService = categoryService;
-        this.dishService = dishService;
-        this.dishFlavorService = dishFlavorService;
-        this.addressBookService = addressBookService;
-        this.ordersService = ordersService;
-        this.orderDetailService = orderDetailService;
-        this.userService = userService;
+        this.sessionMapper = sessionMapper;
+        this.messageMapper = messageMapper;
+        this.categoryMapper = categoryMapper;
+        this.dishMapper = dishMapper;
+        this.dishFlavorMapper = dishFlavorMapper;
+        this.addressBookMapper = addressBookMapper;
+        this.ordersMapper = ordersMapper;
+        this.orderDetailMapper = orderDetailMapper;
+        this.userMapper = userMapper;
         this.aiWeatherService = aiWeatherService;
         this.analysisApplicationService = analysisApplicationService;
         this.analysisObservationService = analysisObservationService;
@@ -194,13 +189,7 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
         }
         Date dayStart = todayStart();
         Date nextDayStart = tomorrowStart();
-        AiAssistantSession existing = sessionService.getOne(new QueryWrapper<AiAssistantSession>()
-                .eq("user_id", userId)
-                .eq("status", AiAssistantSession.STATUS_OPEN)
-                .ge("create_time", dayStart)
-                .lt("create_time", nextDayStart)
-                .orderByDesc("update_time")
-                .last("limit 1"));
+        AiAssistantSession existing = sessionMapper.findOpenToday(userId, dayStart, nextDayStart);
         if (existing != null) {
             return toSessionVO(existing);
         }
@@ -211,7 +200,7 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
         session.setModel("deepseek-chat");
         session.setCreateTime(now);
         session.setUpdateTime(now);
-        sessionService.save(session);
+        sessionMapper.insert(session);
         return toSessionVO(session);
     }
 
@@ -221,7 +210,7 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
         if (userId == null || body == null || body.getSessionId() == null || !StringUtils.hasText(body.getContent())) {
             return buildBusyReply();
         }
-        AiAssistantSession session = sessionService.getById(body.getSessionId());
+        AiAssistantSession session = sessionMapper.selectById(body.getSessionId());
         if (session == null
                 || !userId.equals(session.getUserId())
                 || !isSessionOpen(session.getStatus())
@@ -230,6 +219,9 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
         }
 
         int senderType = body.getSenderType() == null ? AiAssistantMessage.SENDER_USER : body.getSenderType();
+        if (senderType != AiAssistantMessage.SENDER_USER && senderType != AiAssistantMessage.SENDER_SYSTEM) {
+            return buildBusyReply();
+        }
         String content = body.getContent().trim();
         saveIncomingMessage(session.getId(), userId, senderType, content);
 
@@ -245,19 +237,30 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
         aiMessage.setIntent(intent);
         aiMessage.setMetadata(buildAiMetadata(intent, replyVO));
         aiMessage.setCreateTime(new Date());
-        messageService.save(aiMessage);
+        messageMapper.insert(aiMessage);
+
+        if (sessionMapper.updateReplyState(session.getId(), userId, intent, replyVO.getAction(), new Date()) != 1) {
+            throw new com.codeying.exception.BusinessException("会话不存在或已关闭");
+        }
         if (analysisObservationService != null) {
             analysisObservationService.recordRecommendationExposure(userId, session.getId(), aiMessage.getId(), replyVO);
         }
-
-        AiAssistantSession update = new AiAssistantSession();
-        update.setId(session.getId());
-        update.setLastIntent(intent);
-        update.setPendingAction(replyVO.getAction());
-        update.setPendingPayload(null);
-        update.setUpdateTime(new Date());
-        sessionService.updateById(update);
         return replyVO;
+    }
+
+    @Override
+    public boolean isUserSession(Long userId, Long sessionId) {
+        if (userId == null || sessionId == null) return false;
+        AiAssistantSession session = sessionMapper.selectById(sessionId);
+        return session != null && userId.equals(session.getUserId());
+    }
+
+    @Override
+    public List<AiAssistantMessageVO> listUserMessages(Long userId, Long sessionId, Long beforeId, Integer limit) {
+        if (!isUserSession(userId, sessionId)) {
+            throw new com.codeying.exception.BusinessException("无权限");
+        }
+        return listMessages(sessionId, beforeId, limit);
     }
 
     @Override
@@ -265,22 +268,14 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
         if (sessionId == null) {
             return Collections.emptyList();
         }
-        AiAssistantSession session = sessionService.getById(sessionId);
+        AiAssistantSession session = sessionMapper.selectById(sessionId);
         if (session == null) {
             return Collections.emptyList();
         }
         Date dayStart = todayStart();
         Date nextDayStart = tomorrowStart();
         int size = normalizeLimit(limit);
-        QueryWrapper<AiAssistantMessage> wrapper = new QueryWrapper<AiAssistantMessage>()
-                .eq("session_id", sessionId)
-                .ge("create_time", dayStart)
-                .lt("create_time", nextDayStart);
-        if (beforeId != null) {
-            wrapper.lt("id", beforeId);
-        }
-        wrapper.orderByDesc("id").last("limit " + size);
-        List<AiAssistantMessage> messages = messageService.list(wrapper);
+        List<AiAssistantMessage> messages = messageMapper.listTodayBefore(sessionId, beforeId, size, dayStart, nextDayStart);
         if (messages == null || messages.isEmpty()) {
             return Collections.emptyList();
         }
@@ -295,11 +290,7 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
     public List<AiAssistantSessionSummaryVO> listOpenSessions() {
         Date dayStart = todayStart();
         Date nextDayStart = tomorrowStart();
-        List<AiAssistantSession> sessions = sessionService.list(new QueryWrapper<AiAssistantSession>()
-                .eq("status", AiAssistantSession.STATUS_OPEN)
-                .ge("update_time", dayStart)
-                .lt("update_time", nextDayStart)
-                .orderByDesc("update_time"));
+        List<AiAssistantSession> sessions = sessionMapper.listActiveToday(dayStart, nextDayStart);
         if (sessions == null || sessions.isEmpty()) {
             return Collections.emptyList();
         }
@@ -333,10 +324,13 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
         message.setSenderId(senderType == AiAssistantMessage.SENDER_USER ? userId : null);
         message.setContent(content);
         message.setCreateTime(new Date());
-        messageService.save(message);
+        messageMapper.insert(message);
     }
 
     private AiAssistantSendReplyVO handleIntent(Long userId, String intent, String userText, int senderType) {
+        if (INTENT_UNAVAILABLE.equals(intent)) {
+            return buildBusyReply();
+        }
         if (INTENT_MANUAL_SERVICE.equals(intent)) {
             return buildGuideReply("我可以先帮您推荐菜品；如需人工客服，请前往“客服消息”页面继续沟通。");
         }
@@ -373,36 +367,32 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
     }
 
     private AiAssistantSendReplyVO buildOneKeyRecommendReply(Long userId, String userText, Set<String> excludes) {
+        List<Orders> orders = ordersMapper.listRecentForRecommendation(userId, 30);
+        boolean insufficientHistory = orders == null || orders.size() < 5;
         List<Long> analyzedDishIds = analysisApplicationService.listRecommendedDishIdsForUser(userId, CANDIDATE_LIMIT);
         if (analyzedDishIds != null && !analyzedDishIds.isEmpty()) {
             List<DishCandidate> analyzedCandidates = buildDishCandidatesByIds(analyzedDishIds, excludes);
             if (!analyzedCandidates.isEmpty()) {
                 String historySummary = "已使用聚类与热度分析结果生成候选菜品。";
-                return callModelForRecommend(
-                        userId,
+                return withHistoryHint(callModelForRecommend(
                         userText,
                         analyzedCandidates,
                         historySummary,
                         true,
-                        buildAnalysisPayload("one_key_analysis", resolveCurrentHeatModelVersion(), false)
-                );
+                        buildAnalysisPayload("one_key_analysis", resolveCurrentHeatModelVersion(), false),
+                        resolveWeatherSummary(userId)
+                ), insufficientHistory);
             }
         }
 
-        List<Orders> orders = ordersService.list(new QueryWrapper<Orders>()
-                .eq("user_id", userId)
-                .orderByDesc("order_time")
-                .last("limit 30"));
-        if (orders == null || orders.size() < 5) {
+        if (insufficientHistory) {
             return buildRecommendReply(userId, userText, excludes, true);
         }
         List<Long> orderIds = orders.stream().map(Orders::getId).toList();
         if (orderIds.isEmpty()) {
             return buildRecommendReply(userId, userText, excludes, true);
         }
-        List<OrderDetail> details = orderDetailService.list(new QueryWrapper<OrderDetail>()
-                .in("order_id", orderIds)
-                .isNotNull("dish_id"));
+        List<OrderDetail> details = orderDetailMapper.listDishDetailsForOrders(orderIds);
         if (details == null || details.isEmpty()) {
             return buildRecommendReply(userId, userText, excludes, true);
         }
@@ -432,12 +422,12 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
                 .map(e -> e.getKey() + ":" + e.getValue())
                 .collect(Collectors.joining(", "));
         return callModelForRecommend(
-                userId,
                 userText,
                 candidates,
                 historySummary,
                 true,
-                buildAnalysisPayload("one_key_history", resolveCurrentHeatModelVersion(), true)
+                buildAnalysisPayload("one_key_history", resolveCurrentHeatModelVersion(), true),
+                resolveWeatherSummary(userId)
         );
     }
 
@@ -445,8 +435,7 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
         String weatherSummary = resolveWeatherSummary(userId);
         AnalyzedRecommendSelection analyzedSelection = selectAnalyzedRecommendSelection(userId, userText, excludes, appendHistoryHint);
         if (!analyzedSelection.candidates().isEmpty()) {
-            return callModelForRecommend(
-                    userId,
+            return withHistoryHint(callModelForRecommend(
                     userText,
                     analyzedSelection.candidates(),
                     analyzedSelection.historySummary(),
@@ -455,22 +444,30 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
                             analyzedSelection.strategy(),
                             analyzedSelection.modelVersion(),
                             analyzedSelection.fallback()
-                    )
-            );
+                    ),
+                    weatherSummary
+            ), appendHistoryHint);
         }
         List<DishCandidate> candidates = buildDishCandidates(excludes, weatherSummary, userText);
         if (candidates.isEmpty()) {
             return buildGuideReply("暂时没有可推荐的菜品，您可以稍后再试。");
         }
-        String historySummary = appendHistoryHint ? "历史订单不足 5 单，已退化为普通推荐。" : "无特殊历史偏好。";
-        return callModelForRecommend(
-                userId,
+        String historySummary = appendHistoryHint ? "暂无足够可用的历史偏好，已使用普通推荐候选。" : "无特殊历史偏好。";
+        return withHistoryHint(callModelForRecommend(
                 userText,
                 candidates,
                 historySummary,
                 false,
-                buildAnalysisPayload("rule_fallback", resolveCurrentHeatModelVersion(), true)
-        );
+                buildAnalysisPayload("rule_fallback", resolveCurrentHeatModelVersion(), true),
+                weatherSummary
+        ), appendHistoryHint);
+    }
+
+    private AiAssistantSendReplyVO withHistoryHint(AiAssistantSendReplyVO reply, boolean unavailable) {
+        if (unavailable && reply.getDishes() != null && !reply.getDishes().isEmpty()) {
+            reply.setReply("暂无足够可用的历史偏好，先为您普通推荐。" + reply.getReply());
+        }
+        return fitsMessageColumn(reply) ? reply : buildBusyReply();
     }
 
     private AnalyzedRecommendSelection selectAnalyzedRecommendSelection(
@@ -504,7 +501,7 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
         List<DishCandidate> analyzedCandidates = buildDishCandidatesByIds(analyzedDishIds, excludes);
         if (!analyzedCandidates.isEmpty()) {
             String historySummary = appendHistoryHint
-                    ? "历史订单不足 5 单，已优先使用热度分析与冷启动候选进行推荐。"
+                    ? "暂无足够可用的历史偏好，已优先使用热度分析与冷启动候选进行推荐。"
                     : "已优先使用用户分群与热度分析结果生成候选菜品。";
             return new AnalyzedRecommendSelection(
                     analyzedCandidates,
@@ -517,76 +514,49 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
         return AnalyzedRecommendSelection.empty();
     }
     private AiAssistantSendReplyVO callModelForRecommend(
-            Long userId,
             String userText,
             List<DishCandidate> candidates,
             String historySummary,
             boolean oneKey,
-            Map<String, Object> payload
+            Map<String, Object> payload,
+            String weatherSummary
     ) {
         int desiredDishCount = resolveDesiredDishCount(userText);
-        String weatherSummary = resolveWeatherSummary(userId);
         String candidateJson = safeWriteJson(candidates.stream().map(DishCandidate::toMap).toList());
         String systemPrompt = buildRecommendPrompt(weatherSummary, candidateJson, userText, historySummary, oneKey, desiredDishCount);
         String content;
         try {
             content = aiModelService.chat(systemPrompt, userText);
         } catch (Exception ex) {
-            log.error("AI model call failed", ex);
+            log.warn("AI model call unavailable: {}", ex.getClass().getSimpleName());
             return buildBusyReply();
         }
 
-        AiAssistantSendReplyVO parsed = parseModelReply(content, candidates, desiredDishCount);
-        if (parsed != null) {
-            if (parsed.getDishes() != null && !parsed.getDishes().isEmpty()) {
-                parsed.setPayload(payload);
-            }
-            return finalizeReply(userText, parsed);
-        }
-        AiAssistantSendReplyVO fallback = new AiAssistantSendReplyVO();
-        fallback.setReply(oneKey ? "为您按历史口味推荐了几道常点菜品。" : "为您挑了几道菜，您看看是否喜欢。");
-        fallback.setDishes(candidates.stream().limit(Math.max(1, desiredDishCount)).map(DishCandidate::toCardVO).toList());
-        fallback.setAction(ACTION_SUGGEST_DISH);
-        fallback.setPayload(payload);
-        return finalizeReply(userText, fallback);
-    }
-    private String resolveWeatherSummary(Long userId) {
-        AddressBook address = addressBookService.getOne(new QueryWrapper<AddressBook>()
-                .eq("user_id", userId)
-                .eq("is_default", 1)
-                .last("limit 1"));
-        if (address == null) {
-            return null;
-        }
-        String city = address.getCityName();
-        String fullAddress = joinAddress(address);
-        if (StringUtils.hasText(city)) {
-            String weather = aiWeatherService.getWeatherSummary(city);
-            if (StringUtils.hasText(weather)) {
-                logWeatherSummary(city, weather);
-                return weather;
-            }
-        }
-        if (StringUtils.hasText(fullAddress)) {
-            String weather = aiWeatherService.getWeatherSummary(fullAddress);
-            if (StringUtils.hasText(weather)) {
-                logWeatherSummary(fullAddress, weather);
-            }
-            return weather;
-        }
-        return null;
+        AiAssistantSendReplyVO parsed = parseModelReply(content, candidates);
+        if (parsed == null) return buildBusyReply();
+        parsed.setPayload(payload);
+        return finalizeReply(userText, parsed);
     }
 
-    private void logWeatherSummary(String address, String weather) {
-        log.info("[AI天气] 查询地址: {}", address);
-        log.info("[AI天气] 天气摘要: {}", weather);
+    private String resolveWeatherSummary(Long userId) {
+        try {
+            AddressBook address = addressBookMapper.findDefaultByUser(userId);
+            if (address == null) return null;
+            String city = address.getCityName();
+            if (StringUtils.hasText(city)) {
+                String summary = aiWeatherService.getWeatherSummary(city);
+                if (StringUtils.hasText(summary)) return summary;
+            }
+            String fullAddress = joinAddress(address);
+            return StringUtils.hasText(fullAddress) ? aiWeatherService.getWeatherSummary(fullAddress) : null;
+        } catch (Exception ex) {
+            log.warn("AI weather unavailable: {}", ex.getClass().getSimpleName());
+            return null;
+        }
     }
 
     private List<DishCandidate> buildDishCandidates(Set<String> excludes, String weatherSummary, String userText) {
-        List<Dish> dishes = dishService.list(new QueryWrapper<Dish>()
-                .eq("status", 1)
-                .orderByDesc("update_time")
-                .last("limit " + DISH_QUERY_LIMIT));
+        List<Dish> dishes = dishMapper.listOnSaleCandidates(DISH_QUERY_LIMIT);
         if (dishes == null || dishes.isEmpty()) {
             return Collections.emptyList();
         }
@@ -619,7 +589,7 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
         if (dishIds == null || dishIds.isEmpty()) {
             return Collections.emptyList();
         }
-        List<Dish> dishes = dishService.listByIds(dishIds);
+        List<Dish> dishes = dishMapper.listOnSaleByIds(dishIds);
         if (dishes == null || dishes.isEmpty()) {
             return Collections.emptyList();
         }
@@ -648,7 +618,7 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
         if (dishIds == null || dishIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        List<DishFlavor> flavors = dishFlavorService.list(new QueryWrapper<DishFlavor>().in("dish_id", dishIds));
+        List<DishFlavor> flavors = dishFlavorMapper.listByDishes(dishIds);
         if (flavors == null || flavors.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -670,7 +640,7 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
         if (validIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        List<Category> categories = categoryService.listByIds(validIds);
+        List<Category> categories = categoryMapper.selectBatchIds(validIds);
         if (categories == null || categories.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -794,13 +764,15 @@ public class AiAssistantApplicationServiceImpl implements AiAssistantApplication
         try {
             String modelOutput = aiModelService.chat(buildIntentClassifierPrompt(), text);
             IntentClassifyResult classifyResult = parseIntentClassifyResult(modelOutput);
-            if (classifyResult != null
-                    && ALLOWED_INTENTS.contains(classifyResult.intent())
-                    && classifyResult.confidence() >= INTENT_CONFIDENCE_THRESHOLD) {
+            if (classifyResult == null || !ALLOWED_INTENTS.contains(classifyResult.intent())) {
+                return INTENT_UNAVAILABLE;
+            }
+            if (classifyResult.confidence() >= INTENT_CONFIDENCE_THRESHOLD) {
                 return classifyResult.intent();
             }
         } catch (Exception ex) {
-            log.warn("Intent model classify failed: {}", ex.getMessage());
+            log.warn("Intent model classify unavailable: {}", ex.getClass().getSimpleName());
+            return INTENT_UNAVAILABLE;
         }
         return INTENT_OUT_OF_SCOPE;
     }
@@ -886,19 +858,15 @@ Do not output markdown or explanations.
         if (!StringUtils.hasText(output)) {
             return null;
         }
-        String normalized = output.trim();
-        Matcher matcher = JSON_BLOCK_PATTERN.matcher(normalized);
-        if (matcher.find()) {
-            normalized = matcher.group();
-        }
         try {
-            JsonNode node = objectMapper.readTree(normalized);
-            String intent = node.path("intent").asText("");
-            double confidence = node.path("confidence").asDouble(0D);
-            if (!StringUtils.hasText(intent)) {
+            JsonNode node = AiRecommendationParser.readObject(objectMapper, output);
+            JsonNode intent = node.path("intent");
+            JsonNode confidence = node.path("confidence");
+            if (!intent.isTextual() || !StringUtils.hasText(intent.textValue()) || !confidence.isNumber()
+                    || !Double.isFinite(confidence.doubleValue()) || confidence.doubleValue() < 0 || confidence.doubleValue() > 1) {
                 return null;
             }
-            return new IntentClassifyResult(intent.trim().toLowerCase(Locale.ROOT), confidence);
+            return new IntentClassifyResult(intent.textValue().trim().toLowerCase(Locale.ROOT), confidence.doubleValue());
         } catch (Exception ex) {
             return null;
         }
@@ -916,7 +884,8 @@ Do not output markdown or explanations.
 You are the Yuweiju takeout AI assistant, only for dish recommendation and ordering guidance.
 Output JSON only with keys: reply, dishes, action, payload.
 action must be suggest_dish and payload must be null.
-dishes must be selected from candidate dishes only, and cannot modify imageUrl, flavors, categoryName.
+dishes must be a nonempty array of objects with numeric integer dishId selected from candidate dishes only.
+Server owns name, price, imageUrl, flavors and categoryName; do not modify them.
 If user has flavor/cuisine preference and matched candidates exist, do not answer "none available".
 If user asks for exactly one dish, dishes must contain exactly one item.
 Weather summary: %s
@@ -935,54 +904,25 @@ Desired dish count: %s
         );
     }
 
-    private AiAssistantSendReplyVO parseModelReply(String raw, List<DishCandidate> candidates, int desiredDishCount) {
-        if (!StringUtils.hasText(raw)) {
-            return null;
-        }
-        String normalized = raw.trim();
-        Matcher matcher = JSON_BLOCK_PATTERN.matcher(normalized);
-        if (matcher.find()) {
-            normalized = matcher.group();
-        }
+    private AiAssistantSendReplyVO parseModelReply(String raw, List<DishCandidate> candidates) {
         try {
-            JsonNode root = objectMapper.readTree(normalized);
-            String reply = root.path("reply").asText();
-            List<AiAssistantDishCardVO> dishes = parseDishCards(root.path("dishes"), candidates, desiredDishCount);
+            Map<Long, DishCandidate> candidateMap = new LinkedHashMap<>();
+            for (DishCandidate candidate : candidates) candidateMap.put(candidate.getDishId(), candidate);
+            AiRecommendationParser.Selection selection = AiRecommendationParser.parse(objectMapper, raw, candidateMap.keySet());
+            // Model calls may outlive a sale-status change. Recheck the entire selection before issuing any card.
+            Set<Long> onSale = dishMapper.listOnSaleForReply(selection.dishIds()).stream().map(Dish::getId).collect(Collectors.toSet());
+            if (!onSale.containsAll(selection.dishIds())) return null;
             AiAssistantSendReplyVO vo = new AiAssistantSendReplyVO();
-            vo.setReply(StringUtils.hasText(reply) ? reply : "为您推荐以下菜品。");
-            vo.setDishes(dishes);
-            vo.setAction(dishes.isEmpty() ? null : ACTION_SUGGEST_DISH);
+            vo.setReply(selection.reply());
+            vo.setDishes(selection.dishIds().stream()
+                    .map(id -> candidateMap.get(id).toCardVO()).toList());
+            vo.setAction(ACTION_SUGGEST_DISH);
             vo.setPayload(null);
             return vo;
         } catch (Exception ex) {
+            log.warn("AI recommendation unavailable: {}", ex.getClass().getSimpleName());
             return null;
         }
-    }
-
-    private List<AiAssistantDishCardVO> parseDishCards(JsonNode dishesNode, List<DishCandidate> candidates, int desiredDishCount) {
-        if (dishesNode == null || !dishesNode.isArray()) {
-            return Collections.emptyList();
-        }
-        Map<Long, DishCandidate> candidateMap = new LinkedHashMap<>();
-        for (DishCandidate candidate : candidates) {
-            candidateMap.put(candidate.getDishId(), candidate);
-        }
-        List<AiAssistantDishCardVO> list = new ArrayList<>();
-        for (JsonNode node : dishesNode) {
-            Long dishId = node.path("dishId").isNumber() ? node.path("dishId").asLong() : null;
-            if (dishId == null) {
-                continue;
-            }
-            DishCandidate candidate = candidateMap.get(dishId);
-            if (candidate == null) {
-                continue;
-            }
-            list.add(candidate.toCardVO());
-        }
-        if (list.isEmpty()) {
-            return candidates.stream().limit(Math.max(1, desiredDishCount)).map(DishCandidate::toCardVO).toList();
-        }
-        return list.stream().distinct().limit(Math.max(1, desiredDishCount)).toList();
     }
 
     private AiAssistantSendReplyVO finalizeReply(String userText, AiAssistantSendReplyVO vo) {
@@ -1001,7 +941,7 @@ Desired dish count: %s
                 }
             }
         }
-        return vo;
+        return fitsMessageColumn(vo) ? vo : buildBusyReply();
     }
 
     private int resolveDesiredDishCount(String userText) {
@@ -1021,12 +961,7 @@ Desired dish count: %s
     }
 
     private AiAssistantSendReplyVO buildBusyReply() {
-        AiAssistantSendReplyVO vo = new AiAssistantSendReplyVO();
-        vo.setReply("当前较繁忙，请稍后重试。");
-        vo.setDishes(Collections.emptyList());
-        vo.setAction(null);
-        vo.setPayload(null);
-        return vo;
+        return buildGuideReply("当前较繁忙，请稍后重试。");
     }
 
     private String parseRejectedDishName(String text) {
@@ -1113,7 +1048,7 @@ Desired dish count: %s
         if (userIds == null || userIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        List<User> users = userService.listByIds(userIds);
+        List<User> users = userMapper.selectBatchIds(userIds);
         if (users == null || users.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -1127,10 +1062,7 @@ Desired dish count: %s
     }
 
     private AiAssistantMessage findLastMessage(Long sessionId) {
-        return messageService.getOne(new QueryWrapper<AiAssistantMessage>()
-                .eq("session_id", sessionId)
-                .orderByDesc("id")
-                .last("limit 1"));
+        return messageMapper.findLast(sessionId);
     }
 
     private String limitPreview(String content) {
@@ -1157,6 +1089,12 @@ Desired dish count: %s
             metadata.put("payload", payload);
         }
         return safeWriteJson(metadata);
+    }
+
+    private boolean fitsMessageColumn(AiAssistantSendReplyVO reply) {
+        String text = composeAiMessageText(reply);
+        // The existing VARCHAR(2000) stores Unicode characters, including appended server dish names.
+        return text.codePointCount(0, text.length()) <= 2000;
     }
 
     private String composeAiMessageText(AiAssistantSendReplyVO replyVO) {

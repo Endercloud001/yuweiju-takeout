@@ -23,4 +23,11 @@ public interface DishFlavorMapper extends BaseMapper<DishFlavor> {
         return delete(new QueryWrapper<DishFlavor>()
                 .in("dish_id", dishIds));
     }
+
+    /** Batch flavors for selected candidates, with the existing unspecified row ordering. */
+    default List<DishFlavor> listByDishes(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+        return selectList(new QueryWrapper<DishFlavor>().in("dish_id", ids));
+    }
+
 }

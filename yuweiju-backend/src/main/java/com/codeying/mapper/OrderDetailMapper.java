@@ -30,4 +30,12 @@ public interface OrderDetailMapper extends BaseMapper<OrderDetail> {
      * @return 商品销量列表
      */
     List<GoodsSales> top10(@Param("begin") Date begin, @Param("end") Date end, @Param("status") Integer status);
+
+    /** Dish details from already-owned recent orders; no historical snapshot rewrite. */
+    default List<OrderDetail> listDishDetailsForOrders(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+        return selectList(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<OrderDetail>()
+                .in("order_id", ids).isNotNull("dish_id"));
+    }
+
 }

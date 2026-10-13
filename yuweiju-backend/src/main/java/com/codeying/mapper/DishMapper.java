@@ -41,4 +41,22 @@ public interface DishMapper extends BaseMapper<Dish> {
                 .eq(status != null, "status", status)
                 .orderByDesc("update_time", "id"));
     }
+
+    /** On-sale recommendation candidates in the existing newest-update order. */
+    default List<Dish> listOnSaleCandidates(int limit) {
+        return selectList(new QueryWrapper<Dish>().eq("status", 1).orderByDesc("update_time").last("limit " + limit));
+    }
+    /** Only current on-sale members of a recommendation selection; empty input performs no query. */
+    default List<Dish> listOnSaleByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+        return selectList(new QueryWrapper<Dish>().in("id", ids).eq("status", 1));
+    }
+
+    /** Current on-sale read immediately before persisting a reply. Shared row locks last until the use-case commit,
+     * avoiding an older repeatable-read candidate snapshot and a sale change between validation and persistence. */
+    default List<Dish> listOnSaleForReply(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+        return selectList(new QueryWrapper<Dish>().in("id", ids).eq("status", 1).last("for share"));
+    }
+
 }

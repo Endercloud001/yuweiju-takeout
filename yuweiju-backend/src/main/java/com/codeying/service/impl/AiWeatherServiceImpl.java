@@ -16,6 +16,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -72,7 +73,7 @@ public class AiWeatherServiceImpl implements AiWeatherService {
     private final SkyProperties skyProperties;
     private final AnalysisProperties analysisProperties;
     private final StringRedisTemplate stringRedisTemplate;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
     public AiWeatherServiceImpl(
@@ -81,6 +82,10 @@ public class AiWeatherServiceImpl implements AiWeatherService {
             StringRedisTemplate stringRedisTemplate,
             ObjectMapper objectMapper
     ) {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(skyProperties.getQweather().getConnectTimeoutMs());
+        factory.setReadTimeout(skyProperties.getQweather().getReadTimeoutMs());
+        this.restTemplate = new RestTemplate(factory);
         this.skyProperties = skyProperties;
         this.analysisProperties = analysisProperties;
         this.stringRedisTemplate = stringRedisTemplate;
@@ -125,7 +130,7 @@ public class AiWeatherServiceImpl implements AiWeatherService {
             }
             return summary;
         } catch (Exception ex) {
-            log.warn("获取天气信息失败，location={}, error={}", location, ex.getMessage());
+            log.warn("Weather summary unavailable: {}", ex.getClass().getSimpleName());
             return null;
         }
     }
@@ -158,7 +163,7 @@ public class AiWeatherServiceImpl implements AiWeatherService {
             }
             return weatherCode;
         } catch (Exception ex) {
-            log.warn("获取天气编码失败，location={}, date={}, error={}", location, date, ex.getMessage());
+            log.warn("Weather code unavailable: {}", ex.getClass().getSimpleName());
             return null;
         }
     }
@@ -333,9 +338,7 @@ public class AiWeatherServiceImpl implements AiWeatherService {
             }
             return objectMapper.readTree(responseBody);
         } catch (HttpStatusCodeException ex) {
-            String errorBody = decodeBody(ex.getResponseBodyAsByteArray(), ex.getResponseHeaders());
-            throw new IllegalStateException("QWeather API request failed, status=" + ex.getStatusCode().value()
-                    + ", body=" + abbreviate(errorBody), ex);
+            throw new IllegalStateException("Weather request unavailable, status=" + ex.getStatusCode().value(), ex);
         }
     }
 
@@ -424,12 +427,5 @@ public class AiWeatherServiceImpl implements AiWeatherService {
             }
             return outputStream.toByteArray();
         }
-    }
-
-    private String abbreviate(String text) {
-        if (!StringUtils.hasText(text)) {
-            return "";
-        }
-        return text.length() > 500 ? text.substring(0, 500) + "..." : text;
     }
 }

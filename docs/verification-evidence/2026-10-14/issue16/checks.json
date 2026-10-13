@@ -1,0 +1,25 @@
+{
+  "candidate": "69f75c0b85db275767efe507bd2508d5d9e74d78",
+  "backendTests": 156,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "realIsolatedAssertions": 557,
+  "scenarios": 19,
+  "localModelRequests": 52,
+  "exactCandidateIndependentPassed": true,
+  "officialMiniappPassed": true,
+  "adminBrowserPassed": true,
+  "adminSyncReloginDiagnosisPassed": true,
+  "realDeepSeekCalls": 2,
+  "maxAuthorizedRealCalls": 6,
+  "allHumanAcceptancePassed": true,
+  "servicesStopped": true,
+  "volumesRetained": true,
+  "sourceUnchangedDuringDelivery": true,
+  "limits": [
+    "instance-local HTTP protection",
+    "synthetic isolated identity; not two real WeChat identities"
+  ],
+  "originalEvidence": "Project-local .scratch/issue16-afk-20261013; raw logs/credentials not published"
+}
