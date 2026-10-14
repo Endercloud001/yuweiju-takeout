@@ -102,3 +102,15 @@ export interface OrderRiskBackfillSummary {
   processedOrders: number
   skippedExisting: number
 }
+
+export interface OrderRiskTrainingResult extends Partial<OrderRiskTrainingReadiness> {
+  status?: 'TRAINED' | 'REJECTED' | 'SKIPPED' | 'PARTIAL' | 'FAILED'
+  reason?: string
+  message?: string
+  trained?: boolean
+  activated?: boolean
+  fileSaved?: boolean
+  metadataSaved?: boolean
+  modelVersion?: string
+  artifactPath?: string
+}

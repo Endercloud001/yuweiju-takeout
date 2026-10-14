@@ -44,4 +44,16 @@
         </where>
         ORDER BY o.order_time DESC, o.id DESC
     </select>
+    <select id="countRiskHistory" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM orders WHERE user_id=#{userId} AND order_time &gt;= #{begin} AND order_time &lt;= #{end}
+        <if test="status != null">AND status=#{status}</if>
+    </select>
+    <select id="averageRiskPaidAmount" resultType="java.math.BigDecimal">
+        SELECT COALESCE(ROUND(SUM(CASE WHEN amount &gt; 0 THEN amount ELSE 0 END) / COUNT(*),6),0)
+        FROM orders WHERE user_id=#{userId} AND pay_status=1 AND order_time &gt;= #{begin} AND order_time &lt;= #{end}
+    </select>
+    <select id="findRiskBackfill" resultType="com.codeying.entity.Orders">
+        SELECT * FROM orders WHERE pay_status=1 AND order_time &gt;= #{begin}
+        ORDER BY order_time DESC,id DESC LIMIT #{limit}
+    </select>
 </mapper>

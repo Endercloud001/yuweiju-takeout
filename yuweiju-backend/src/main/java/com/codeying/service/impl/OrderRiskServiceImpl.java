@@ -1,7 +1,5 @@
 package com.codeying.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.codeying.entity.OrderDetail;
 import com.codeying.entity.OrderRiskFeatureSnapshot;
 import com.codeying.entity.OrderRiskFeedback;
@@ -15,9 +13,13 @@ import com.codeying.mapper.OrderRiskModelMetaMapper;
 import com.codeying.mapper.OrderRiskResultMapper;
 import com.codeying.mapper.OrderRiskStandardizerMetaMapper;
 import com.codeying.properties.OrderRiskProperties;
-import com.codeying.service.OrderDetailService;
 import com.codeying.service.OrderRiskService;
-import com.codeying.service.OrdersService;
+import com.codeying.mapper.OrdersMapper;
+import com.codeying.mapper.OrderDetailMapper;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import com.codeying.risk.RiskModelFiles;
+import static com.codeying.risk.RiskCalculations.*;
 import com.codeying.vo.admin.order.OrderRiskModelMetaVO;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -32,17 +34,11 @@ import smile.data.DataFrame;
 import smile.data.formula.Formula;
 import smile.data.vector.IntVector;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -89,25 +85,16 @@ public class OrderRiskServiceImpl implements OrderRiskService {
     private static final String MODEL_STATUS_REJECTED = "REJECTED";
     private static final String MODEL_STATUS_ARCHIVED = "ARCHIVED";
     private static final DateTimeFormatter MODEL_VERSION_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
-    private static final List<String> FEATURE_NAMES = List.of(
-            "order_amount",
-            "item_count",
-            "unique_dish_count",
-            "remark_length",
-            "order_count_1h",
-            "order_count_24h",
-            "cancel_rate_30d",
-            "avg_amount_30d",
-            "order_amount_to_avg_ratio_30d"
-    );
     private static final List<String> REMARK_KEYWORDS = List.of(
             "\u4e0d\u8981\u53d1\u8d27",
             "\u6d4b\u8bd5",
             "test"
     );
 
-    private final OrdersService ordersService;
-    private final OrderDetailService orderDetailService;
+    private final OrdersMapper ordersMapper;
+    private final TransactionTemplate transactions;
+    private final TransactionTemplate scoringTransactions;
+    private final OrderDetailMapper orderDetailMapper;
     private final OrderRiskFeatureSnapshotMapper orderRiskFeatureSnapshotMapper;
     private final OrderRiskResultMapper orderRiskResultMapper;
     private final OrderRiskModelMetaMapper orderRiskModelMetaMapper;
@@ -118,10 +105,12 @@ public class OrderRiskServiceImpl implements OrderRiskService {
 
     private final AtomicReference<ModelBundle> modelRef = new AtomicReference<>();
     private volatile Instant lastModelRefreshTime = Instant.EPOCH;
+    private volatile String modelAvailability = "model_missing";
 
     public OrderRiskServiceImpl(
-            OrdersService ordersService,
-            OrderDetailService orderDetailService,
+            OrdersMapper ordersMapper,
+            OrderDetailMapper orderDetailMapper,
+            PlatformTransactionManager transactionManager,
             OrderRiskFeatureSnapshotMapper orderRiskFeatureSnapshotMapper,
             OrderRiskResultMapper orderRiskResultMapper,
             OrderRiskModelMetaMapper orderRiskModelMetaMapper,
@@ -130,8 +119,13 @@ public class OrderRiskServiceImpl implements OrderRiskService {
             OrderRiskProperties orderRiskProperties,
             ObjectMapper objectMapper
     ) {
-        this.ordersService = ordersService;
-        this.orderDetailService = orderDetailService;
+        this.ordersMapper = ordersMapper;
+        this.orderDetailMapper = orderDetailMapper;
+        this.transactions = new TransactionTemplate(transactionManager);
+        this.scoringTransactions = new TransactionTemplate(transactionManager);
+        // Scoring is optional inside order submission/payment. A savepoint prevents its failure
+        // from marking the core order transaction rollback-only, while keeping score writes atomic.
+        this.scoringTransactions.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_NESTED);
         this.orderRiskFeatureSnapshotMapper = orderRiskFeatureSnapshotMapper;
         this.orderRiskResultMapper = orderRiskResultMapper;
         this.orderRiskModelMetaMapper = orderRiskModelMetaMapper;
@@ -143,24 +137,30 @@ public class OrderRiskServiceImpl implements OrderRiskService {
 
     @Override
     public void scoreOrder(Long orderId, String trigger) {
+        scoreOrderWithOutcome(orderId, trigger);
+    }
+
+    private boolean scoreOrderWithOutcome(Long orderId, String trigger) {
         if (orderId == null || !Boolean.TRUE.equals(orderRiskProperties.getTask().getScoringEnabled())) {
-            return;
+            return false;
         }
         try {
-            Orders order = ordersService.getById(orderId);
+            Orders order = ordersMapper.selectById(orderId);
             if (order == null) {
-                return;
+                return false;
             }
 
             refreshModelIfNeeded();
             Map<String, Object> rawFeatures = buildRawFeatures(order);
-            persistFeatureSnapshot(orderId, orderRiskProperties.getFeatureVersion(), rawFeatures);
-
             ScoreDecision scoreDecision = evaluateByModel(order, rawFeatures, trigger);
             if (scoreDecision == null) {
                 scoreDecision = evaluateByRule(order, rawFeatures, trigger);
             }
-            persistRiskResult(orderId, scoreDecision);
+            ScoreDecision persisted = scoreDecision;
+            scoringTransactions.executeWithoutResult(tx -> {
+                persistFeatureSnapshot(orderId, orderRiskProperties.getFeatureVersion(), rawFeatures);
+                persistRiskResult(orderId, persisted);
+            });
             log.info(
                     "order_risk_scored orderId={} trigger={} mode={} score={} level={} modelVersion={} ruleHits={}",
                     orderId,
@@ -171,8 +171,10 @@ public class OrderRiskServiceImpl implements OrderRiskService {
                     scoreDecision.modelVersion(),
                     toRuleHitsPayload(scoreDecision.ruleHits())
             );
+            return true;
         } catch (Exception e) {
-            log.error("Order risk scoring failed, orderId={}, trigger={}", orderId, trigger, e);
+            log.error("Order risk scoring failed, orderId={}, causes={}", orderId, safeCauses(e));
+            return false;
         }
     }
 
@@ -185,10 +187,7 @@ public class OrderRiskServiceImpl implements OrderRiskService {
         if (filtered.isEmpty()) {
             return Collections.emptyMap();
         }
-        QueryWrapper<OrderRiskResult> wrapper = new QueryWrapper<>();
-        wrapper.in("order_id", filtered);
-        wrapper.orderByDesc("evaluated_at").orderByDesc("model_version");
-        List<OrderRiskResult> rows = orderRiskResultMapper.selectList(wrapper);
+        List<OrderRiskResult> rows = orderRiskResultMapper.findLatestForOrders(filtered);
         Map<Long, OrderRiskResult> result = new HashMap<>();
         for (OrderRiskResult row : rows) {
             if (row == null || row.getOrderId() == null || result.containsKey(row.getOrderId())) {
@@ -206,6 +205,7 @@ public class OrderRiskServiceImpl implements OrderRiskService {
         }
         try {
             Map<?, ?> json = objectMapper.readValue(result.getReasonJson(), Map.class);
+            if ("INCOMPLETE".equals(json.get("dataStatus"))) return "特征数据不完整，规则降级：" + json.get("missingFeatures");
             Object mode = json.get("mode");
             if ("rule".equals(mode)) {
                 Object hits = json.get("ruleHits");
@@ -237,76 +237,63 @@ public class OrderRiskServiceImpl implements OrderRiskService {
 
     @Override
     public void runScheduledTraining() {
+        Map<String, Object> result = runTraining();
+        log.info("order_risk_training status={} reason={} modelVersion={}", result.get("status"), result.get("reason"), result.get("modelVersion"));
+    }
+
+    @Override
+    public synchronized Map<String, Object> runTraining() {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("status", "FAILED");
+        result.put("reason", "execution_failure");
+        result.put("message", "Order risk training failed");
+        result.put("trained", false);
+        result.put("activated", false);
+        result.put("fileSaved", false);
+        result.put("metadataSaved", false);
+        result.put("executionMode", "SYNCHRONOUS");
         try {
-            refreshModelIfNeeded();
             TrainingPreparation prep = prepareTrainingData();
-            TrainingWindow window = prep.window();
-            if (prep.windowOrderCount() <= 0) {
-                logTrainingSkip(
-                        "no_orders_in_window",
-                        Map.of(
-                                "trainWindowStart", window.trainStart(),
-                                "holdoutWindowEnd", window.holdoutEnd(),
-                                "windowOrders", prep.windowOrderCount()
-                        )
-                );
-                return;
+            result.putAll(readiness(prep));
+            String blocked = (String) result.get("blockedReason");
+            if (!blocked.isEmpty()) {
+                result.put("status", "SKIPPED");
+                result.put("reason", blocked);
+                result.put("message", "Order risk training skipped: " + blocked);
+                return result;
             }
-            DatasetSplit split = prep.split();
-
-            if (split.trainSamples().isEmpty() || split.holdoutSamples().isEmpty()) {
-                logTrainingSkip(
-                        "insufficient_dataset",
-                        Map.of(
-                                "windowOrders", prep.windowOrderCount(),
-                                "snapshotOrders", prep.snapshotOrderCount(),
-                                "trainSamples", split.trainSamples().size(),
-                                "holdoutSamples", split.holdoutSamples().size()
-                        )
-                );
-                return;
-            }
-
-            long trainPositive = prep.trainPositiveCount();
-            if (trainPositive < orderRiskProperties.getTraining().getMinAnomalyLabels()) {
-                logTrainingSkip(
-                        "insufficient_positive_labels",
-                        Map.of(
-                                "trainPositive", trainPositive,
-                                "minAnomalyLabels", orderRiskProperties.getTraining().getMinAnomalyLabels(),
-                                "trainSamples", split.trainSamples().size(),
-                                "holdoutSamples", split.holdoutSamples().size()
-                        )
-                );
-                return;
-            }
-
-            String modelVersion = generateModelVersion();
-            TrainingArtifacts artifacts = trainAndEvaluate(modelVersion, split, window);
-            String artifactPath = persistModelBundle(artifacts.bundle());
-            persistStandardizerMeta(artifacts.bundle().getFeatureVersion(), artifacts.bundle().getStandardizerMeta());
-
-            GateDecision gateDecision = evaluateReleaseGate(artifacts.metrics());
-            if (gateDecision.accepted()) {
-                archiveCurrentActiveModel();
-                persistModelMeta(modelVersion, artifactPath, artifacts.metrics(), window, MODEL_STATUS_ACTIVE);
+            String version = generateModelVersion();
+            result.put("modelVersion", version);
+            result.put("artifactPath", RiskModelFiles.resolve(orderRiskProperties.getModelDir(), version + ".ser").toString());
+            TrainingArtifacts artifacts = trainAndEvaluate(version, prep.split(), prep.window());
+            result.put("trained", true);
+            result.put("metrics", artifacts.metrics());
+            String path = persistModelBundle(artifacts.bundle());
+            result.put("artifactPath", path);
+            result.put("fileSaved", true);
+            GateDecision gate = evaluateReleaseGate(artifacts.metrics());
+            transactions.executeWithoutResult(tx -> {
+                persistStandardizerMeta(artifacts.bundle().getFeatureVersion(), artifacts.bundle().getStandardizerMeta());
+                if (gate.accepted()) archiveCurrentActiveModel();
+                persistModelMeta(version, path, artifacts.metrics(), prep.window(), gate.accepted() ? MODEL_STATUS_ACTIVE : MODEL_STATUS_REJECTED);
+            });
+            result.put("metadataSaved", true);
+            result.put("activated", gate.accepted());
+            result.put("status", gate.accepted() ? "TRAINED" : "REJECTED");
+            result.put("reason", gate.reason());
+            result.put("message", gate.accepted() ? "New order risk model trained and activated" : "New order risk model trained but rejected: " + gate.reason());
+            if (gate.accepted()) {
                 modelRef.set(artifacts.bundle());
                 lastModelRefreshTime = Instant.now();
-                log.info(
-                        "order_risk_model_activated modelVersion={} trainSamples={} holdoutSamples={} metrics={}",
-                        modelVersion,
-                        split.trainSamples().size(),
-                        split.holdoutSamples().size(),
-                        artifacts.metrics()
-                );
-            } else {
-                persistModelMeta(modelVersion, artifactPath, artifacts.metrics(), window, MODEL_STATUS_REJECTED);
-                log.warn("order_risk_model_rejected modelVersion={} reason={} metrics={}",
-                        modelVersion, gateDecision.reason(), artifacts.metrics());
             }
         } catch (Exception e) {
-            log.error("Order risk scheduled training failed.", e);
+            boolean fileExists = result.get("artifactPath") instanceof String path && Files.exists(java.nio.file.Path.of(path));
+            result.put("artifactExists", fileExists);
+            result.put("status", fileExists ? "PARTIAL" : "FAILED");
+            // Retain the cause internally; responses never contain dependency messages or credentials.
+            log.error("order_risk_training_failed stageOutputs={} causes={}", result.keySet(), safeCauses(e));
         }
+        return result;
     }
 
     @Override
@@ -325,14 +312,7 @@ public class OrderRiskServiceImpl implements OrderRiskService {
         }
 
         Date begin = Date.from(Instant.now().minus(lookbackDays, ChronoUnit.DAYS));
-        QueryWrapper<Orders> wrapper = new QueryWrapper<>();
-        wrapper.eq("pay_status", Orders.PAID)
-                .ge("order_time", begin)
-                .isNotNull("order_time")
-                .orderByDesc("order_time")
-                .orderByDesc("id")
-                .last("limit " + maxOrders);
-        List<Orders> candidates = ordersService.list(wrapper);
+        List<Orders> candidates = ordersMapper.findRiskBackfill(begin, maxOrders);
         if (candidates == null || candidates.isEmpty()) {
             return Map.of(
                     "triggered", true,
@@ -354,13 +334,14 @@ public class OrderRiskServiceImpl implements OrderRiskService {
         Set<Long> existing = missingOnly ? loadScoredOrderIds(candidateIds) : Collections.emptySet();
         int skippedExisting = 0;
         int processed = 0;
+        int failed = 0;
         for (Long orderId : candidateIds) {
             if (missingOnly && existing.contains(orderId)) {
                 skippedExisting++;
                 continue;
             }
-            scoreOrder(orderId, "backfill");
-            processed++;
+            if (scoreOrderWithOutcome(orderId, "backfill")) processed++;
+            else failed++;
         }
 
         log.info(
@@ -379,17 +360,23 @@ public class OrderRiskServiceImpl implements OrderRiskService {
                 "onlyMissing", missingOnly,
                 "candidateOrders", candidateIds.size(),
                 "processedOrders", processed,
+                "failedOrders", failed,
+                "status", failed == 0 ? "COMPLETE" : processed == 0 ? "FAILED" : "PARTIAL",
                 "skippedExisting", skippedExisting
         );
     }
 
     @Override
     public Map<String, Object> getTrainingReadiness() {
-        TrainingPreparation prep = prepareTrainingData();
+        return readiness(prepareTrainingData());
+    }
+
+    private Map<String, Object> readiness(TrainingPreparation prep) {
         DatasetSplit split = prep.split();
         int minAnomalyLabels = orderRiskProperties.getTraining().getMinAnomalyLabels();
         boolean hasDataset = !split.trainSamples().isEmpty() && !split.holdoutSamples().isEmpty();
         boolean enoughPositive = prep.trainPositiveCount() >= minAnomalyLabels;
+        boolean bothClasses = prep.trainPositiveCount() > 0 && prep.trainPositiveCount() < split.trainSamples().size();
         String blockedReason;
         if (prep.windowOrderCount() <= 0) {
             blockedReason = "no_orders_in_window";
@@ -397,12 +384,18 @@ public class OrderRiskServiceImpl implements OrderRiskService {
             blockedReason = "insufficient_dataset";
         } else if (!enoughPositive) {
             blockedReason = "insufficient_positive_labels";
+        } else if (!bothClasses) {
+            blockedReason = "insufficient_classes";
         } else {
             blockedReason = "";
         }
 
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("ready", hasDataset && enoughPositive);
+        payload.put("ready", hasDataset && enoughPositive && bothClasses);
+        payload.put("labelPolicy", "latest approve/reject overrides; cancelled=1, other status=0 fallback");
+        payload.put("explicitFeedbackOrders", prep.explicitFeedbackCount());
+        payload.put("policyDerivedOrders", prep.windowOrderCount() - prep.explicitFeedbackCount());
+        payload.put("incompleteOrMissingSnapshots", prep.windowOrderCount() - split.trainSamples().size() - split.holdoutSamples().size());
         payload.put("blockedReason", blockedReason);
         payload.put("featureVersion", orderRiskProperties.getFeatureVersion());
         payload.put("minAnomalyLabels", minAnomalyLabels);
@@ -422,9 +415,7 @@ public class OrderRiskServiceImpl implements OrderRiskService {
     @Override
     public List<OrderRiskModelMetaVO> listModelVersions(Integer limit) {
         int size = limit == null || limit <= 0 ? 20 : Math.min(limit, 100);
-        QueryWrapper<OrderRiskModelMeta> wrapper = new QueryWrapper<>();
-        wrapper.orderByDesc("created_at").last("limit " + size);
-        List<OrderRiskModelMeta> rows = orderRiskModelMetaMapper.selectList(wrapper);
+        List<OrderRiskModelMeta> rows = orderRiskModelMetaMapper.findRecent(size);
         if (rows == null || rows.isEmpty()) {
             return Collections.emptyList();
         }
@@ -450,20 +441,36 @@ public class OrderRiskServiceImpl implements OrderRiskService {
     public Map<String, Object> getReplaySummary(String modelVersion) {
         OrderRiskModelMeta meta = getModelMeta(modelVersion);
         if (meta == null) {
-            return Collections.emptyMap();
+            return Map.of("replayStatus", "MODEL_MISSING", "reason", "model_not_found");
         }
         Map<String, Object> result = new LinkedHashMap<>();
+        Map<String, Object> metrics = Collections.emptyMap();
+        boolean invalidMetrics = false;
+        if (StringUtils.hasText(meta.getMetricsJson())) {
+            try {
+                metrics = objectMapper.readValue(meta.getMetricsJson(), new TypeReference<Map<String, Object>>() {});
+                if (metrics == null) { metrics = Collections.emptyMap(); invalidMetrics = true; }
+            } catch (Exception e) {
+                invalidMetrics = true;
+                log.warn("Order risk replay metrics unreadable, causes={}", safeCauses(e));
+            }
+        }
+        boolean fileExists = StringUtils.hasText(meta.getArtifactPath()) && Files.isRegularFile(RiskModelFiles.resolve(orderRiskProperties.getModelDir(), meta.getArtifactPath()));
+        result.put("artifactExists", fileExists);
+        result.put("replayStatus", !fileExists ? "MODEL_FILE_MISSING" : invalidMetrics ? "INVALID_METRICS" : metrics.isEmpty() ? "NO_METRICS" : "AVAILABLE");
+        result.put("reason", !fileExists ? "model_file_missing" : invalidMetrics ? "invalid_replay_metrics" : metrics.isEmpty() ? "no_replay_metrics" : "stored_holdout_metrics");
         result.put("modelVersion", meta.getModelVersion());
         result.put("status", meta.getStatus());
         result.put("trainWindowStart", meta.getTrainWindowStart());
         result.put("trainWindowEnd", meta.getTrainWindowEnd());
         result.put("createdAt", meta.getCreatedAt());
-        result.put("metrics", readJsonMap(meta.getMetricsJson()));
+        result.put("metrics", metrics);
         result.put("artifactPath", meta.getArtifactPath());
         return result;
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public void submitFeedback(Long orderId, String decision, Long operatorId, String reason) {
         if (orderId == null || operatorId == null || !StringUtils.hasText(decision)) {
             throw new IllegalArgumentException("invalid feedback arguments");
@@ -472,6 +479,7 @@ public class OrderRiskServiceImpl implements OrderRiskService {
         if (!"approve".equals(normalized) && !"reject".equals(normalized) && !"review".equals(normalized)) {
             throw new IllegalArgumentException("unsupported decision");
         }
+        if (ordersMapper.selectById(orderId) == null) throw new IllegalArgumentException("order not found");
         OrderRiskFeedback feedback = new OrderRiskFeedback();
         feedback.setOrderId(orderId);
         feedback.setDecision(normalized);
@@ -480,24 +488,24 @@ public class OrderRiskServiceImpl implements OrderRiskService {
         feedback.setCreatedAt(new Date());
         orderRiskFeedbackMapper.insert(feedback);
 
-        QueryWrapper<OrderRiskResult> latestWrapper = new QueryWrapper<>();
-        latestWrapper.eq("order_id", orderId).orderByDesc("evaluated_at").last("limit 1");
-        OrderRiskResult latest = orderRiskResultMapper.selectOne(latestWrapper);
+        OrderRiskResult latest = orderRiskResultMapper.findLatest(orderId);
         if (latest != null && StringUtils.hasText(latest.getModelVersion())) {
-            UpdateWrapper<OrderRiskResult> updateWrapper = new UpdateWrapper<>();
-            updateWrapper.eq("order_id", orderId)
-                    .eq("model_version", latest.getModelVersion())
-                    .set("decision_status", normalized.toUpperCase());
-            orderRiskResultMapper.update(null, updateWrapper);
+            orderRiskResultMapper.updateDecision(orderId, latest.getModelVersion(), normalized.toUpperCase());
         }
     }
 
     private ScoreDecision evaluateByModel(Orders order, Map<String, Object> rawFeatures, String trigger) {
+        if (!completeFeatures(rawFeatures)) {
+            rawFeatures.put("fallbackReason", "incomplete_features");
+            return null;
+        }
         ModelBundle bundle = modelRef.get();
         if (bundle == null || bundle.getLrModel() == null || bundle.getRfModel() == null) {
+            rawFeatures.put("fallbackReason", modelAvailability);
             return null;
         }
         if (!orderRiskProperties.getFeatureVersion().equals(bundle.getFeatureVersion())) {
+            rawFeatures.put("fallbackReason", "feature_version_mismatch");
             return null;
         }
         try {
@@ -517,6 +525,11 @@ public class OrderRiskServiceImpl implements OrderRiskService {
             reason.put("modelVersion", bundle.getModelVersion());
             reason.put("evaluatedAt", OffsetDateTime.now(APP_OFFSET).toString());
             reason.put("trigger", trigger);
+        reason.put("dataStatus", rawFeatures.getOrDefault("dataStatus", "COMPLETE"));
+        reason.put("missingFeatures", rawFeatures.getOrDefault("missingFeatures", List.of()));
+        reason.put("labelStatus", rawFeatures.getOrDefault("labelStatus", "UNLABELLED_CANDIDATE"));
+        reason.put("feedbackDecision", rawFeatures.getOrDefault("feedbackDecision", ""));
+        if (rawFeatures.containsKey("fallbackReason")) reason.put("fallbackReason", rawFeatures.get("fallbackReason"));
             return new ScoreDecision(
                     score,
                     bundle.getModelVersion(),
@@ -527,7 +540,8 @@ public class OrderRiskServiceImpl implements OrderRiskService {
                     bundle.getFeatureVersion()
             );
         } catch (Exception e) {
-            log.warn("Model inference failed, orderId={}, fallback to rule score.", order.getId(), e);
+            log.warn("Model inference failed, orderId={}, fallback to rule score, causes={}", order.getId(), safeCauses(e));
+            rawFeatures.put("fallbackReason", "model_inference_failed");
             return null;
         }
     }
@@ -567,6 +581,11 @@ public class OrderRiskServiceImpl implements OrderRiskService {
         reason.put("modelVersion", RULE_MODEL_VERSION);
         reason.put("evaluatedAt", OffsetDateTime.now(APP_OFFSET).toString());
         reason.put("trigger", trigger);
+        reason.put("dataStatus", rawFeatures.getOrDefault("dataStatus", "COMPLETE"));
+        reason.put("missingFeatures", rawFeatures.getOrDefault("missingFeatures", List.of()));
+        reason.put("labelStatus", rawFeatures.getOrDefault("labelStatus", "UNLABELLED_CANDIDATE"));
+        reason.put("feedbackDecision", rawFeatures.getOrDefault("feedbackDecision", ""));
+        if (rawFeatures.containsKey("fallbackReason")) reason.put("fallbackReason", rawFeatures.get("fallbackReason"));
         return new ScoreDecision(
                 score,
                 RULE_MODEL_VERSION,
@@ -647,9 +666,7 @@ public class OrderRiskServiceImpl implements OrderRiskService {
         if (!Boolean.TRUE.equals(orderRiskProperties.getTraining().getRejectIfMetricRegression())) {
             return new GateDecision(true, "disabled");
         }
-        QueryWrapper<OrderRiskModelMeta> wrapper = new QueryWrapper<>();
-        wrapper.eq("status", MODEL_STATUS_ACTIVE).orderByDesc("created_at").last("limit 1");
-        OrderRiskModelMeta active = orderRiskModelMetaMapper.selectOne(wrapper);
+        OrderRiskModelMeta active = orderRiskModelMetaMapper.findActive();
         if (active == null || !StringUtils.hasText(active.getMetricsJson())) {
             return new GateDecision(true, "no_active_model");
         }
@@ -684,28 +701,15 @@ public class OrderRiskServiceImpl implements OrderRiskService {
     }
 
     private void archiveCurrentActiveModel() {
-        UpdateWrapper<OrderRiskModelMeta> wrapper = new UpdateWrapper<>();
-        wrapper.eq("status", MODEL_STATUS_ACTIVE).set("status", MODEL_STATUS_ARCHIVED);
-        orderRiskModelMetaMapper.update(null, wrapper);
+        orderRiskModelMetaMapper.archiveActive();
     }
 
     private String persistModelBundle(ModelBundle bundle) throws Exception {
-        Path modelDir = Paths.get(orderRiskProperties.getModelDir()).normalize();
-        if (!modelDir.isAbsolute()) {
-            modelDir = Paths.get("").toAbsolutePath().resolve(modelDir).normalize();
-        }
-        Files.createDirectories(modelDir);
-        Path target = modelDir.resolve(bundle.getModelVersion() + ".ser").normalize();
-        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(target.toFile()))) {
-            out.writeObject(bundle);
-        }
-        return target.toString();
+        return RiskModelFiles.save(orderRiskProperties.getModelDir(), bundle.getModelVersion(), bundle);
     }
 
     private void persistStandardizerMeta(String featureVersion, Map<String, double[]> standardizer) {
-        QueryWrapper<OrderRiskStandardizerMeta> deleteWrapper = new QueryWrapper<>();
-        deleteWrapper.eq("feature_version", featureVersion);
-        orderRiskStandardizerMetaMapper.delete(deleteWrapper);
+        orderRiskStandardizerMetaMapper.deleteVersion(featureVersion);
 
         Date now = new Date();
         for (String feature : FEATURE_NAMES) {
@@ -727,7 +731,7 @@ public class OrderRiskServiceImpl implements OrderRiskService {
         TrainingWindow window = buildTrainingWindow();
         List<Orders> windowOrders = listOrders(window.trainStart(), window.holdoutEnd());
         if (windowOrders.isEmpty()) {
-            return new TrainingPreparation(window, 0, 0, new DatasetSplit(Collections.emptyList(), Collections.emptyList()), 0L, 0L);
+            return new TrainingPreparation(window, 0, 0, new DatasetSplit(Collections.emptyList(), Collections.emptyList()), 0L, 0L, 0L);
         }
 
         Map<Long, Orders> orderMap = windowOrders.stream()
@@ -739,11 +743,7 @@ public class OrderRiskServiceImpl implements OrderRiskService {
         DatasetSplit split = splitDataset(orderMap, snapshotMap, labelMap, window);
         long trainPositive = split.trainSamples().stream().filter(s -> s.label() == 1).count();
         long holdoutPositive = split.holdoutSamples().stream().filter(s -> s.label() == 1).count();
-        return new TrainingPreparation(window, orderMap.size(), snapshotMap.size(), split, trainPositive, holdoutPositive);
-    }
-
-    private void logTrainingSkip(String reason, Map<String, Object> details) {
-        log.warn("order_risk_training_skipped reason={} details={}", reason, details);
+        return new TrainingPreparation(window, orderMap.size(), snapshotMap.size(), split, trainPositive, holdoutPositive, countExplicitFeedback(orderIds));
     }
 
     private int clampBackfillDays(Integer days) {
@@ -768,9 +768,7 @@ public class OrderRiskServiceImpl implements OrderRiskService {
         }
         Set<Long> scored = new LinkedHashSet<>();
         for (List<Long> batch : batchIds(orderIds, 500)) {
-            QueryWrapper<OrderRiskResult> wrapper = new QueryWrapper<>();
-            wrapper.in("order_id", batch).select("order_id");
-            List<OrderRiskResult> rows = orderRiskResultMapper.selectList(wrapper);
+            List<OrderRiskResult> rows = orderRiskResultMapper.findScored(batch);
             for (OrderRiskResult row : rows) {
                 if (row != null && row.getOrderId() != null) {
                     scored.add(row.getOrderId());
@@ -799,6 +797,7 @@ public class OrderRiskServiceImpl implements OrderRiskService {
                 continue;
             }
             Map<String, Object> featureMap = readJsonMap(snapshot.getSnapshotJson());
+            if (!completeFeatures(featureMap)) continue;
             double[] raw = toFeatureVector(featureMap);
             int label = labelMap.getOrDefault(orderId, 0);
             Sample sample = new Sample(orderId, order.getOrderTime(), raw, label);
@@ -819,9 +818,7 @@ public class OrderRiskServiceImpl implements OrderRiskService {
 
         Map<Long, String> feedbackDecisionMap = new HashMap<>();
         for (List<Long> batch : batchIds(orderIds, 500)) {
-            QueryWrapper<OrderRiskFeedback> wrapper = new QueryWrapper<>();
-            wrapper.in("order_id", batch).orderByDesc("created_at");
-            List<OrderRiskFeedback> feedbackRows = orderRiskFeedbackMapper.selectList(wrapper);
+            List<OrderRiskFeedback> feedbackRows = orderRiskFeedbackMapper.findForOrders(batch);
             for (OrderRiskFeedback row : feedbackRows) {
                 if (row == null || row.getOrderId() == null || !StringUtils.hasText(row.getDecision())) {
                     continue;
@@ -853,9 +850,7 @@ public class OrderRiskServiceImpl implements OrderRiskService {
             return result;
         }
         for (List<Long> batch : batchIds(orderIds, 500)) {
-            QueryWrapper<OrderRiskFeatureSnapshot> wrapper = new QueryWrapper<>();
-            wrapper.eq("feature_version", featureVersion).in("order_id", batch);
-            List<OrderRiskFeatureSnapshot> rows = orderRiskFeatureSnapshotMapper.selectList(wrapper);
+            List<OrderRiskFeatureSnapshot> rows = orderRiskFeatureSnapshotMapper.findForOrders(batch, featureVersion);
             for (OrderRiskFeatureSnapshot row : rows) {
                 if (row == null || row.getOrderId() == null || result.containsKey(row.getOrderId())) {
                     continue;
@@ -867,9 +862,7 @@ public class OrderRiskServiceImpl implements OrderRiskService {
     }
 
     private List<Orders> listOrders(Date begin, Date end) {
-        QueryWrapper<Orders> wrapper = new QueryWrapper<>();
-        wrapper.ge("order_time", begin).lt("order_time", end).isNotNull("order_time");
-        return ordersService.list(wrapper);
+        return ordersMapper.findRiskWindow(begin, end);
     }
 
     private TrainingWindow buildTrainingWindow() {
@@ -880,13 +873,11 @@ public class OrderRiskServiceImpl implements OrderRiskService {
     }
 
     private String generateModelVersion() {
-        return MODEL_VERSION_PREFIX + "-" + MODEL_VERSION_TIME_FORMAT.format(OffsetDateTime.now(APP_OFFSET));
+        return MODEL_VERSION_PREFIX + "-" + MODEL_VERSION_TIME_FORMAT.format(OffsetDateTime.now(APP_OFFSET)) + "-" + java.util.UUID.randomUUID().toString().substring(0,8);
     }
 
     private void persistFeatureSnapshot(Long orderId, String featureVersion, Map<String, Object> rawFeatures) {
-        QueryWrapper<OrderRiskFeatureSnapshot> deleteWrapper = new QueryWrapper<>();
-        deleteWrapper.eq("order_id", orderId).eq("feature_version", featureVersion);
-        orderRiskFeatureSnapshotMapper.delete(deleteWrapper);
+        orderRiskFeatureSnapshotMapper.deleteVersion(orderId, featureVersion);
 
         OrderRiskFeatureSnapshot snapshot = new OrderRiskFeatureSnapshot();
         snapshot.setOrderId(orderId);
@@ -897,9 +888,8 @@ public class OrderRiskServiceImpl implements OrderRiskService {
     }
 
     private void persistRiskResult(Long orderId, ScoreDecision scoreDecision) {
-        QueryWrapper<OrderRiskResult> deleteWrapper = new QueryWrapper<>();
-        deleteWrapper.eq("order_id", orderId).eq("model_version", scoreDecision.modelVersion());
-        orderRiskResultMapper.delete(deleteWrapper);
+        OrderRiskResult existing = orderRiskResultMapper.findLatest(orderId);
+        orderRiskResultMapper.deleteVersion(orderId, scoreDecision.modelVersion());
 
         OrderRiskResult row = new OrderRiskResult();
         row.setOrderId(orderId);
@@ -911,7 +901,10 @@ public class OrderRiskServiceImpl implements OrderRiskService {
         row.setPRf(scoreDecision.pRf() == null ? null : BigDecimal.valueOf(scoreDecision.pRf()).setScale(6, RoundingMode.HALF_UP));
         row.setReasonJson(writeJson(scoreDecision.reasonJson()));
         row.setEvaluatedAt(new Date());
-        row.setDecisionStatus("PENDING");
+        row.setDecisionStatus(existing != null ? existing.getDecisionStatus() : "PENDING");
+        String feedback = String.valueOf(scoreDecision.reasonJson().getOrDefault("feedbackDecision", ""));
+        if (List.of("approve", "reject", "review").contains(feedback)) row.setDecisionStatus(feedback.toUpperCase());
+        if (row.getDecisionStatus() == null) row.setDecisionStatus("PENDING");
         orderRiskResultMapper.insert(row);
     }
 
@@ -933,7 +926,7 @@ public class OrderRiskServiceImpl implements OrderRiskService {
         BigDecimal orderAmount = order.getAmount() == null ? BigDecimal.ZERO : order.getAmount();
         int remarkLength = StringUtils.hasText(order.getRemark()) ? order.getRemark().trim().length() : 0;
 
-        List<OrderDetail> details = orderDetailService.list(new QueryWrapper<OrderDetail>().eq("order_id", order.getId()));
+        List<OrderDetail> details = orderDetailMapper.findByOrder(order.getId());
         int itemCount = details == null ? 0 : details.stream().mapToInt(d -> d.getNumber() == null ? 0 : d.getNumber()).sum();
         int uniqueDishCount = details == null ? 0 : (int) details.stream()
                 .map(d -> d.getDishId() != null ? "D:" + d.getDishId() : "S:" + d.getSetmealId())
@@ -941,6 +934,17 @@ public class OrderRiskServiceImpl implements OrderRiskService {
                 .distinct()
                 .count();
 
+        List<String> missing = new ArrayList<>();
+        if (order.getAmount() == null) missing.add("order_amount");
+        if (order.getUserId() == null) missing.add("user_id");
+        if (order.getOrderTime() == null) missing.add("order_time");
+        if (details == null || details.isEmpty() || details.stream().anyMatch(d -> d.getNumber() == null || (d.getDishId() == null && d.getSetmealId() == null))) missing.add("order_details");
+        List<OrderRiskFeedback> feedback = orderRiskFeedbackMapper.findForOrders(List.of(order.getId()));
+        String decision = feedback.isEmpty() ? "" : feedback.get(0).getDecision();
+        features.put("labelStatus", "approve".equals(decision) || "reject".equals(decision) ? "FEEDBACK_LABELLED" : "UNLABELLED_CANDIDATE");
+        features.put("feedbackDecision", decision);
+        features.put("dataStatus", missing.isEmpty() ? "COMPLETE" : "INCOMPLETE");
+        features.put("missingFeatures", missing);
         features.put("order_amount", orderAmount.doubleValue());
         features.put("item_count", itemCount);
         features.put("unique_dish_count", uniqueDishCount);
@@ -982,44 +986,15 @@ public class OrderRiskServiceImpl implements OrderRiskService {
         if (userId == null) {
             return 0;
         }
-        QueryWrapper<Orders> wrapper = new QueryWrapper<>();
-        wrapper.eq("user_id", userId).ge("order_time", begin).le("order_time", end);
-        return Math.toIntExact(ordersService.count(wrapper));
+        return Math.toIntExact(ordersMapper.countRiskHistory(userId, begin, end, null));
     }
 
     private int countCancelledOrdersByWindow(Long userId, Date begin, Date end) {
-        if (userId == null) {
-            return 0;
-        }
-        QueryWrapper<Orders> wrapper = new QueryWrapper<>();
-        wrapper.eq("user_id", userId)
-                .eq("status", Orders.CANCELLED)
-                .ge("order_time", begin)
-                .le("order_time", end);
-        return Math.toIntExact(ordersService.count(wrapper));
+        return userId == null ? 0 : Math.toIntExact(ordersMapper.countRiskHistory(userId, begin, end, Orders.CANCELLED));
     }
 
     private BigDecimal avgPaidAmountByWindow(Long userId, Date begin, Date end) {
-        if (userId == null) {
-            return BigDecimal.ZERO;
-        }
-        QueryWrapper<Orders> wrapper = new QueryWrapper<>();
-        wrapper.eq("user_id", userId)
-                .eq("pay_status", Orders.PAID)
-                .ge("order_time", begin)
-                .le("order_time", end);
-        List<Orders> rows = ordersService.list(wrapper);
-        if (rows == null || rows.isEmpty()) {
-            return BigDecimal.ZERO;
-        }
-        BigDecimal sum = rows.stream()
-                .map(Orders::getAmount)
-                .filter(v -> v != null && v.compareTo(BigDecimal.ZERO) > 0)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        if (sum.compareTo(BigDecimal.ZERO) <= 0) {
-            return BigDecimal.ZERO;
-        }
-        return sum.divide(BigDecimal.valueOf(rows.size()), 6, RoundingMode.HALF_UP);
+        return userId == null ? BigDecimal.ZERO : ordersMapper.averageRiskPaidAmount(userId, begin, end);
     }
 
     private void refreshModelIfNeeded() {
@@ -1029,30 +1004,37 @@ public class OrderRiskServiceImpl implements OrderRiskService {
         }
         lastModelRefreshTime = now;
 
-        QueryWrapper<OrderRiskModelMeta> wrapper = new QueryWrapper<>();
-        wrapper.eq("status", MODEL_STATUS_ACTIVE).orderByDesc("created_at").last("limit 1");
-        OrderRiskModelMeta activeMeta = orderRiskModelMetaMapper.selectOne(wrapper);
+        OrderRiskModelMeta activeMeta = orderRiskModelMetaMapper.findActive();
         if (activeMeta == null || !StringUtils.hasText(activeMeta.getArtifactPath())) {
             modelRef.set(null);
+            modelAvailability = "model_missing";
             return;
         }
-
-        Path modelPath = Paths.get(activeMeta.getArtifactPath()).normalize();
-        if (!modelPath.isAbsolute()) {
-            modelPath = Paths.get(orderRiskProperties.getModelDir()).resolve(modelPath).normalize();
-        }
-        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(modelPath.toFile()))) {
-            Object obj = in.readObject();
-            if (obj instanceof ModelBundle bundle) {
-                modelRef.set(bundle);
-                return;
-            }
-            log.warn("Unsupported order risk model artifact type: {}", obj == null ? "null" : obj.getClass().getName());
-            modelRef.set(null);
+        try {
+            modelRef.set(RiskModelFiles.load(orderRiskProperties.getModelDir(), activeMeta.getArtifactPath(), ModelBundle.class));
+            modelAvailability = "available";
         } catch (Exception e) {
-            log.warn("Load order risk model bundle failed: {}", modelPath, e);
+            log.warn("Load order risk model failed, version={}, causes={}", activeMeta.getModelVersion(), safeCauses(e));
             modelRef.set(null);
+            modelAvailability = "model_load_failed";
         }
+    }
+
+    private boolean completeFeatures(Map<String, Object> features) {
+        if ("INCOMPLETE".equals(features.get("dataStatus"))) return false;
+        return FEATURE_NAMES.stream().allMatch(name -> features.get(name) instanceof Number n && Double.isFinite(n.doubleValue()));
+    }
+
+    private long countExplicitFeedback(List<Long> ids) {
+        Map<Long, String> latest = new HashMap<>();
+        for (List<Long> batch : batchIds(ids, 500)) {
+            for (OrderRiskFeedback row : orderRiskFeedbackMapper.findForOrders(batch)) {
+                if (row != null && row.getOrderId() != null && StringUtils.hasText(row.getDecision())) {
+                    latest.putIfAbsent(row.getOrderId(), row.getDecision().trim().toLowerCase(java.util.Locale.ROOT));
+                }
+            }
+        }
+        return latest.values().stream().filter(d -> "approve".equals(d) || "reject".equals(d)).count();
     }
 
     private double[] toFeatureVector(Map<String, Object> features) {
@@ -1061,75 +1043,6 @@ public class OrderRiskServiceImpl implements OrderRiskService {
             vector[i] = asDouble(features.get(FEATURE_NAMES.get(i)));
         }
         return vector;
-    }
-
-    private Map<String, double[]> buildStandardizer(double[][] raw) {
-        Map<String, double[]> result = new LinkedHashMap<>();
-        if (raw.length == 0) {
-            for (String feature : FEATURE_NAMES) {
-                result.put(feature, new double[]{0D, 1D});
-            }
-            return result;
-        }
-        for (int j = 0; j < FEATURE_NAMES.size(); j++) {
-            double mean = 0D;
-            for (double[] row : raw) {
-                mean += row[j];
-            }
-            mean /= raw.length;
-            double variance = 0D;
-            for (double[] row : raw) {
-                double diff = row[j] - mean;
-                variance += diff * diff;
-            }
-            variance /= raw.length;
-            double std = Math.sqrt(variance);
-            if (std <= 1e-9) {
-                std = 1D;
-            }
-            result.put(FEATURE_NAMES.get(j), new double[]{mean, std});
-        }
-        return result;
-    }
-
-    private double[][] applyStandardizer(double[][] raw, Map<String, double[]> standardizer) {
-        double[][] standardized = new double[raw.length][FEATURE_NAMES.size()];
-        for (int i = 0; i < raw.length; i++) {
-            standardized[i] = standardize(raw[i], standardizer);
-        }
-        return standardized;
-    }
-
-    private double[] standardize(double[] raw, Map<String, double[]> standardizer) {
-        double[] result = new double[FEATURE_NAMES.size()];
-        for (int i = 0; i < FEATURE_NAMES.size(); i++) {
-            String feature = FEATURE_NAMES.get(i);
-            double[] pair = standardizer == null ? null : standardizer.get(feature);
-            double mean = pair == null || pair.length < 2 ? 0D : pair[0];
-            double std = pair == null || pair.length < 2 ? 1D : pair[1];
-            if (std <= 1e-9) {
-                std = 1D;
-            }
-            result[i] = (raw[i] - mean) / std;
-        }
-        return result;
-    }
-
-    private int[] buildClassWeight(int[] labels) {
-        int negative = 0;
-        int positive = 0;
-        for (int label : labels) {
-            if (label == 1) {
-                positive++;
-            } else {
-                negative++;
-            }
-        }
-        if (positive <= 0 || negative <= 0) {
-            return new int[]{1, 1};
-        }
-        int positiveWeight = Math.max(1, (int) Math.round((double) negative / (double) positive));
-        return new int[]{1, positiveWeight};
     }
 
     private double predictLrProbability(LogisticRegression model, double[] standardizedVector) {
@@ -1227,79 +1140,6 @@ public class OrderRiskServiceImpl implements OrderRiskService {
         return new double[0];
     }
 
-    private double computePrAuc(int[] labels, double[] probabilities) {
-        List<Integer> order = sortIndexesByProbability(probabilities);
-        int positives = 0;
-        for (int label : labels) {
-            if (label == 1) {
-                positives++;
-            }
-        }
-        if (positives <= 0) {
-            return 0D;
-        }
-        double sumPrecision = 0D;
-        int hitPositive = 0;
-        for (int rank = 0; rank < order.size(); rank++) {
-            int idx = order.get(rank);
-            if (labels[idx] != 1) {
-                continue;
-            }
-            hitPositive++;
-            double precision = (double) hitPositive / (double) (rank + 1);
-            sumPrecision += precision;
-        }
-        return sumPrecision / positives;
-    }
-
-    private double computeRecallAtTopPercent(int[] labels, double[] probabilities, double topPercent) {
-        int positives = 0;
-        for (int label : labels) {
-            if (label == 1) {
-                positives++;
-            }
-        }
-        if (positives <= 0) {
-            return 0D;
-        }
-        int k = Math.max(1, (int) Math.ceil(labels.length * topPercent));
-        List<Integer> order = sortIndexesByProbability(probabilities);
-        int hitPositive = 0;
-        for (int i = 0; i < Math.min(k, order.size()); i++) {
-            if (labels[order.get(i)] == 1) {
-                hitPositive++;
-            }
-        }
-        return (double) hitPositive / (double) positives;
-    }
-
-    private double computeFalsePositiveRate(int[] labels, double[] probabilities, double threshold) {
-        int negatives = 0;
-        int falsePositive = 0;
-        for (int i = 0; i < labels.length; i++) {
-            if (labels[i] == 1) {
-                continue;
-            }
-            negatives++;
-            if (probabilities[i] >= threshold) {
-                falsePositive++;
-            }
-        }
-        if (negatives <= 0) {
-            return 0D;
-        }
-        return (double) falsePositive / (double) negatives;
-    }
-
-    private List<Integer> sortIndexesByProbability(double[] probabilities) {
-        List<Integer> indexes = new ArrayList<>(probabilities.length);
-        for (int i = 0; i < probabilities.length; i++) {
-            indexes.add(i);
-        }
-        indexes.sort((a, b) -> Double.compare(probabilities[b], probabilities[a]));
-        return indexes;
-    }
-
     private double clampProbability(double value) {
         if (Double.isNaN(value) || Double.isInfinite(value)) {
             return 0D;
@@ -1374,11 +1214,26 @@ public class OrderRiskServiceImpl implements OrderRiskService {
         return BigDecimal.valueOf(value).setScale(scale, RoundingMode.HALF_UP).doubleValue();
     }
 
+    private String safeCauses(Throwable failure) {
+        // Dependency messages can contain SQL values, paths, tokens or credentials.
+        // Keep bounded cause types and source locations, following existing observation logging.
+        StringBuilder chain = new StringBuilder();
+        Throwable current = failure;
+        for (int depth = 0; current != null && depth < 8; depth++) {
+            if (depth > 0) chain.append(" <- ");
+            chain.append(current.getClass().getName());
+            if (current.getStackTrace().length > 0) chain.append("@").append(current.getStackTrace()[0]);
+            current = current.getCause();
+        }
+        if (current != null) chain.append(" <- [truncated]");
+        return chain.toString();
+    }
+
     private String writeJson(Object value) {
         try {
             return objectMapper.writeValueAsString(value);
         } catch (JsonProcessingException e) {
-            return "{}";
+            throw new IllegalStateException("Order risk JSON serialization failed", e);
         }
     }
 
@@ -1394,19 +1249,11 @@ public class OrderRiskServiceImpl implements OrderRiskService {
     }
 
     private OrderRiskModelMeta getModelMeta(String modelVersion) {
-        QueryWrapper<OrderRiskModelMeta> wrapper = new QueryWrapper<>();
-        if (StringUtils.hasText(modelVersion)) {
-            wrapper.eq("model_version", modelVersion.trim()).last("limit 1");
-            return orderRiskModelMetaMapper.selectOne(wrapper);
-        }
-        wrapper.eq("status", MODEL_STATUS_ACTIVE).orderByDesc("created_at").last("limit 1");
-        OrderRiskModelMeta active = orderRiskModelMetaMapper.selectOne(wrapper);
-        if (active != null) {
-            return active;
-        }
-        wrapper = new QueryWrapper<>();
-        wrapper.orderByDesc("created_at").last("limit 1");
-        return orderRiskModelMetaMapper.selectOne(wrapper);
+        if (StringUtils.hasText(modelVersion)) return orderRiskModelMetaMapper.findVersion(modelVersion.trim());
+        OrderRiskModelMeta active = orderRiskModelMetaMapper.findActive();
+        if (active != null) return active;
+        List<OrderRiskModelMeta> recent = orderRiskModelMetaMapper.findRecent(1);
+        return recent.isEmpty() ? null : recent.get(0);
     }
 
     private List<List<Long>> batchIds(List<Long> ids, int batchSize) {
@@ -1440,7 +1287,8 @@ public class OrderRiskServiceImpl implements OrderRiskService {
             int snapshotOrderCount,
             DatasetSplit split,
             long trainPositiveCount,
-            long holdoutPositiveCount
+            long holdoutPositiveCount,
+            long explicitFeedbackCount
     ) {}
 
     private record TrainingArtifacts(ModelBundle bundle, Map<String, Object> metrics) {}

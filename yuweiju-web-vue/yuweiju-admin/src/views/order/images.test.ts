@@ -8,6 +8,7 @@ import placeholder from '../../assets/reference_images/菜品图片缺失补位�
 
 const fixture = vi.hoisted(() => ({
   id: 974, number: 'ISSUE12', status: 5, amount: 19,
+  riskLevel: 'UNAVAILABLE', riskScore: null as number | null, riskReasons: '风险结果暂不可用', decisionStatus: 'PENDING',
   orderDetailList: [
     { name: '历史A', image: 'https://example.invalid/historical-A.png', number: 1, amount: 3 },
     { name: '空图', image: null, number: 2, amount: 3 },
@@ -58,6 +59,23 @@ describe('existing order details render historical images inline', () => {
         expect(rows[0]!.querySelector('img')!.getAttribute('src')).toBe(fixture.orderDetailList[0]!.image)
         expect(JSON.stringify(fixture)).toBe(before)
       } finally { wrapper.unmount() }
+    })
+  }
+})
+
+describe('actual order detail risk states', () => {
+  for (const [level, score, reason, decision, expected] of [
+    ['UNAVAILABLE', null, '风险结果暂不可用', 'PENDING', '风险暂不可用'],
+    ['HIGH', 90, 'suspicious_remark', 'REJECT', '已驳回'],
+    ['LOW', 10, '特征数据不完整，规则降级：order_details', 'APPROVE', '已通过'],
+  ] as const) {
+    it(`renders ${level} and persisted feedback`, async () => {
+      Object.assign(fixture, { riskLevel: level, riskScore: score, riskReasons: reason, decisionStatus: decision })
+      const wrapper = mount(OrderDetail, { global: { plugins: [ElementPlus] } })
+      await flushPromises()
+      expect(wrapper.text()).toContain(expected)
+      expect(wrapper.text()).toContain(reason)
+      wrapper.unmount()
     })
   }
 })

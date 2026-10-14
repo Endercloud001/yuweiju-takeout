@@ -16,7 +16,9 @@ import com.codeying.mapper.OrderRiskResultMapper;
 import com.codeying.mapper.OrderRiskStandardizerMetaMapper;
 import com.codeying.properties.OrderRiskProperties;
 import com.codeying.service.OrderDetailService;
-import com.codeying.service.OrdersService;
+import com.codeying.mapper.OrdersMapper;
+import com.codeying.mapper.OrderDetailMapper;
+import org.springframework.transaction.PlatformTransactionManager;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Assertions;
@@ -45,13 +47,13 @@ import static org.mockito.ArgumentMatchers.eq;
 
 class OrderRiskServiceIntegrationTest {
 
-    private final OrdersService ordersService = Mockito.mock(OrdersService.class);
-    private final OrderDetailService orderDetailService = Mockito.mock(OrderDetailService.class);
-    private final OrderRiskFeatureSnapshotMapper featureSnapshotMapper = Mockito.mock(OrderRiskFeatureSnapshotMapper.class);
-    private final OrderRiskResultMapper riskResultMapper = Mockito.mock(OrderRiskResultMapper.class);
-    private final OrderRiskModelMetaMapper modelMetaMapper = Mockito.mock(OrderRiskModelMetaMapper.class);
-    private final OrderRiskFeedbackMapper feedbackMapper = Mockito.mock(OrderRiskFeedbackMapper.class);
-    private final OrderRiskStandardizerMetaMapper standardizerMetaMapper = Mockito.mock(OrderRiskStandardizerMetaMapper.class);
+    private final OrdersMapper ordersService = Mockito.mock(OrdersMapper.class);
+    private final OrderDetailMapper orderDetailService = Mockito.mock(OrderDetailMapper.class);
+    private final OrderRiskFeatureSnapshotMapper featureSnapshotMapper = Mockito.mock(OrderRiskFeatureSnapshotMapper.class, Mockito.CALLS_REAL_METHODS);
+    private final OrderRiskResultMapper riskResultMapper = Mockito.mock(OrderRiskResultMapper.class, Mockito.CALLS_REAL_METHODS);
+    private final OrderRiskModelMetaMapper modelMetaMapper = Mockito.mock(OrderRiskModelMetaMapper.class, Mockito.CALLS_REAL_METHODS);
+    private final OrderRiskFeedbackMapper feedbackMapper = Mockito.mock(OrderRiskFeedbackMapper.class, Mockito.CALLS_REAL_METHODS);
+    private final OrderRiskStandardizerMetaMapper standardizerMetaMapper = Mockito.mock(OrderRiskStandardizerMetaMapper.class, Mockito.CALLS_REAL_METHODS);
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final OrderRiskProperties properties = new OrderRiskProperties();
@@ -64,10 +66,12 @@ class OrderRiskServiceIntegrationTest {
     @BeforeEach
     void setUp() {
         properties.setModelDir(tempDir.toString());
+        Mockito.when(ordersService.averageRiskPaidAmount(any(),any(),any())).thenReturn(BigDecimal.ZERO);
         properties.getTraining().setMinAnomalyLabels(1);
         service = new OrderRiskServiceImpl(
                 ordersService,
                 orderDetailService,
+                Mockito.mock(PlatformTransactionManager.class),
                 featureSnapshotMapper,
                 riskResultMapper,
                 modelMetaMapper,
@@ -92,11 +96,11 @@ class OrderRiskServiceIntegrationTest {
     void shouldPersistSnapshotAndResultWhenScoringByRuleFallback() throws Exception {
         Long orderId = 1001L;
         Orders order = buildOrder(orderId, 2001L, Date.from(Instant.now().minus(2, ChronoUnit.HOURS)), "测试订单");
-        Mockito.when(ordersService.getById(orderId)).thenReturn(order);
+        Mockito.when(ordersService.selectById(orderId)).thenReturn(order);
         Mockito.when(modelMetaMapper.selectOne(any(QueryWrapper.class))).thenReturn(null);
-        Mockito.when(ordersService.count(any(QueryWrapper.class))).thenReturn(0L);
-        Mockito.when(ordersService.list(any(QueryWrapper.class))).thenReturn(List.of(order));
-        Mockito.when(orderDetailService.list(any(QueryWrapper.class))).thenReturn(List.of(buildOrderDetail(1L, 2)));
+        Mockito.when(ordersService.countRiskHistory(any(), any(), any(), any())).thenReturn(0L);
+        Mockito.when(ordersService.findRiskWindow(any(), any())).thenReturn(List.of(order));
+        Mockito.when(orderDetailService.findByOrder(any())).thenReturn(List.of(buildOrderDetail(1L, 2)));
 
         service.scoreOrder(orderId, "submit");
 
@@ -120,10 +124,10 @@ class OrderRiskServiceIntegrationTest {
     void shouldUseModelPathWhenBundleIsAvailable() throws Exception {
         Long orderId = 1002L;
         Orders order = buildOrder(orderId, 2002L, Date.from(Instant.now().minus(1, ChronoUnit.HOURS)), "model-case");
-        Mockito.when(ordersService.getById(orderId)).thenReturn(order);
-        Mockito.when(ordersService.count(any(QueryWrapper.class))).thenReturn(0L);
-        Mockito.when(ordersService.list(any(QueryWrapper.class))).thenReturn(List.of(order));
-        Mockito.when(orderDetailService.list(any(QueryWrapper.class))).thenReturn(List.of(buildOrderDetail(2L, 1)));
+        Mockito.when(ordersService.selectById(orderId)).thenReturn(order);
+        Mockito.when(ordersService.countRiskHistory(any(), any(), any(), any())).thenReturn(0L);
+        Mockito.when(ordersService.findRiskWindow(any(), any())).thenReturn(List.of(order));
+        Mockito.when(orderDetailService.findByOrder(any())).thenReturn(List.of(buildOrderDetail(2L, 1)));
 
         LogisticRegression lr = Mockito.mock(LogisticRegression.class);
         Mockito.doAnswer(invocation -> {
@@ -174,6 +178,7 @@ class OrderRiskServiceIntegrationTest {
         latest.setModelVersion("order-risk-20260426203624");
         Mockito.when(riskResultMapper.selectOne(any(QueryWrapper.class))).thenReturn(latest);
 
+        Mockito.when(ordersService.selectById(orderId)).thenReturn(buildOrder(orderId, 2001L, new Date(), ""));
         service.submitFeedback(orderId, "reject", 9001L, "manual-check");
 
         ArgumentCaptor<OrderRiskFeedback> feedbackCaptor = ArgumentCaptor.forClass(OrderRiskFeedback.class);
@@ -218,6 +223,69 @@ class OrderRiskServiceIntegrationTest {
         Assertions.assertEquals("REJECTED", modelCaptor.getValue().getStatus());
     }
 
+    @Test
+    void missingOrderDoesNotWriteAndFeedbackRefusesIt() {
+        service.scoreOrder(999L, "test");
+        Mockito.verify(riskResultMapper, Mockito.never()).insert(any(OrderRiskResult.class));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> service.submitFeedback(999L, "reject", 1L, ""));
+        Mockito.verify(feedbackMapper, Mockito.never()).insert(any(OrderRiskFeedback.class));
+    }
+
+    @Test
+    void noOrdersAndDependencyFailureAreDifferentFromTrainingSuccess() {
+        Mockito.when(ordersService.findRiskWindow(any(),any())).thenReturn(List.of());
+        var skipped = service.runTraining();
+        Assertions.assertEquals("SKIPPED", skipped.get("status"));
+        Assertions.assertEquals("no_orders_in_window", skipped.get("reason"));
+        Assertions.assertEquals(false, skipped.get("trained"));
+        Mockito.when(ordersService.findRiskWindow(any(),any())).thenThrow(new IllegalStateException("private fixture dependency"));
+        var failed = service.runTraining();
+        Assertions.assertEquals("FAILED", failed.get("status"));
+        Assertions.assertEquals("execution_failure", failed.get("reason"));
+        Assertions.assertFalse(failed.toString().contains("private fixture"));
+        Mockito.verify(modelMetaMapper, Mockito.never()).insert(any(OrderRiskModelMeta.class));
+    }
+
+    @Test
+    void missingFeaturesAreExplicitRuleFallbackAndExcludedFromTraining() throws Exception {
+        Orders order = buildOrder(800L, 2001L, new Date(), "");
+        order.setAmount(null);
+        Mockito.when(ordersService.selectById(800L)).thenReturn(order);
+        Mockito.when(orderDetailService.findByOrder(800L)).thenReturn(List.of());
+        service.scoreOrder(800L, "test");
+        var result = ArgumentCaptor.forClass(OrderRiskResult.class);
+        Mockito.verify(riskResultMapper).insert(result.capture());
+        Map<?, ?> reason = objectMapper.readValue(result.getValue().getReasonJson(), Map.class);
+        Assertions.assertEquals("INCOMPLETE", reason.get("dataStatus"));
+        Assertions.assertEquals("rule", reason.get("mode"));
+        Assertions.assertEquals("UNLABELLED_CANDIDATE", reason.get("labelStatus"));
+    }
+
+    @Test
+    void missingModelAndEmptyMetricsHaveDistinctReplayStatus() throws Exception {
+        Assertions.assertEquals("MODEL_MISSING", service.getReplaySummary("missing").get("replayStatus"));
+        OrderRiskModelMeta meta = new OrderRiskModelMeta();
+        meta.setModelVersion("empty"); meta.setArtifactPath(tempDir.resolve("empty.ser").toString());
+        java.nio.file.Files.writeString(Path.of(meta.getArtifactPath()), "fixture");
+        Mockito.when(modelMetaMapper.selectOne(any(QueryWrapper.class))).thenReturn(meta);
+        Assertions.assertEquals("NO_METRICS", service.getReplaySummary("empty").get("replayStatus"));
+    }
+
+    @Test
+    void trainingFailureLogsCauseTypesAndLocationsWithoutDependencyMessages() {
+        var logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(OrderRiskServiceImpl.class);
+        var appender = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        appender.start(); logger.addAppender(appender);
+        try {
+            Mockito.when(ordersService.findRiskWindow(any(),any())).thenThrow(
+                    new IllegalStateException("token=private-fixture", new IllegalArgumentException("private SQL value")));
+            Assertions.assertEquals("FAILED", service.runTraining().get("status"));
+            String logs = appender.list.stream().map(ch.qos.logback.classic.spi.ILoggingEvent::getFormattedMessage).collect(java.util.stream.Collectors.joining());
+            Assertions.assertTrue(logs.contains("IllegalStateException") && logs.contains("IllegalArgumentException"));
+            Assertions.assertFalse(logs.contains("private-fixture") || logs.contains("private SQL"));
+        } finally { logger.detachAppender(appender); appender.stop(); }
+    }
+
     private void prepareTrainingDataset() {
         Instant now = Instant.now();
         List<Orders> orders = new ArrayList<>();
@@ -245,7 +313,7 @@ class OrderRiskServiceIntegrationTest {
             feedbacks.add(feedback);
         }
 
-        Mockito.when(ordersService.list(any(QueryWrapper.class))).thenReturn(orders);
+        Mockito.when(ordersService.findRiskWindow(any(), any())).thenReturn(orders);
         Mockito.when(featureSnapshotMapper.selectList(any(QueryWrapper.class))).thenReturn(snapshots);
         Mockito.when(feedbackMapper.selectList(any(QueryWrapper.class))).thenReturn(feedbacks);
     }

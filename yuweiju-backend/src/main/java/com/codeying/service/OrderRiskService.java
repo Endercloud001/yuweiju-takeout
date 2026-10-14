@@ -43,6 +43,9 @@ public interface OrderRiskService {
      */
     void runScheduledTraining();
 
+    /** Synchronously train and report this run, including skips, rejection and partial failures. */
+    Map<String, Object> runTraining();
+
     /**
      * Backfill score for recent paid orders.
      *

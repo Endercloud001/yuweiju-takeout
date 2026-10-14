@@ -39,8 +39,7 @@ public class AdminOrderRiskController {
      */
     @PostMapping("/training/run")
     public ApiResult<Map<String, Object>> runTraining() {
-        orderRiskService.runScheduledTraining();
-        return ApiResult.successData(Map.of("message", "order risk training triggered"));
+        return ApiResult.successData(orderRiskService.runTraining());
     }
 
     /**
