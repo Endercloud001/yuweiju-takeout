@@ -1,0 +1,157 @@
+{
+  "acceptedCandidate": "44a40d336caa00dd4a293679c5528517ca1e78fe",
+  "humanAcceptance": "all six groups explicitly passed",
+  "evidenceSource": ".scratch/issue21-afk-20261014 task-owned actual records",
+  "copiedAt": "2026-10-14T15:58:08.787825+00:00",
+  "files": [
+    {
+      "source": "human-acceptance.json",
+      "target": "human-acceptance.json"
+    },
+    {
+      "source": "final-review.json",
+      "target": "final-review.json"
+    },
+    {
+      "source": "independent-reuse.json",
+      "target": "independent-reuse.json"
+    },
+    {
+      "source": "homepage-correction-result.json",
+      "target": "homepage-correction-result.json"
+    },
+    {
+      "source": "coding-budget-final.json",
+      "target": "coding-budget-final.json"
+    },
+    {
+      "source": "acceptance-state.json",
+      "target": "acceptance-state.json"
+    },
+    {
+      "source": "acceptance-fixture.json",
+      "target": "acceptance-fixture.json"
+    },
+    {
+      "source": "miniapp-session-results.json",
+      "target": "miniapp-session-results.json"
+    },
+    {
+      "source": "miniapp-submit-results.json",
+      "target": "miniapp-submit-results.json"
+    },
+    {
+      "source": "miniapp-payment-results.json",
+      "target": "miniapp-payment-results.json"
+    },
+    {
+      "source": "miniapp-history-results.json",
+      "target": "miniapp-history-results.json"
+    },
+    {
+      "source": "browser-readiness-results.json",
+      "target": "browser-readiness-results.json"
+    },
+    {
+      "source": "browser-fulfill-results.json",
+      "target": "browser-fulfill-results.json"
+    },
+    {
+      "source": "browser-history-results.json",
+      "target": "browser-history-results.json"
+    },
+    {
+      "source": "miniapp-ai-first-results.json",
+      "target": "miniapp-ai-first-results.json"
+    },
+    {
+      "source": "miniapp-ai-results.json",
+      "target": "miniapp-ai-results.json"
+    },
+    {
+      "source": "miniapp-customer-send-results.json",
+      "target": "miniapp-customer-send-results.json"
+    },
+    {
+      "source": "miniapp-customer-reply-results.json",
+      "target": "miniapp-customer-reply-results.json"
+    },
+    {
+      "source": "browser-customer-results.json",
+      "target": "browser-customer-results.json"
+    },
+    {
+      "source": "service-recheck-http.json",
+      "target": "service-recheck-http.json"
+    },
+    {
+      "source": "entry401-reproduction.json",
+      "target": "entry401-reproduction.json"
+    },
+    {
+      "source": "isolated-entry-recheck.json",
+      "target": "isolated-entry-recheck.json"
+    },
+    {
+      "source": "independent/task-review-1791976234086940521/resources.json",
+      "target": "independent-first-resources.json"
+    },
+    {
+      "source": "independent-resume1/task-review-1791987726038809164/resources.json",
+      "target": "independent-resume-resources.json"
+    },
+    {
+      "source": "admin-same-user-completed21.png",
+      "target": "admin-same-user-completed21.png"
+    },
+    {
+      "source": "admin-synthetic97419-failed-image.png",
+      "target": "admin-synthetic97419-failed-image.png"
+    },
+    {
+      "source": "admin-detail-synthetic97419.png",
+      "target": "admin-detail-synthetic97419.png"
+    },
+    {
+      "source": "miniapp-chain-first-failure.png",
+      "target": "miniapp-chain-first-failure.png"
+    },
+    {
+      "source": "miniapp-history-completed21.png",
+      "target": "miniapp-history-completed21.png"
+    },
+    {
+      "source": "miniapp-detail-completed21-fallback.png",
+      "target": "miniapp-detail-completed21-fallback.png"
+    },
+    {
+      "source": "miniapp-detail-synthetic97419-failed-image.png",
+      "target": "miniapp-detail-synthetic97419-failed-image.png"
+    },
+    {
+      "source": "miniapp-official-ai-final.png",
+      "target": "miniapp-official-ai-final.png"
+    },
+    {
+      "source": "admin-customer-two-way.png",
+      "target": "admin-customer-two-way.png"
+    },
+    {
+      "source": "miniapp-customer-two-way.png",
+      "target": "miniapp-customer-two-way.png"
+    },
+    {
+      "source": "admin-isolated-host-dashboard.png",
+      "target": "admin-isolated-host-dashboard.png"
+    }
+  ],
+  "independentSourceCandidate": "8e07cc2554e1ef472e46bcc1b03cdd3f7303068e",
+  "finalCandidateReuse": "44a40d3 differs only one static homepage fee literal; executable checked sources identical",
+  "checkoutScreenshot": "miniapp-chain-first-failure.png captured during8e07cc2 first failed SDK driver; checkout source/build identical;44a40d3 native quote/order/payment separately passed",
+  "syntheticHistorical974": true,
+  "missingOriginalHistoricalRawEvidence": true,
+  "realModelCalls": 1,
+  "servicesStoppedAt": "2026-10-14T15:55:32.811569+00:00",
+  "volumesRetained": true,
+  "allRawLocalFailuresPreserved": true
+}

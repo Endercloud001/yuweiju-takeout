@@ -1,0 +1,43 @@
+{
+  "candidate": "44a40d336caa00dd4a293679c5528517ca1e78fe",
+  "checks": [
+    {
+      "scenario": "Actual official AI page valid",
+      "mode": "valid",
+      "newAssistantReplies": 1,
+      "cards": [
+        {
+          "dishId": 900001,
+          "name": "Synthetic"
+        }
+      ],
+      "realCalls": 0,
+      "passed": true
+    }
+  ],
+  "error": "Expected values to be strictly equal:\n\n1 !== 0\n",
+  "passed": false,
+  "modelStatus": {
+    "mode": "valid",
+    "realCalls": 0,
+    "maxRealCalls": 4,
+    "requests": [
+      {
+        "sequence": 1,
+        "mode": "valid",
+        "started": 1791990975.0011928,
+        "realCall": null,
+        "status": 200,
+        "elapsedMs": 0
+      },
+      {
+        "sequence": 2,
+        "mode": "http503",
+        "started": 1791990975.7804837,
+        "realCall": null,
+        "status": 503,
+        "elapsedMs": 0
+      }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "candidate": "44a40d336caa00dd4a293679c5528517ca1e78fe",
+  "reply": false,
+  "checks": [
+    {
+      "scenario": "Official customer page genuine authenticated WebSocket connected",
+      "passed": true
+    },
+    {
+      "scenario": "Official native user sent message through actual WS",
+      "passed": true
+    }
+  ],
+  "sessionId": 1,
+  "passed": true
+}

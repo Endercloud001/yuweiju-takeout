@@ -1,0 +1,16 @@
+{
+  "candidate": "44a40d336caa00dd4a293679c5528517ca1e78fe",
+  "receivedAt": "2026-10-14T15:56:12.9747045+00:00",
+  "userMessage": "44a40d3：1通过/2通过/3通过/4通过/5通过/6通过；全部验收通过。",
+  "groups": {
+    "4": "passed",
+    "5": "passed",
+    "1": "passed",
+    "2": "passed",
+    "6": "passed",
+    "3": "passed"
+  },
+  "allRequiredAcceptance": "passed",
+  "source": "explicit user reply in current chat",
+  "remoteDeliveryAuthorized": true
+}

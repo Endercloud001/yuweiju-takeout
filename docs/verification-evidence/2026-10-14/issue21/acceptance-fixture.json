@@ -1,0 +1,321 @@
+{
+  "schema": "sandcastle_i21_acceptance_20261014_143355",
+  "sourceRiskSchema": "sandcastle_i18_45bd408137134724",
+  "originalDatabaseAccess": false,
+  "syntheticData": true,
+  "sourceRowsPreserved": true,
+  "syntheticHeatOrderIdOffset": 1000911,
+  "copiedTables": [
+    {
+      "table": "address_book",
+      "before": 1,
+      "after": 1,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "ai_assistant_message",
+      "before": 0,
+      "after": 0,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "ai_assistant_session",
+      "before": 0,
+      "after": 0,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "category",
+      "before": 1,
+      "after": 1,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "customer_service_message",
+      "before": 0,
+      "after": 0,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "customer_service_session",
+      "before": 0,
+      "after": 0,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "dish",
+      "before": 1,
+      "after": 5,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "dish_flavor",
+      "before": 0,
+      "after": 0,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "dish_heat_prediction_result",
+      "before": 0,
+      "after": 5,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "dish_timeseries_feature_snapshot",
+      "before": 0,
+      "after": 10,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "employee",
+      "before": 1,
+      "after": 1,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "order_detail",
+      "before": 242,
+      "after": 902,
+      "fixtureOverlapPolicy": "synthetic heat order/detail IDs shifted in copy only"
+    },
+    {
+      "table": "order_risk_feature_snapshot",
+      "before": 241,
+      "after": 241,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "order_risk_feedback",
+      "before": 240,
+      "after": 240,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "order_risk_model_meta",
+      "before": 4,
+      "after": 4,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "order_risk_result",
+      "before": 4,
+      "after": 4,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "order_risk_standardizer_meta",
+      "before": 9,
+      "after": 9,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "orders",
+      "before": 243,
+      "after": 903,
+      "fixtureOverlapPolicy": "synthetic heat order/detail IDs shifted in copy only"
+    },
+    {
+      "table": "setmeal",
+      "before": 0,
+      "after": 0,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "setmeal_dish",
+      "before": 0,
+      "after": 0,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "shopping_cart",
+      "before": 0,
+      "after": 1,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "user",
+      "before": 2,
+      "after": 11,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "user_behavior_feature_snapshot",
+      "before": 0,
+      "after": 33,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    },
+    {
+      "table": "user_cluster_result",
+      "before": 0,
+      "after": 33,
+      "fixtureOverlapPolicy": "keep overlapping shared synthetic fixture rows"
+    }
+  ],
+  "riskEvidence": "/mnt/e/Learning Files/yuweiju-takeout/.scratch/issue21-afk-20261014/independent-resume1/task-review-1791987726038809164/snapshot/.scratch/issue18/run-YRicwMQG/scenario-results.json",
+  "heatEvidence": "/mnt/e/Learning Files/yuweiju-takeout/.scratch/issue21-afk-20261014/independent-resume1/task-review-1791987726038809164/snapshot/.scratch/issue17/run-g8v0myaR/scenario-results.json",
+  "heatTargetDate": "2040-06-29",
+  "riskTraining": {
+    "status": "TRAINED",
+    "reason": "no_active_model",
+    "message": "New order risk model trained and activated",
+    "trained": true,
+    "activated": true,
+    "fileSaved": true,
+    "metadataSaved": true,
+    "executionMode": "SYNCHRONOUS",
+    "ready": true,
+    "labelPolicy": "latest approve/reject overrides; cancelled=1, other status=0 fallback",
+    "explicitFeedbackOrders": 239,
+    "policyDerivedOrders": 2,
+    "incompleteOrMissingSnapshots": 1,
+    "blockedReason": "",
+    "featureVersion": "v1",
+    "minAnomalyLabels": 50,
+    "trainWindowStart": "2026-06-16T14:30:17.418+00:00",
+    "trainWindowEnd": "2026-09-14T14:30:17.418+00:00",
+    "holdoutWindowStart": "2026-09-14T14:30:17.418+00:00",
+    "holdoutWindowEnd": "2026-10-14T14:30:17.418+00:00",
+    "windowOrders": 241,
+    "snapshotOrders": 240,
+    "trainSamples": 181,
+    "holdoutSamples": 59,
+    "trainPositives": 90,
+    "holdoutPositives": 30,
+    "modelVersion": "order-risk-20261014223017-1dae9f8a",
+    "artifactPath": "/workspace/.scratch/issue18/run-YRicwMQG/models/order-risk-20261014223017-1dae9f8a.ser",
+    "metrics": {
+      "prAuc": 1.0,
+      "recallTop20": 0.4,
+      "falsePositiveRate": 0.0,
+      "trainSamples": 181,
+      "holdoutSamples": 59,
+      "trainPositives": 90,
+      "holdoutPositives": 30,
+      "fusedWeights": {
+        "lrWeight": 0.4,
+        "rfWeight": 0.6
+      },
+      "trainWindowStart": "2026-06-16T22:30:17.418+08:00",
+      "trainWindowEnd": "2026-09-14T22:30:17.418+08:00",
+      "holdoutWindowStart": "2026-09-14T22:30:17.418+08:00",
+      "holdoutWindowEnd": "2026-10-14T22:30:17.418+08:00"
+    }
+  },
+  "heatTraining": {
+    "heatModelTrained": true,
+    "userSnapshotCount": 11,
+    "clusterCount": 3,
+    "clusterModelVersion": "analysis-cluster-2040-06-29-1791988079563",
+    "snapshotDate": "2040-06-29",
+    "executed": true,
+    "executionMode": "SYNCHRONOUS",
+    "status": "COMPLETE",
+    "stages": [
+      {
+        "stage": "snapshot",
+        "status": "COMPLETE",
+        "reason": null,
+        "windowStart": "2040-05-30",
+        "windowEnd": "2040-06-28",
+        "outputs": {
+          "featureVersion": "v1",
+          "dishSnapshotCount": 5,
+          "userSnapshotCount": 11
+        }
+      },
+      {
+        "stage": "clustering",
+        "status": "COMPLETE",
+        "reason": null,
+        "windowStart": "2040-05-30",
+        "windowEnd": "2040-06-28",
+        "outputs": {
+          "userSnapshotCount": 11,
+          "clusterRowCount": 11,
+          "silhouetteThreshold": 0.3,
+          "modelVersion": "analysis-cluster-2040-06-29-1791988079563",
+          "silhouettePassed": true,
+          "silhouette": 0.6593762018323388,
+          "clusterCount": 3
+        }
+      },
+      {
+        "stage": "clusterCache",
+        "status": "COMPLETE",
+        "reason": null,
+        "windowStart": "2040-06-29",
+        "windowEnd": "2040-06-29",
+        "outputs": {
+          "cachedUserCount": 11,
+          "clusterKeyCount": 3
+        }
+      },
+      {
+        "stage": "heatTraining",
+        "status": "COMPLETE",
+        "reason": null,
+        "windowStart": "2040-03-31",
+        "windowEnd": "2040-06-22",
+        "outputs": {
+          "modelVersion": "analysis-heat-xgb-2040-06-29-1791988087203",
+          "featureVersion": "v1",
+          "trainedAt": "2026-10-14T22:28:07.203468794",
+          "snapshotDate": "2040-06-29",
+          "trainSampleCount": 347,
+          "evalSampleCount": 33,
+          "longTailSalesThreshold": 3,
+          "zeroLabelKeepRate": 0.35,
+          "enableLogLabel": true,
+          "modelFile": "analysis-heat-xgb-2040-06-29-1791988087203.json"
+        }
+      },
+      {
+        "stage": "validation",
+        "status": "COMPLETE",
+        "reason": null,
+        "windowStart": "2040-03-31",
+        "windowEnd": "2040-06-22",
+        "outputs": {
+          "snapshotDate": "2040-06-29",
+          "modelVersion": "analysis-heat-xgb-2040-06-29-1791988087203",
+          "evalWindowStart": "2040-06-16",
+          "evalWindowEnd": "2040-06-22",
+          "sampleCount": 33,
+          "averageWindowSales": 13.3939,
+          "rmse": 0.0029,
+          "mae": 0.002,
+          "rmseRatio": 0.000215,
+          "maeRatio": 0.000146,
+          "rmseThreshold": 0.3,
+          "maeThreshold": 0.2,
+          "rmsePass": true,
+          "maePass": true
+        }
+      },
+      {
+        "stage": "prediction",
+        "status": "COMPLETE",
+        "reason": null,
+        "windowStart": "2040-06-29",
+        "windowEnd": "2040-07-05",
+        "outputs": {
+          "modelLoaded": true,
+          "modelVersion": "analysis-heat-xgb-2040-06-29-1791988087203",
+          "predictionCount": 5,
+          "dishSnapshotCount": 5
+        }
+      },
+      {
+        "stage": "predictionCache",
+        "status": "COMPLETE",
+        "reason": null,
+        "windowStart": "2040-06-29",
+        "windowEnd": "2040-07-05",
+        "outputs": {
+          "predictionCount": 5
+        }
+      }
+    ],
+    "message": "重训任务完成，请另行核对效果指标"
+  }
+}

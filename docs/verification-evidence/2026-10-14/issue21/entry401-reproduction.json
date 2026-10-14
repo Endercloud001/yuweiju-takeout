@@ -1,0 +1,42 @@
+{
+  "candidate": "44a40d336caa00dd4a293679c5528517ca1e78fe",
+  "stale": {
+    "route": "/dashboard",
+    "responses": [
+      {
+        "path": "/api/admin/workspace/businessData",
+        "status": 401
+      },
+      {
+        "path": "/api/admin/workspace/overviewOrders",
+        "status": 401
+      },
+      {
+        "path": "/api/admin/workspace/overviewDishes",
+        "status": 401
+      },
+      {
+        "path": "/api/admin/workspace/overviewSetmeals",
+        "status": 401
+      },
+      {
+        "path": "/api/admin/order/statistics",
+        "status": 401
+      },
+      {
+        "path": "/api/admin/shop/status",
+        "status": 401
+      }
+    ],
+    "messages": [
+      "Request failed with status code 401",
+      "Request failed with status code 401",
+      "Request failed with status code 401"
+    ]
+  },
+  "fresh": {
+    "route": "/login",
+    "responses": []
+  },
+  "reproduced": true
+}

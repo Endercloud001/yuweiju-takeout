@@ -272,9 +272,13 @@ public class Issue9Probe {
             var beforeStopped=rows("shopping_cart","user_id",userA);
             refused("POST","/user/shoppingCart/add",tokenA,Map.of("dishId",dishId),"商品不可售");
             require(rows("shopping_cart","user_id",userA).equals(beforeStopped),"existing stopped item add refused without quantity mutation");
+            // Issue10's accepted quote read now rechecks every item's saleability.
+            reject(()->cart.listForUser(userA),"trusted cart quote refuses remaining stopped goods");
+            refused("GET","/user/shoppingCart/list",tokenA,null,"商品不可售");
+            require(rows("shopping_cart","user_id",userA).equals(beforeStopped),"refused stopped quote never rewrites stored cart");
             cart.subtractItem(userA,dish(dishId,"hot")); // Sub does not recheck saleability, preserving removal of stopped items.
             cart.subtractItem(userA,dish(dishId,"hot"));
-            require(cart.listForUser(userA).stream().noneMatch(item->"hot".equals(item.getDishFlavor())),"subtract stopped flavored item at one deletes it");
+            require(cartMapper.findByUser(userA).stream().noneMatch(item->"hot".equals(item.getDishFlavor())),"subtract stopped flavored item at one deletes it");
             jdbc.update("UPDATE dish SET status=1 WHERE id=?",dishId);
             jdbc.update("UPDATE setmeal SET status=0 WHERE id=?",mealId);
             reject(()->cart.addItem(userA,meal(mealId)),"stopped existing setmeal refuses add");
@@ -387,8 +391,9 @@ public class Issue9Probe {
                     &&detail.get(0).get("image").equals(checkoutBefore.get(0).getImage())
                     &&((Number)detail.get(0).get("number")).intValue()==2
                     &&((BigDecimal)detail.get(0).get("amount")).compareTo(checkoutBefore.get(0).getAmount())==0,"existing checkout preserves prepared cart goods/flavor/price/image/quantity snapshots in SQL");
-            require(order.getAmount().compareTo(checkoutBefore.get(0).getAmount().multiply(BigDecimal.valueOf(2)))==0
-                    &&order.getPackAmount()==0,"preserved current checkout amount with zero requested packing, no new billing");
+            require(order.getAmount().compareTo(checkoutBefore.get(0).getAmount().multiply(BigDecimal.valueOf(2)).add(new BigDecimal("4")))==0
+                    &&order.getPackAmount()==2 && submitted.path("orderAmount").decimalValue().compareTo(order.getAmount())==0,
+                    "current trusted quote plus per-item packing and delivery ignores requested zero packing");
             require(mapCalls.get()==1&&cart.listForUser(userA).isEmpty()&&rows("shopping_cart","user_id",userB).equals(cartB),"checkout clears only submitting user cart and uses no external map call");
             var checkoutEdit=new LinkedHashMap<String,Object>(addressBody("after-order",0)); checkoutEdit.put("id",a3);
             request("PUT","/user/addressBook",tokenA,checkoutEdit);

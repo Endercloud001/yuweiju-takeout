@@ -1,0 +1,30 @@
+{
+  "candidate": "44a40d336caa00dd4a293679c5528517ca1e78fe",
+  "officialCompileConfirmed": true,
+  "checks": [
+    {
+      "scenario": "New official compiled homepage displays fixed delivery2",
+      "passed": true
+    },
+    {
+      "scenario": "Compiled checkout quote21",
+      "passed": true
+    },
+    {
+      "scenario": "Native submit persisted same-user pending21",
+      "passed": true,
+      "orderId": 1001580
+    }
+  ],
+  "screenshots": "SDK capture hit saved-file quota; preserved first failure; no unrelated storage cleared",
+  "homeFee": "official compiled homepage checked by WXML elements below",
+  "homeTexts": [
+    "距离1.5km",
+    "配送费2元",
+    "预计时长12min"
+  ],
+  "orderId": 1001580,
+  "orderNumber": "1791990659278",
+  "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'pages/order/index'\n- 'pages/pay/index'\n         ^\n",
+  "passed": false
+}

@@ -1,0 +1,25 @@
+{
+  "candidate": "44a40d336caa00dd4a293679c5528517ca1e78fe",
+  "orderId": 1001580,
+  "checks": [
+    {
+      "scenario": "Actual compiled history same-user completed21",
+      "passed": true
+    },
+    {
+      "scenario": "Actual compiled detail21/completed/historical empty image preserved",
+      "passed": true
+    },
+    {
+      "scenario": "Explicit synthetic historical974 remains19; original raw evidence absent",
+      "passed": true
+    },
+    {
+      "scenario": "Official old19 detail renders failed-image fallback without replacing historical image field",
+      "passed": true
+    }
+  ],
+  "fallbackSrc": "/static/history-dish-placeholder.png",
+  "historicalFallback": "/static/history-dish-placeholder.png",
+  "passed": true
+}

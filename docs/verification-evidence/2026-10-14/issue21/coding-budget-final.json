@@ -1,0 +1,10 @@
+{
+  "firstSupervisorSeconds": 3817.741,
+  "hostCorrectionConservativeSeconds": 600,
+  "totalConservativeSeconds": 4417.741,
+  "maximumSeconds": 4800,
+  "codingStages": 2,
+  "supervisorIterations": 1,
+  "supervisorRelaunched": false,
+  "meaning": "600seconds conservatively accounts preparation/review/literal correction; mutation/commit script measured25.7seconds; acceptance orchestration and human waiting separate"
+}

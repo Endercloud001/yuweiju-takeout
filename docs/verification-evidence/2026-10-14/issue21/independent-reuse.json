@@ -1,0 +1,25 @@
+{
+  "candidate": "8e07cc2554e1ef472e46bcc1b03cdd3f7303068e",
+  "firstResources": "/mnt/e/Learning Files/yuweiju-takeout/.scratch/issue21-afk-20261014/independent/task-review-1791976234086940521/resources.json",
+  "firstOverallStatus": "failed; retained without rewriting",
+  "passedChecksReused": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "remainingOriginalIndices": [
+    7,
+    8,
+    9,
+    10,
+    11
+  ],
+  "reason": "old fixture contained1 order for fixed AI test users; fresh task-owned database has0, original assertion unchanged",
+  "productionSourceUnchangedExit": 0,
+  "additionalVerificationMs": 1200000,
+  "codingRestarted": false
+}

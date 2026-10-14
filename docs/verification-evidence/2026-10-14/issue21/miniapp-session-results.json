@@ -1,0 +1,18 @@
+{
+  "candidate": "8e07cc2554e1ef472e46bcc1b03cdd3f7303068e",
+  "originalDatabase": false,
+  "checks": [
+    {
+      "scenario": "Two genuine wx.login codes exchange through strict candidate service and preserve same account ID",
+      "passed": true
+    },
+    {
+      "scenario": "Owned protected default address created/read only in copied task schema",
+      "passed": true
+    }
+  ],
+  "userId": 900012,
+  "addressId": 900002,
+  "route": "pages/index/index",
+  "passed": true
+}
