@@ -38,6 +38,13 @@ public class Issue18Probe {
     static final List<Long> orders=new ArrayList<>();
     @Configuration(proxyBeanMethods=false)
     public static class LocalMap {
+        @Bean static org.springframework.beans.factory.config.BeanFactoryPostProcessor disableBackgroundScheduling() {
+            return factory -> {
+                var registry=(org.springframework.beans.factory.support.BeanDefinitionRegistry)factory;
+                String processor="org.springframework.context.annotation.internalScheduledAnnotationProcessor";
+                if(registry.containsBeanDefinition(processor))registry.removeBeanDefinition(processor);
+            };
+        }
         @Bean @Primary BaiduMapUtil localMap() {
             return new BaiduMapUtil() {
                 @Override public int checkAndGetDrivingMinutes(String shop,String address,String key) { return 7; }
@@ -162,6 +169,7 @@ public class Issue18Probe {
             require(schema.equals(jdbc.queryForObject("SELECT DATABASE()",String.class)),"fresh_schema_actual_spring_connection");
             require(jdbc.queryForObject("SELECT COUNT(*) FROM orders",Integer.class)==0,"fresh_current_training_window");
             var props=context.getBean(OrderRiskProperties.class);var risk=context.getBean(OrderRiskService.class);
+            require(!context.containsBean("org.springframework.context.annotation.internalScheduledAnnotationProcessor"),"probe_disables_all_scheduled_callbacks_including_reply_locks");
             require(!props.getTask().getScoringEnabled()&&!context.getBean(AnalysisProperties.class).getTask().getEnabled(),"all_background_business_tasks_disabled");
             require(AopUtils.isAopProxy(risk),"actual_risk_spring_transaction_proxy");
             require(java.lang.reflect.Proxy.isProxyClass(context.getBean(OrderRiskResultMapper.class).getClass()),"actual_named_mapper_proxy");
@@ -207,6 +215,13 @@ public class Issue18Probe {
             require(jdbc.queryForObject("SELECT COUNT(*) FROM order_risk_standardizer_meta",Integer.class)==9,"real_standardizer_rows");
             var replay=ok("GET","/admin/order-risk/replay?modelVersion="+version,admin,null);
             require("AVAILABLE".equals(replay.path("replayStatus").asText())&&replay.path("metrics").path("trainSamples").asInt()==trained.path("trainSamples").asInt(),"replay_actual_new_sample_metrics");
+            String featureVersion=props.getFeatureVersion();
+            props.setFeatureVersion("i18-no-snapshots");
+            try {
+                var skippedWithActive=ok("POST","/admin/order-risk/training/run",admin,null);
+                require("SKIPPED".equals(skippedWithActive.path("status").asText())&&!skippedWithActive.path("trained").asBoolean()&&!skippedWithActive.has("modelVersion"),"old_active_not_new_training_when_samples_missing");
+                require(version.equals(jdbc.queryForObject("SELECT model_version FROM order_risk_model_meta WHERE status='ACTIVE'",String.class)),"skipped_run_preserves_old_active");
+            }finally{props.setFeatureVersion(featureVersion);}
             // Scoring with a second genuine Service bean proves file-based loading, not training's cached model.
             var fresh=context.getAutowireCapableBeanFactory().createBean(com.codeying.service.impl.OrderRiskServiceImpl.class);
             require(AopUtils.isAopProxy(fresh),"fresh_spring_managed_risk_proxy_for_file_reload");
@@ -223,7 +238,7 @@ public class Issue18Probe {
             require("INCOMPLETE".equals(JSON.readTree(results.get(missingData).getReasonJson()).path("dataStatus").asText())&&"rule-baseline-v1".equals(results.get(missingData).getModelVersion()),"missing_details_explicit_incomplete_rule_fallback");
             require(risk.getTrainingReadiness().get("incompleteOrMissingSnapshots").equals(1),"incomplete_snapshot_excluded_from_training");
             ok("POST","/admin/order-risk/feedback",admin,Map.of("orderId",normal,"decision","reject","reason","synthetic feedback"));
-            require("REJECT".equals(jdbc.queryForObject("SELECT decision_status FROM order_risk_result WHERE order_id=?",String.class,normal)),"feedback_decision_persisted");
+            require("REJECT".equals(jdbc.queryForObject("SELECT decision_status FROM order_risk_result WHERE order_id=? AND model_version=?",String.class,normal,version)),"feedback_decision_persisted");
             require("reject".equals(jdbc.queryForObject("SELECT decision FROM order_risk_feedback WHERE order_id=? ORDER BY created_at DESC,id DESC LIMIT 1",String.class,normal)),"feedback_label_persisted");
             require(request("POST","/admin/order-risk/feedback",admin,Map.of("orderId",Long.MAX_VALUE,"decision","reject")).path("code").asInt()!=1,"missing_order_feedback_rejected");
             require(request("POST","/admin/order-risk/feedback",admin,Map.of("orderId",normal,"decision","ban")).path("code").asInt()!=1,"unsupported_feedback_no_user_ban");
