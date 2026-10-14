@@ -8,6 +8,7 @@ import type {
   OrderRiskFeedbackPayload,
   OrderRiskModelMeta,
   OrderRiskTrainingReadiness,
+  OrderRiskTrainingResult,
   OrderRiskBackfillSummary,
 } from '../../types/order'
 
@@ -71,8 +72,8 @@ export function completeOrder(id: number): Promise<ApiResponse<null>> {
   })
 }
 
-export function runOrderRiskTraining(): Promise<ApiResponse<{ message: string }>> {
-  return request<{ message: string }>({
+export function runOrderRiskTraining(): Promise<ApiResponse<OrderRiskTrainingResult>> {
+  return request<OrderRiskTrainingResult>({
     url: '/admin/order-risk/training/run',
     method: 'POST',
   })

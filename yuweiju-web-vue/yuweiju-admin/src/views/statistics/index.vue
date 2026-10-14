@@ -30,7 +30,8 @@ import type {
   TurnoverStatistics,
   UserStatistics,
 } from '../../api/modules/dashboard'
-import type { OrderRiskModelMeta } from '../../types/order'
+import { formatRiskOutcome } from '../../utils/order-risk'
+import type { OrderRiskModelMeta, OrderRiskTrainingResult } from '../../types/order'
 import { formatDateTime } from '../../utils/format'
 
 interface ClusterProfile {
@@ -93,12 +94,13 @@ const analysisRun = ref<AnalysisRun | null>(null)
 const offlineMetrics = ref<Record<string, unknown>>({})
 const trainingError = ref('')
 const analysisTrainingLoading = ref(false)
+const riskTrainingResult = ref<OrderRiskTrainingResult | null>(null)
 const riskTrainingLoading = ref(false)
 const riskModelLoading = ref(false)
 const replayLoading = ref(false)
 const riskModelList = ref<OrderRiskModelMeta[]>([])
 const selectedRiskModelVersion = ref('')
-const riskReplay = ref<Record<string, unknown>>({})
+const riskReplay = ref<Record<string, unknown>>({ replayStatus: 'MODEL_MISSING' })
 const activeClusterId = ref<number | null>(null)
 const clusterDialogVisible = ref(false)
 const clusterDishNameMap = ref<Record<number, string>>({})
@@ -344,7 +346,7 @@ async function fetchRiskModels() {
       selectedRiskModelVersion.value = riskModelList.value[0].modelVersion
     }
     if (!selectedRiskModelVersion.value) {
-      riskReplay.value = {}
+      riskReplay.value = { replayStatus: 'MODEL_MISSING' }
     }
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '获取风控模型列表失败')
@@ -359,7 +361,7 @@ async function fetchReplay(modelVersion?: string) {
     const res = await getOrderRiskReplay(modelVersion)
     riskReplay.value = res.data || {}
   } catch (error) {
-    riskReplay.value = {}
+    riskReplay.value = { replayStatus: 'REPLAY_FAILED' }
     ElMessage.error(error instanceof Error ? error.message : '获取回放指标失败')
   } finally {
     replayLoading.value = false
@@ -370,11 +372,16 @@ async function handleRunRiskTraining() {
   if (riskTrainingLoading.value) return
   riskTrainingLoading.value = true
   try {
-    await runOrderRiskTraining()
-    ElMessage.success('风控训练任务已触发')
+    const response = await runOrderRiskTraining()
+    riskTrainingResult.value = response.data ?? {}
+    const message = formatRiskOutcome(riskTrainingResult.value.status, riskTrainingResult.value.reason)
+    if (riskTrainingResult.value.status === 'TRAINED' && riskTrainingResult.value.activated) ElMessage.success(message)
+    else if (riskTrainingResult.value.status === 'FAILED' || riskTrainingResult.value.status === 'PARTIAL') ElMessage.error(message)
+    else ElMessage.warning(message)
     await fetchRiskModels()
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '触发风控训练失败')
+    riskTrainingResult.value = { status: 'FAILED', reason: 'execution_failure' }
+    ElMessage.error(error instanceof Error ? error.message : '风控训练失败')
   } finally {
     riskTrainingLoading.value = false
   }
@@ -918,6 +925,11 @@ onUnmounted(() => {
             {{ riskTrainingLoading ? '手动重训中...' : '手动重训' }}
           </button>
         </div>
+        <div v-if="riskTrainingResult" class="risk-training-result" role="status">
+          <p>{{ formatRiskOutcome(riskTrainingResult.status, riskTrainingResult.reason) }}</p>
+          <p>本次模型：{{ riskTrainingResult.modelVersion || '--' }}；训练 / 回放样本：{{ riskTrainingResult.trainSamples ?? '--' }} / {{ riskTrainingResult.holdoutSamples ?? '--' }}</p>
+          <p>文件已保存：{{ riskTrainingResult.fileSaved ? '是' : '否' }}；元数据已保存：{{ riskTrainingResult.metadataSaved ? '是' : '否' }}</p>
+        </div>
         <el-table
           :data="riskModelList"
           v-loading="riskModelLoading"
@@ -963,6 +975,7 @@ onUnmounted(() => {
             {{ selectedRiskModel?.modelVersion || '未选择模型' }}
           </el-tag>
         </div>
+        <p class="risk-replay-status">{{ formatRiskOutcome(riskReplay.replayStatus, riskReplay.reason) }}</p>
         <div class="console-list">
           <div class="console-item">
             <el-tooltip

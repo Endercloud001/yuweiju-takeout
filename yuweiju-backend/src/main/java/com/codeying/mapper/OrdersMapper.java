@@ -126,4 +126,14 @@ public interface OrdersMapper extends BaseMapper<Orders> {
                 .eq("status", Orders.COMPLETED).ge("order_time", begin).lt("order_time", end));
     }
 
+    /** Orders in the existing half-open 90-day training + 30-day holdout window. */
+    default java.util.List<Orders> findRiskWindow(Date begin, Date end) {
+        return selectList(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<Orders>().ge("order_time",begin).lt("order_time",end));
+    }
+    /** Explicit paid-order backfill candidates; limit is clamped by Service. */
+    java.util.List<Orders> findRiskBackfill(@Param("begin") Date begin, @Param("limit") int limit);
+    /** Inclusive per-user historical frequency with optional cancellation status. */
+    Long countRiskHistory(@Param("userId") Long userId, @Param("begin") Date begin, @Param("end") Date end, @Param("status") Integer status);
+    /** Existing paid-amount average: positive amount sum divided by all paid rows. */
+    BigDecimal averageRiskPaidAmount(@Param("userId") Long userId, @Param("begin") Date begin, @Param("end") Date end);
 }

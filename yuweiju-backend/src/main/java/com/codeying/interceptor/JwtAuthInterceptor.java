@@ -79,10 +79,11 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        // Issue #17 analysis writes/reads require the actual administrator token scope as well as its signature.
-        if (isAdmin && ("/admin/analysis".equals(path) || path.startsWith("/admin/analysis/"))
-                && !"admin".equals(claims.getSubject())) {
-            writeUnauthorized(response, "无管理员分析权限");
+        // Issues #17/#18: model operations require administrator scope as well as signature.
+        boolean analysisPath = "/admin/analysis".equals(path) || path.startsWith("/admin/analysis/");
+        boolean riskPath = "/admin/order-risk".equals(path) || path.startsWith("/admin/order-risk/");
+        if (isAdmin && (analysisPath || riskPath) && !"admin".equals(claims.getSubject())) {
+            writeUnauthorized(response, riskPath ? "无管理员风控权限" : "无管理员分析权限");
             return false;
         }
 

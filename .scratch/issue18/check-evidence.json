@@ -1,0 +1,153 @@
+{
+  "supervisorIteration": "1/1",
+  "cwd": "/home/agent/workspace",
+  "deadline": "2026-10-14T08:12:08.073Z",
+  "humanAcceptance": "pending",
+  "checks": [
+    {
+      "batch": 1,
+      "command": "mvn -B -f yuweiju-backend/pom.xml compile",
+      "exit": 0,
+      "note": "initial and corrected compile passed; attempted TERM found process already exited"
+    },
+    {
+      "batch": 2,
+      "command": "mvn -B -f yuweiju-backend/pom.xml compile",
+      "exit": 0
+    },
+    {
+      "batch": "admin1",
+      "command": "npm ci --no-audit --no-fund",
+      "cwd": "yuweiju-web-vue/yuweiju-admin",
+      "exit": 0
+    },
+    {
+      "batch": "admin1",
+      "command": "npm run lint",
+      "cwd": "yuweiju-web-vue/yuweiju-admin",
+      "exit": 127,
+      "reason": "started before npm ci finished; eslint not installed yet"
+    },
+    {
+      "batch": "admin2",
+      "command": "npm run lint && npm run typecheck && npm run test && npm run build",
+      "cwd": "yuweiju-web-vue/yuweiju-admin",
+      "exit": 0,
+      "tests": 35
+    },
+    {
+      "batch": 3,
+      "command": "bash .sandcastle/environment/issue18-check.sh /home/agent/workspace /home/agent/workspace/.sandcastle/environment",
+      "exit": 2,
+      "reason": "shell edited while executing; pom.xml attempted as command; no package/probe pass claimed"
+    },
+    {
+      "batch": 4,
+      "command": "bash .sandcastle/environment/issue18-check.sh /home/agent/workspace /home/agent/workspace/.sandcastle/environment",
+      "packageExit": 0,
+      "unitTests": 170,
+      "exit": 1,
+      "reason": "real wrong-scope HTTP rejection failed; fixed risk path scope guard; retained schema and Redis marker"
+    },
+    {
+      "batch": 5,
+      "command": "bash .sandcastle/environment/issue18-check.sh /home/agent/workspace /home/agent/workspace/.sandcastle/environment",
+      "exit": 0,
+      "packageExit": 0,
+      "unitTests": 171,
+      "businessPassed": true,
+      "cleanupPassed": true,
+      "evidence": ".scratch/issue18/run-hW7X2Bil"
+    },
+    {
+      "batch": "admin3-final",
+      "command": "npm ci --no-audit --no-fund && npm run lint && npm run typecheck && npm run test && npm run build",
+      "cwd": "yuweiju-web-vue/yuweiju-admin",
+      "exit": 0,
+      "tests": 35,
+      "testFiles": 7,
+      "skipped": 0
+    },
+    {
+      "batch": 6,
+      "command": "bash .sandcastle/environment/issue18-check.sh /home/agent/workspace /home/agent/workspace/.sandcastle/environment",
+      "cwd": "/home/agent/workspace",
+      "exit": 0,
+      "packageExit": 0,
+      "unitTests": 171,
+      "businessPassed": true,
+      "cleanupPassed": true,
+      "evidence": ".scratch/issue18/run-8UvfJKhd",
+      "modelVersion": "order-risk-20261014160407-18237e84",
+      "trainSamples": 181,
+      "holdoutSamples": 59,
+      "trainPositives": 90,
+      "assertions": 95
+    }
+  ],
+  "ponytail": {
+    "scope": "full diff since 1e0d182 including recovery commit and unstaged task files",
+    "status": "stopped / normal mode",
+    "changes": "check shell duplicate options removed, owned temporary paths; docs clarified",
+    "finalChecksPassed": true
+  },
+  "unfinished": [
+    "Independent verification and human acceptance/delivery pending; no real effectiveness claim or official miniapp visual/tool acceptance"
+  ],
+  "finalBusinessResult": {
+    "started": "2026-10-14T08:00:02Z",
+    "finished": "2026-10-14T08:04:21.653452+00:00",
+    "exit": 0,
+    "businessPassed": true,
+    "cleanupPassed": true,
+    "isolatedSchema": "sandcastle_i18_56280e511c654ed8",
+    "training": {
+      "status": "TRAINED",
+      "reason": "no_active_model",
+      "message": "New order risk model trained and activated",
+      "trained": true,
+      "activated": true,
+      "fileSaved": true,
+      "metadataSaved": true,
+      "executionMode": "SYNCHRONOUS",
+      "ready": true,
+      "labelPolicy": "latest approve/reject overrides; cancelled=1, other status=0 fallback",
+      "explicitFeedbackOrders": 239,
+      "policyDerivedOrders": 2,
+      "incompleteOrMissingSnapshots": 1,
+      "blockedReason": "",
+      "featureVersion": "v1",
+      "minAnomalyLabels": 50,
+      "trainWindowStart": "2026-06-16T08:04:07.899+00:00",
+      "trainWindowEnd": "2026-09-14T08:04:07.899+00:00",
+      "holdoutWindowStart": "2026-09-14T08:04:07.899+00:00",
+      "holdoutWindowEnd": "2026-10-14T08:04:07.899+00:00",
+      "windowOrders": 241,
+      "snapshotOrders": 240,
+      "trainSamples": 181,
+      "holdoutSamples": 59,
+      "trainPositives": 90,
+      "holdoutPositives": 30,
+      "modelVersion": "order-risk-20261014160407-18237e84",
+      "artifactPath": "/home/agent/workspace/.scratch/issue18/run-8UvfJKhd/models/order-risk-20261014160407-18237e84.ser",
+      "metrics": {
+        "prAuc": 1.0,
+        "recallTop20": 0.4,
+        "falsePositiveRate": 0.0,
+        "trainSamples": 181,
+        "holdoutSamples": 59,
+        "trainPositives": 90,
+        "holdoutPositives": 30,
+        "fusedWeights": {
+          "lrWeight": 0.4,
+          "rfWeight": 0.6
+        },
+        "trainWindowStart": "2026-06-16T16:04:07.899+08:00",
+        "trainWindowEnd": "2026-09-14T16:04:07.899+08:00",
+        "holdoutWindowStart": "2026-09-14T16:04:07.899+08:00",
+        "holdoutWindowEnd": "2026-10-14T16:04:07.899+08:00"
+      }
+    },
+    "syntheticEffectivenessOnly": true
+  }
+}
