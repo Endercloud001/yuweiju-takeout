@@ -83,6 +83,16 @@ public class Issue17Probe {
     }
     static void seed() {
         LocalDate maximum=jdbc.queryForObject("SELECT MAX(day) FROM (SELECT DATE(MAX(order_time)) AS day FROM orders UNION ALL SELECT MAX(snapshot_date) FROM user_behavior_feature_snapshot UNION ALL SELECT MAX(snapshot_date) FROM dish_timeseries_feature_snapshot UNION ALL SELECT MAX(window_start) FROM dish_heat_prediction_result UNION ALL SELECT MAX(snapshot_date) FROM user_cluster_result) dates",LocalDate.class);
+        try (var priorRuns=Files.list(out.getParent())) {
+            for(var prior:priorRuns.filter(Files::isDirectory).toList()) {
+                Path record=prior.resolve("scenario-results.json");
+                if(!Files.isRegularFile(record))continue;
+                String previous=JSON.readTree(Files.readString(record)).path("targetDate").asText();
+                if(previous.isBlank())continue;
+                LocalDate day=LocalDate.parse(previous);
+                if(maximum==null||day.isAfter(maximum))maximum=day;
+            }
+        } catch(java.io.IOException ex) { throw new IllegalStateException("Unable to audit retained fixture dates",ex); }
         target=(maximum==null||maximum.isBefore(LocalDate.of(2040,1,1))?LocalDate.of(2040,1,1):maximum).plusDays(180);
         require(target.getYear()<9990,"new_target_within_supported_range");
         require(jdbc.queryForObject("SELECT COUNT(*) FROM orders WHERE order_time >= ? AND order_time < ?",Long.class,
@@ -91,7 +101,10 @@ public class Issue17Probe {
         require(count("dish_heat_prediction_result","window_start",target)==0,"new_target_prediction_window");
         evidence.put("targetDate",target.toString());evidence.put("historyWindowStart",target.minusDays(120).toString());evidence.put("historyWindowEndExclusive",target.toString());
         for(int u=0;u<9;u++)users.add(insert("INSERT INTO user(openid,name,phone,sex) VALUES(?,?,?,?)","issue17-"+out.getFileName()+"-"+u,"Synthetic "+u,"00000000000","1"));
-        for(int d=0;d<4;d++)dishes.add(insert("INSERT INTO dish(name,category_id,price,image,status,create_time,update_time,create_user,update_user) VALUES(?,900001,?,'',1,NOW(),NOW(),900001,900001)","Issue17 synthetic "+d,10+d*10));
+        // Retain a synthetic date marker in an existing snapshot row before more fixture writes.
+        // A mid-seed failure then advances the next run instead of reusing its failed window; no new schema/table.
+        jdbc.update("INSERT INTO user_behavior_feature_snapshot(snapshot_date,user_id,rfm_recency_days,rfm_frequency_30d,rfm_monetary_30d,feature_version) VALUES(?,?,9999,0,0,'v1')",target,users.get(0));
+        for(int d=0;d<4;d++)dishes.add(insert("INSERT INTO dish(name,category_id,price,image,status,create_time,update_time,create_user,update_user) VALUES(?,900001,?,'',1,NOW(),NOW(),900001,900001)","I17 "+out.getFileName()+" "+d,10+d*10));
         int orderCount=0;
         for(int day=120;day>=1;day--) for(int u=0;u<9;u++) {
             if((day+u)%(1+u/3)!=0)continue;
