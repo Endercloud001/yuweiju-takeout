@@ -1,0 +1,14 @@
+{
+  "candidate": "44a40d336caa00dd4a293679c5528517ca1e78fe",
+  "checks": [
+    {
+      "scenario": "Actual admin UI received official user WS message",
+      "passed": true
+    },
+    {
+      "scenario": "Actual normal admin UI sent WS reply",
+      "passed": true
+    }
+  ],
+  "passed": true
+}

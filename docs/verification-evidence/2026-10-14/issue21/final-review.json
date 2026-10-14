@@ -1,0 +1,43 @@
+{
+  "candidate": "44a40d336caa00dd4a293679c5528517ca1e78fe",
+  "reviewedAt": "2026-10-14T15:39:28.554831+00:00",
+  "sourceDiff": "one exact approved homepage literal; all executable sources/probes identical to independently verified8e07cc2",
+  "exactPriorIndependentChecksReused": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "freshRemainingChecksPassed": 6,
+  "originalIndependentFailurePreserved": true,
+  "codingAndReviewContainersStopped": true,
+  "trackedWorktreeClean": true,
+  "officialCompiledCurrentHomepageAndCheckoutVerified": true,
+  "historicalReadsSQLUnchanged": true,
+  "syntheticOnlySQLRows": [
+    "974\tissue21-synthetic-history974\t5\t1\t19.00\t1",
+    "1001580\t1791990659278\t5\t1\t21.00\t1",
+    "974\t974\thttp://127.0.0.1:18221/issue21-missing-history.png",
+    "1001586\t1001580"
+  ],
+  "realModelCalls": 1,
+  "readiness": [
+    {
+      "path": "/user/shop/status",
+      "status": 200
+    },
+    {
+      "path": "/admin/employee/page?page=1&pageSize=10",
+      "status": 401
+    },
+    {
+      "path": "/api/user/shoppingCart/list",
+      "status": 401
+    }
+  ],
+  "humanAcceptance": "waiting; genuine second-account isolation and visual comparisons not yet confirmed",
+  "delivery": "not performed"
+}

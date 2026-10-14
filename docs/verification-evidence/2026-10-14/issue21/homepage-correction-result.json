@@ -1,0 +1,20 @@
+{
+  "previousCandidate": "8e07cc2554e1ef472e46bcc1b03cdd3f7303068e",
+  "candidate": "44a40d336caa00dd4a293679c5528517ca1e78fe",
+  "iteration": 2,
+  "mode": "explicitly authorized host literal correction; no supervisor relaunch",
+  "startedAtEpoch": 1791990465.570868,
+  "endedAtEpoch": 1791990491.3036873,
+  "elapsedSeconds": 25.73282217979431,
+  "previousCodingSeconds": 3817.741,
+  "maxCodingSeconds": 4800,
+  "fullPonytail": "reviewed exact one-literal diff, source exception, connected checkout rule and no executable changes; no further simplification; stop ponytail / normal mode",
+  "checks": {
+    "uniqueMatch": true,
+    "byteExactReverse": true,
+    "gitDiffCheck": true,
+    "soleChangedPath": "yuweiju-weixin-miniapp/pages/index/index.wxml"
+  },
+  "reusedChecks": "exact unchanged executable/backend/admin/checkout/history/probe sources from independently passed 8e07cc2; homepage display requires new official compile",
+  "humanAcceptance": "waiting; previous official compile binds previous candidate only"
+}

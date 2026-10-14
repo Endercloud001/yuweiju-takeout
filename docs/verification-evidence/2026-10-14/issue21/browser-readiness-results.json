@@ -1,0 +1,243 @@
+{
+  "candidate": "44a40d336caa00dd4a293679c5528517ca1e78fe",
+  "checks": [
+    {
+      "scenario": "Actual login UI rejects incorrect password",
+      "passed": true
+    },
+    {
+      "scenario": "Actual normal password login UI obtains candidate session",
+      "passed": true
+    },
+    {
+      "scenario": "Actual protected route loads assets: /order",
+      "passed": true,
+      "assets": [
+        {
+          "path": "/assets/medal_activity_40side_10-DiojXTzo.png",
+          "loaded": true
+        },
+        {
+          "path": "/assets/image29-LhOfpgbe.png",
+          "loaded": true
+        },
+        {
+          "path": "/assets/%E5%B7%B2%E5%AE%8C%E6%88%90-hnjGYhAd.svg",
+          "loaded": true
+        },
+        {
+          "path": "/assets/%E5%B7%B2%E5%AE%8C%E6%88%90-hnjGYhAd.svg",
+          "loaded": true
+        },
+        {
+          "path": "/assets/%E5%B7%B2%E5%AE%8C%E6%88%90-hnjGYhAd.svg",
+          "loaded": true
+        },
+        {
+          "path": "/assets/%E5%B7%B2%E5%AE%8C%E6%88%90-hnjGYhAd.svg",
+          "loaded": true
+        },
+        {
+          "path": "/assets/%E5%B7%B2%E5%AE%8C%E6%88%90-hnjGYhAd.svg",
+          "loaded": true
+        },
+        {
+          "path": "/assets/%E5%B7%B2%E5%AE%8C%E6%88%90-hnjGYhAd.svg",
+          "loaded": true
+        },
+        {
+          "path": "/assets/%E5%B7%B2%E5%AE%8C%E6%88%90-hnjGYhAd.svg",
+          "loaded": true
+        },
+        {
+          "path": "/assets/%E5%B7%B2%E5%AE%8C%E6%88%90-hnjGYhAd.svg",
+          "loaded": true
+        },
+        {
+          "path": "/assets/%E5%B7%B2%E5%AE%8C%E6%88%90-hnjGYhAd.svg",
+          "loaded": true
+        },
+        {
+          "path": "/assets/%E5%B7%B2%E5%AE%8C%E6%88%90-hnjGYhAd.svg",
+          "loaded": true
+        }
+      ]
+    },
+    {
+      "scenario": "Actual protected route loads assets: /statistics",
+      "passed": true,
+      "assets": [
+        {
+          "path": "/assets/medal_activity_40side_10-DiojXTzo.png",
+          "loaded": true
+        }
+      ]
+    },
+    {
+      "scenario": "Actual protected route loads assets: /inform",
+      "passed": true,
+      "assets": [
+        {
+          "path": "/assets/medal_activity_40side_10-DiojXTzo.png",
+          "loaded": true
+        },
+        {
+          "path": "/assets/medal_activity_40side_105-CiDcKLxd.png",
+          "loaded": true
+        }
+      ]
+    }
+  ],
+  "pageErrors": [],
+  "networkFailures": [],
+  "requests": [
+    {
+      "path": "/api/admin/employee/login",
+      "method": "POST"
+    },
+    {
+      "path": "/api/admin/employee/login",
+      "method": "POST"
+    },
+    {
+      "path": "/api/admin/order/conditionSearch",
+      "method": "GET"
+    },
+    {
+      "path": "/api/admin/shop/status",
+      "method": "GET"
+    },
+    {
+      "path": "/api/admin/report/turnoverStatistics",
+      "method": "GET"
+    },
+    {
+      "path": "/api/admin/report/userStatistics",
+      "method": "GET"
+    },
+    {
+      "path": "/api/admin/report/ordersStatistics",
+      "method": "GET"
+    },
+    {
+      "path": "/api/admin/report/top10",
+      "method": "GET"
+    },
+    {
+      "path": "/api/admin/analysis/heat",
+      "method": "GET"
+    },
+    {
+      "path": "/api/admin/analysis/clusters",
+      "method": "GET"
+    },
+    {
+      "path": "/api/admin/analysis/metrics/offline",
+      "method": "GET"
+    },
+    {
+      "path": "/api/admin/order-risk/models",
+      "method": "GET"
+    },
+    {
+      "path": "/api/admin/shop/status",
+      "method": "GET"
+    },
+    {
+      "path": "/api/admin/order-risk/replay",
+      "method": "GET"
+    },
+    {
+      "path": "/api/admin/customerService/session/openList",
+      "method": "GET"
+    },
+    {
+      "path": "/api/admin/shop/status",
+      "method": "GET"
+    }
+  ],
+  "responses": [
+    {
+      "path": "/api/admin/employee/login",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/employee/login",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/shop/status",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/order/conditionSearch",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/report/top10",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/analysis/heat",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/analysis/clusters",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/report/turnoverStatistics",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/analysis/metrics/offline",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/shop/status",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/report/userStatistics",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/report/ordersStatistics",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/order-risk/models",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/order-risk/replay",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/shop/status",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/customerService/session/openList",
+      "status": 200
+    }
+  ],
+  "consoleErrors": [],
+  "events": [],
+  "dom": {
+    "buttonHtml": "<button data-v-5ed88201=\"\" class=\"flip-btn\" data-flipped=\"false\"><span data-v-5ed88201=\"\" class=\"flip-face flip-front\">登录</span><span data-v-5ed88201=\"\" class=\"flip-face flip-back\">登录</span></button>",
+    "vue": false,
+    "form": true,
+    "inputs": [
+      {
+        "placeholder": "用户名",
+        "length": 13
+      },
+      {
+        "placeholder": "密码",
+        "length": 24
+      }
+    ]
+  },
+  "passed": true
+}

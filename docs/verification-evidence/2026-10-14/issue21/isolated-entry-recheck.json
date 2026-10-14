@@ -1,0 +1,117 @@
+{
+  "candidate": "44a40d336caa00dd4a293679c5528517ca1e78fe",
+  "host": "issue21-20261014.localhost",
+  "responses": [
+    {
+      "path": "/api/admin/employee/login",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/workspace/businessData",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/workspace/overviewOrders",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/order/statistics",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/workspace/overviewDishes",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/workspace/overviewSetmeals",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/shop/status",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/shop/status",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/order/conditionSearch",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/analysis/heat",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/analysis/clusters",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/report/top10",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/analysis/metrics/offline",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/shop/status",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/order-risk/models",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/report/turnoverStatistics",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/report/userStatistics",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/report/ordersStatistics",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/order-risk/replay",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/shop/status",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/customerService/session/openList",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/customerService/message/list",
+      "status": 200
+    }
+  ],
+  "checks": [
+    {
+      "scenario": "Dedicated host ignores old127.0.0.1 cookie and opens login without401",
+      "passed": true
+    },
+    {
+      "scenario": "Dedicated host normal password login and full dashboard without401",
+      "passed": true
+    },
+    {
+      "scenario": "Protected route remains authenticated /order",
+      "passed": true
+    },
+    {
+      "scenario": "Protected route remains authenticated /statistics",
+      "passed": true
+    },
+    {
+      "scenario": "Protected route remains authenticated /inform",
+      "passed": true
+    }
+  ],
+  "passed": true
+}

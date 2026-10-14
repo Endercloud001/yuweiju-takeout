@@ -1,0 +1,62 @@
+{
+  "repoRoot": "/mnt/e/Learning Files/yuweiju-takeout/.scratch/issue21-afk-20261014/runtime",
+  "gitDirectory": "/mnt/e/Learning Files/yuweiju-takeout/.scratch/issue21-afk-20261014/runtime/.git",
+  "commit": "8e07cc2554e1ef472e46bcc1b03cdd3f7303068e",
+  "distribution": "Ubuntu",
+  "container": "sandcastle-task-review-1791987749195619999",
+  "snapshot": "/mnt/e/Learning Files/yuweiju-takeout/.scratch/issue21-afk-20261014/independent-resume1/task-review-1791987726038809164/snapshot",
+  "authMounted": false,
+  "modelCalled": false,
+  "commands": [
+    "python3 - <<'PY'\nfrom pathlib import Path\nimport zipfile\nroot=Path('/workspace'); target=root/'yuweiju-backend/target/classes'\nwith zipfile.ZipFile(root/'yuweiju-backend/target/proj-boot-1.0-SNAPSHOT.jar') as jar:\n for name in jar.namelist():\n  if name.startswith('BOOT-INF/classes/') and not name.endswith('/'):\n   path=target/name.removeprefix('BOOT-INF/classes/'); path.parent.mkdir(parents=True,exist_ok=True); path.write_bytes(jar.read(name))\nprint('Exact-candidate packaged application classes prepared; source check0 reused')\nPY",
+    "mkdir -p /workspace/.scratch/issue21-independent/tmp /workspace/.scratch/issue21-independent/native-cache; export TMPDIR=/workspace/.scratch/issue21-independent/tmp JAVA_TOOL_OPTIONS=\"-XX:ActiveProcessorCount=2 -Djava.io.tmpdir=/workspace/.scratch/issue21-independent/tmp -Dorg.bytedeco.javacpp.cachedir=/workspace/.scratch/issue21-independent/native-cache\" OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 MKL_NUM_THREADS=2; bash .sandcastle/environment/issue16-check.sh",
+    "mkdir -p /workspace/.scratch/issue21-independent/tmp /workspace/.scratch/issue21-independent/native-cache; export TMPDIR=/workspace/.scratch/issue21-independent/tmp JAVA_TOOL_OPTIONS=\"-XX:ActiveProcessorCount=2 -Djava.io.tmpdir=/workspace/.scratch/issue21-independent/tmp -Dorg.bytedeco.javacpp.cachedir=/workspace/.scratch/issue21-independent/native-cache\" OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 MKL_NUM_THREADS=2; bash .sandcastle/environment/issue17-check.sh /workspace /workspace/.sandcastle/environment",
+    "mkdir -p /workspace/.scratch/issue21-independent/tmp /workspace/.scratch/issue21-independent/native-cache; export TMPDIR=/workspace/.scratch/issue21-independent/tmp JAVA_TOOL_OPTIONS=\"-XX:ActiveProcessorCount=2 -Djava.io.tmpdir=/workspace/.scratch/issue21-independent/tmp -Dorg.bytedeco.javacpp.cachedir=/workspace/.scratch/issue21-independent/native-cache\" OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 MKL_NUM_THREADS=2; bash .sandcastle/environment/issue18-check.sh /workspace /workspace/.sandcastle/environment",
+    "mkdir -p /workspace/.scratch/issue21-independent/tmp /workspace/.scratch/issue21-independent/native-cache; export TMPDIR=/workspace/.scratch/issue21-independent/tmp JAVA_TOOL_OPTIONS=\"-XX:ActiveProcessorCount=2 -Djava.io.tmpdir=/workspace/.scratch/issue21-independent/tmp -Dorg.bytedeco.javacpp.cachedir=/workspace/.scratch/issue21-independent/native-cache\" OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 MKL_NUM_THREADS=2; SANDCASTLE_CANDIDATE_COMMIT=8e07cc2554e1ef472e46bcc1b03cdd3f7303068e bash .sandcastle/environment/issue21-check.sh",
+    "mkdir -p /workspace/.scratch/issue21-independent/tmp /workspace/.scratch/issue21-independent/native-cache; export TMPDIR=/workspace/.scratch/issue21-independent/tmp JAVA_TOOL_OPTIONS=\"-XX:ActiveProcessorCount=2 -Djava.io.tmpdir=/workspace/.scratch/issue21-independent/tmp -Dorg.bytedeco.javacpp.cachedir=/workspace/.scratch/issue21-independent/native-cache\" OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 MKL_NUM_THREADS=2; python3 .agents/skills/yuweiju-afk/scripts/check-doc-links.py --root . 'docs/issue#21-executing-report.md'"
+  ],
+  "image": "sandcastle:yuweiju-issue18-prepared-fixed",
+  "locale": {
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8"
+  },
+  "environmentLog": "/mnt/e/Learning Files/yuweiju-takeout/.scratch/issue21-afk-20261014/independent-resume1/task-review-1791987726038809164/environment.log",
+  "npmCache": "/mnt/e/Learning Files/yuweiju-takeout/.scratch/issue21-afk-20261014/coding/codex-issue21-joint-acceptance-20261014-1791972365328-dependency-cache/npm",
+  "exitCode": 0,
+  "stopped": true,
+  "checks": [
+    {
+      "index": 0,
+      "exitCode": 0,
+      "status": "passed"
+    },
+    {
+      "index": 1,
+      "exitCode": 0,
+      "status": "passed"
+    },
+    {
+      "index": 2,
+      "exitCode": 0,
+      "status": "passed"
+    },
+    {
+      "index": 3,
+      "exitCode": 0,
+      "status": "passed"
+    },
+    {
+      "index": 4,
+      "exitCode": 0,
+      "status": "passed"
+    },
+    {
+      "index": 5,
+      "exitCode": 0,
+      "status": "passed"
+    }
+  ],
+  "verificationMs": 1200000,
+  "independentVerification": "passed",
+  "humanAcceptance": "not-performed"
+}

@@ -1,0 +1,42 @@
+{
+  "checkedAt": "2026-10-14T15:47:17.639558+00:00",
+  "checks": [
+    {
+      "path": "/",
+      "status": 200
+    },
+    {
+      "path": "/login",
+      "status": 200
+    },
+    {
+      "path": "/api/user/shop/status",
+      "status": 200
+    },
+    {
+      "scenario": "Dedicated loopback hostname accepted by admin preview",
+      "status": 200
+    },
+    {
+      "scenario": "Password login through actual loopback admin proxy",
+      "status": 200,
+      "businessCode": 1
+    },
+    {
+      "path": "/api/admin/workspace/businessData",
+      "status": 200,
+      "businessCode": 1
+    },
+    {
+      "path": "/api/admin/workspace/overviewOrders",
+      "status": 200,
+      "businessCode": 1
+    },
+    {
+      "path": "/api/admin/order/conditionSearch?page=1&pageSize=10",
+      "status": 200,
+      "businessCode": 1
+    }
+  ],
+  "passed": true
+}

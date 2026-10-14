@@ -1,0 +1,72 @@
+{
+  "candidate": "44a40d336caa00dd4a293679c5528517ca1e78fe",
+  "checks": [
+    {
+      "scenario": "Actual official AI page http503",
+      "mode": "http503",
+      "newAssistantReplies": 1,
+      "cards": [],
+      "realCalls": 0,
+      "failureReplies": [
+        "当前较繁忙，请稍后重试。"
+      ],
+      "passed": true
+    },
+    {
+      "scenario": "Actual official AI page real",
+      "mode": "real",
+      "newAssistantReplies": 1,
+      "cards": [
+        {
+          "dishId": 900001,
+          "name": "Synthetic"
+        }
+      ],
+      "realCalls": 1,
+      "passed": true,
+      "upstreamStatuses": [
+        200
+      ]
+    }
+  ],
+  "passed": true,
+  "modelStatus": {
+    "mode": "valid",
+    "realCalls": 1,
+    "maxRealCalls": 4,
+    "requests": [
+      {
+        "sequence": 1,
+        "mode": "valid",
+        "started": 1791990975.0011928,
+        "realCall": null,
+        "status": 200,
+        "elapsedMs": 0
+      },
+      {
+        "sequence": 2,
+        "mode": "http503",
+        "started": 1791990975.7804837,
+        "realCall": null,
+        "status": 503,
+        "elapsedMs": 0
+      },
+      {
+        "sequence": 3,
+        "mode": "http503",
+        "started": 1791991102.2899332,
+        "realCall": null,
+        "status": 503,
+        "elapsedMs": 0
+      },
+      {
+        "sequence": 4,
+        "mode": "real",
+        "started": 1791991102.9120588,
+        "realCall": 1,
+        "status": 200,
+        "elapsedMs": 1240
+      }
+    ]
+  }
+}
