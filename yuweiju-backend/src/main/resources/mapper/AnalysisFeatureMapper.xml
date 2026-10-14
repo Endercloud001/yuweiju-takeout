@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.codeying.mapper.AnalysisFeatureMapper">
+    <sql id="completedWindow">o.status = 5 and o.order_time &gt;= #{begin} and o.order_time &lt; #{end}</sql>
+    <select id="buildUserSnapshots" resultType="com.codeying.entity.UserBehaviorFeatureSnapshot">
+        select u.id as user_id, #{date} as snapshot_date,
+               coalesce(datediff(#{date}, a.latest_order), 9999) as rfm_recency_days,
+               coalesce(a.frequency, 0) as rfm_frequency_30d, coalesce(a.monetary, 0) as rfm_monetary_30d,
+               coalesce(round(cast(a.lunch as decimal(20,6)) / nullif(a.frequency, 0), 6), 0) as order_lunch_ratio,
+               coalesce(round(cast(a.dinner as decimal(20,6)) / nullif(a.frequency, 0), 6), 0) as order_dinner_ratio,
+               coalesce(round(cast(a.night as decimal(20,6)) / nullif(a.frequency, 0), 6), 0) as order_night_ratio,
+               coalesce(round(cast(p.low_qty as decimal(20,6)) / nullif(p.total, 0), 6), 0) as price_low_ratio,
+               coalesce(round(cast(p.mid_qty as decimal(20,6)) / nullif(p.total, 0), 6), 0) as price_mid_ratio,
+               coalesce(round(cast(p.high_qty as decimal(20,6)) / nullif(p.total, 0), 6), 0) as price_high_ratio,
+               (select d.category_id from orders o join order_detail od on od.order_id=o.id join dish d on d.id=od.dish_id
+                where <include refid="completedWindow"/> and o.user_id=u.id and d.category_id is not null
+                group by d.category_id order by sum(greatest(coalesce(od.number,1),1)) desc limit 1) as category_pref_top1,
+               (select d.category_id from orders o join order_detail od on od.order_id=o.id join dish d on d.id=od.dish_id
+                where <include refid="completedWindow"/> and o.user_id=u.id and d.category_id is not null
+                group by d.category_id order by sum(greatest(coalesce(od.number,1),1)) desc limit 1 offset 1) as category_pref_top2
+        from user u
+        left join (
+            select o.user_id, count(*) as frequency, sum(coalesce(o.amount,0)) as monetary, max(o.order_time) as latest_order,
+                sum(time(o.order_time) &gt;= '10:00:00' and time(o.order_time) &lt; '15:00:00') as lunch,
+                sum(time(o.order_time) &gt;= '17:00:00' and time(o.order_time) &lt; '22:00:00') as dinner,
+                sum(not ((time(o.order_time) &gt;= '10:00:00' and time(o.order_time) &lt; '15:00:00')
+                    or (time(o.order_time) &gt;= '17:00:00' and time(o.order_time) &lt; '22:00:00'))) as night
+            from orders o where <include refid="completedWindow"/>
+                and exists(select 1 from order_detail od join dish d on d.id=od.dish_id where od.order_id=o.id)
+            group by o.user_id
+        ) a on a.user_id=u.id
+        left join (
+            select o.user_id, sum(greatest(coalesce(od.number,1),1)) as total,
+                sum(if(coalesce(d.price,0) &lt;= #{low}, greatest(coalesce(od.number,1),1),0)) as low_qty,
+                sum(if(coalesce(d.price,0) &gt; #{low} and coalesce(d.price,0) &lt;= #{mid}, greatest(coalesce(od.number,1),1),0)) as mid_qty,
+                sum(if(coalesce(d.price,0) &gt; #{mid}, greatest(coalesce(od.number,1),1),0)) as high_qty
+            from orders o join order_detail od on od.order_id=o.id join dish d on d.id=od.dish_id
+            where <include refid="completedWindow"/> group by o.user_id
+        ) p on p.user_id=u.id order by u.id
+    </select>
+    <select id="buildDishSnapshots" resultType="com.codeying.entity.DishTimeseriesFeatureSnapshot">
+        select d.id as dish_id, d.category_id, coalesce(d.price,0) as price, #{date} as snapshot_date,
+            coalesce(s.qty1,0) as sales_qty_1d, coalesce(s.qty7,0) as sales_qty_7d,
+            coalesce(s.qty30,0) as sales_qty_30d, coalesce(s.decay,0) as decay_sales_30d
+        from dish d left join (
+            select od.dish_id,
+                sum(if(o.order_time &gt;= #{oneDay}, greatest(coalesce(od.number,1),1),0)) as qty1,
+                sum(if(o.order_time &gt;= #{sevenDays}, greatest(coalesce(od.number,1),1),0)) as qty7,
+                sum(greatest(coalesce(od.number,1),1)) as qty30,
+                sum(greatest(coalesce(od.number,1),1) * exp(-#{lambda} * datediff(#{date}, o.order_time))) as decay
+            from orders o join order_detail od on od.order_id=o.id
+            where <include refid="completedWindow"/> group by od.dish_id
+        ) s on s.dish_id=d.id order by d.id
+    </select>
+</mapper>

@@ -27,11 +27,19 @@ http.interceptors.response.use((response) => {
   return response
 })
 
+export class ApiError<T = unknown> extends Error {
+  readonly response: ApiResponse<T>
+  constructor(message: string, response: ApiResponse<T>) {
+    super(message)
+    this.response = response
+  }
+}
+
 export async function request<T>(config: AxiosRequestConfig): Promise<ApiResponse<T>> {
   const response = await http.request<ApiResponse<T>>(config)
   const data = response.data
   if (Number(data.code) !== 1) {
-    throw new Error(data.msg || '请求失败')
+    throw new ApiError(data.msg || '请求失败', data)
   }
   return data
 }

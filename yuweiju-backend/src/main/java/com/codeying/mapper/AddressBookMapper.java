@@ -53,4 +53,6 @@ public interface AddressBookMapper extends BaseMapper<AddressBook> {
         return selectList(new QueryWrapper<AddressBook>().eq("district_name", districtName));
     }
 
+    /** First usable district in the existing owned default/newest order. */
+    AddressBook findRecommendationDistrict(@org.apache.ibatis.annotations.Param("userId") Long userId);
 }

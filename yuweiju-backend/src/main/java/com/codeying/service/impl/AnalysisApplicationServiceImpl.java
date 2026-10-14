@@ -1,6 +1,5 @@
 package com.codeying.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.codeying.constant.RedisKeys;
 import com.codeying.entity.AddressBook;
 import com.codeying.entity.Dish;
@@ -20,6 +19,12 @@ import com.codeying.properties.AnalysisProperties;
 import com.codeying.mapper.AddressBookMapper;
 import com.codeying.service.AiWeatherService;
 import com.codeying.service.AnalysisApplicationService;
+import com.codeying.vo.admin.analysis.AnalysisRun;
+import com.codeying.vo.admin.analysis.AnalysisStage;
+import com.codeying.analysis.HeatModelStore;
+import com.codeying.exception.BusinessException;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
 import com.codeying.service.AnalysisObservationService;
 import com.codeying.service.DishFlavorService;
 import com.codeying.service.DishService;
@@ -93,6 +98,10 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
     private static final float MISSING_VALUE = Float.NaN;
     private static final int HEAT_FEATURE_COUNT = 21;
 
+    private final com.codeying.analysis.HeatFeatures heatFeatures;
+    private final com.codeying.mapper.AnalysisFeatureMapper featureMapper;
+    private final TransactionTemplate transactions;
+    private final HeatModelStore modelStore;
     private final OrdersMapper ordersMapper;
     private final OrderDetailMapper orderDetailMapper;
     private final DishService dishService;
@@ -110,6 +119,10 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
     private final AnalysisObservationService analysisObservationService;
 
     public AnalysisApplicationServiceImpl(
+            com.codeying.analysis.HeatFeatures heatFeatures,
+            com.codeying.mapper.AnalysisFeatureMapper featureMapper,
+            PlatformTransactionManager transactionManager,
+            HeatModelStore modelStore,
             OrdersMapper ordersMapper,
             OrderDetailMapper orderDetailMapper,
             DishService dishService,
@@ -126,6 +139,10 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
             AiWeatherService aiWeatherService,
             AnalysisObservationService analysisObservationService
     ) {
+        this.heatFeatures = heatFeatures;
+        this.featureMapper = featureMapper;
+        this.transactions = new TransactionTemplate(transactionManager);
+        this.modelStore = modelStore;
         this.ordersMapper = ordersMapper;
         this.orderDetailMapper = orderDetailMapper;
         this.dishService = dishService;
@@ -158,131 +175,188 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
                 .collect(Collectors.groupingBy(DishFlavor::getDishId));
 
         AnalysisWindowData window30 = loadWindowData(targetDate, 30);
-        saveUserSnapshots(targetDate, users, flavorMap, window30);
-        saveDishSnapshots(targetDate, dishes, window30);
+        List<DishTimeseriesFeatureSnapshot> dishSnapshots = buildDishSnapshots(targetDate, dishes, window30);
+        transactions.executeWithoutResult(tx -> {
+            saveUserSnapshots(targetDate, users, flavorMap, window30);
+            saveDishSnapshots(targetDate, dishSnapshots);
+        });
 
         log.info("Generate daily snapshots done, snapshotDate={}, userCount={}, dishCount={}", targetDate, users.size(), dishes.size());
     }
 
     @Override
-    public WeeklyTrainingResult runWeeklyTraining(LocalDate snapshotDate) {
-        LocalDate targetDate = normalizeDate(snapshotDate);
-        List<UserBehaviorFeatureSnapshot> snapshots = userBehaviorFeatureSnapshotMapper.selectList(new QueryWrapper<UserBehaviorFeatureSnapshot>()
-                .eq("snapshot_date", targetDate)
-                .eq("feature_version", analysisProperties.getFeatureVersion())
-                .orderByAsc("user_id"));
-        if (snapshots == null || snapshots.isEmpty()) {
-            log.warn("Weekly training skipped: user snapshots are empty, snapshotDate={}", targetDate);
-            return new WeeklyTrainingResult(
-                    targetDate,
-                    false,
-                    0,
-                    0,
-                    null,
-                    false,
-                    "NO_USER_SNAPSHOTS"
-            );
-        }
-
-        KMeansResult kMeansResult = buildKMeansResult(snapshots);
-        Map<Integer, List<Long>> clusterTopDishMap = buildClusterTopDishMap(targetDate, snapshots, kMeansResult.assignments());
-        String modelVersion = buildModelVersion("cluster", targetDate);
-        boolean heatModelTrained = false;
-
-        if (Boolean.TRUE.equals(analysisProperties.getXgboost().getEnabled())) {
-            heatModelTrained = trainHeatModel(targetDate) != null;
-        } else {
-            log.warn("XGBoost is disabled, skip heat model training, snapshotDate={}", targetDate);
-        }
-
-        userClusterResultMapper.delete(new QueryWrapper<UserClusterResult>().eq("snapshot_date", targetDate));
-        for (int i = 0; i < snapshots.size(); i++) {
-            UserBehaviorFeatureSnapshot snapshot = snapshots.get(i);
-            Integer clusterId = kMeansResult.assignments().get(i);
-            List<Long> clusterTopDishIds = clusterTopDishMap.getOrDefault(clusterId, Collections.emptyList());
-
-            UserClusterResult result = new UserClusterResult();
-            result.setSnapshotDate(targetDate);
-            result.setUserId(snapshot.getUserId());
-            result.setClusterId(clusterId);
-            result.setClusterScore(scale(kMeansResult.confidences().get(i), 6));
-            result.setModelVersion(modelVersion);
-            result.setFeatureVersion(analysisProperties.getFeatureVersion());
-            result.setTopnDishJson(writeJson(clusterTopDishIds));
-            userClusterResultMapper.insert(result);
-
-            ClusterCachePayload payload = new ClusterCachePayload(clusterId, clusterTopDishIds);
-            writeCache(
-                    RedisKeys.userClusterKey(snapshot.getUserId()),
-                    writeJson(payload),
-                    analysisProperties.getRedis().getClusterUserTtlHours()
-            );
-        }
-        for (Map.Entry<Integer, List<Long>> entry : clusterTopDishMap.entrySet()) {
-            writeCache(
-                    RedisKeys.clusterTopnKey(entry.getKey()),
-                    writeJson(entry.getValue()),
-                    analysisProperties.getRedis().getClusterTopnTtlHours()
-            );
-        }
-
-        log.info(
-                "Weekly clustering done, snapshotDate={}, modelVersion={}, clusterCount={}, silhouette={}",
-                targetDate,
-                modelVersion,
-                clusterTopDishMap.size(),
-                scale(kMeansResult.silhouette(), 6)
-        );
-        if (kMeansResult.silhouette() < analysisProperties.getValidation().getSilhouetteMin()) {
-            log.warn(
-                    "Clustering quality below threshold, snapshotDate={}, silhouette={}, threshold={}",
-                    targetDate,
-                    scale(kMeansResult.silhouette(), 6),
-                    analysisProperties.getValidation().getSilhouetteMin()
-            );
-        }
-
-        logHeatValidation(targetDate);
-        analysisObservationService.logOnlineObservation(targetDate, resolveCurrentModelVersion(targetDate));
-        return new WeeklyTrainingResult(
-                targetDate,
-                true,
-                snapshots.size(),
-                clusterTopDishMap.size(),
-                modelVersion,
-                heatModelTrained,
-                null
-        );
+    public WeeklyTrainingResult runWeeklyTraining(LocalDate date) {
+        AnalysisRun run = runTrainingUseCase(date);
+        Map<String, Object> data = run.response();
+        return new WeeklyTrainingResult(normalizeDate(date), run.executed(),
+                ((Number) data.getOrDefault("userSnapshotCount", 0)).intValue(),
+                ((Number) data.getOrDefault("clusterCount", 0)).intValue(),
+                (String) data.get("clusterModelVersion"), Boolean.TRUE.equals(data.get("heatModelTrained")),
+                run.executed() ? null : (String) data.get("skipReason"));
     }
 
     @Override
-    public void runDailyPrediction(LocalDate windowStart) {
+    public AnalysisRun runSnapshotUseCase(LocalDate date) {
+        LocalDate target = normalizeDate(date);
+        AnalysisRun run = new AnalysisRun(target);
+        try {
+            generateDailySnapshots(target);
+            long users = userBehaviorFeatureSnapshotMapper.countDaily(target, analysisProperties.getFeatureVersion());
+            long dishes = dishTimeseriesFeatureSnapshotMapper.countDaily(target, analysisProperties.getFeatureVersion());
+            run.add(stage("snapshot", users > 0 && dishes > 0 ? "COMPLETE" : "PARTIAL",
+                    users == 0 ? "NO_USER_SNAPSHOTS" : dishes == 0 ? "NO_DISH_SNAPSHOTS" : null, target.minusDays(30), target.minusDays(1),
+                    Map.of("userSnapshotCount", users, "dishSnapshotCount", dishes, "featureVersion", analysisProperties.getFeatureVersion())));
+        } catch (RuntimeException ex) { run.add(failure("snapshot", target, ex)); }
+        return run;
+    }
+
+    @Override
+    public AnalysisRun runManualTraining(LocalDate date) {
+        LocalDate target = normalizeDate(date);
+        AnalysisRun run = runSnapshotUseCase(target);
+        if (run.stages().stream().anyMatch(s -> "FAILED".equals(s.status()))) {
+            run.executed(false);
+            run.add(stage("training", "SKIPPED", "SNAPSHOT_FAILED", target, target, Map.of()));
+            return run;
+        }
+        AnalysisRun training = runTrainingUseCase(target);
+        training.stages().forEach(run::add);
+        training.response().forEach((key, value) -> { if (!List.of("stages", "status", "message").contains(key)) run.put(key, value); });
+        run.executed(training.executed());
+        if (!training.executed()) {
+            run.add(stage("prediction", "SKIPPED", "TRAINING_NOT_EXECUTED", target, target, Map.of()));
+            return run;
+        }
+        runPredictionUseCase(target).stages().forEach(run::add);
+        return run;
+    }
+
+    @Override
+    public AnalysisRun runTrainingUseCase(LocalDate date) {
+        LocalDate target = normalizeDate(date);
+        AnalysisRun run = new AnalysisRun(target);
+        run.put("heatModelTrained", false);
+        List<UserBehaviorFeatureSnapshot> snapshots;
+        try { snapshots = userBehaviorFeatureSnapshotMapper.findDaily(target, analysisProperties.getFeatureVersion()); }
+        catch (RuntimeException ex) { run.executed(false); run.add(failure("clustering", target, ex)); return run; }
+        run.put("userSnapshotCount", snapshots.size());
+        if (snapshots.isEmpty()) {
+            run.executed(false);
+            run.put("skipReason", "NO_USER_SNAPSHOTS");
+            run.put("clusterCount", 0);
+            run.put("clusterModelVersion", null);
+            run.add(stage("clustering", "SKIPPED", "NO_USER_SNAPSHOTS", target, target, Map.of("userSnapshotCount", 0)));
+            return run;
+        }
+        try {
+            var clusters = com.codeying.analysis.UserClustering.cluster(snapshots, analysisProperties.getClusterCount());
+            Map<Integer, List<Long>> topDishes = buildClusterTopDishMap(target, snapshots, clusters.assignments());
+            String version = buildModelVersion("cluster", target);
+            transactions.executeWithoutResult(tx -> {
+                userClusterResultMapper.deleteDaily(target);
+                for (int i = 0; i < snapshots.size(); i++) {
+                    UserClusterResult result = new UserClusterResult();
+                    result.setSnapshotDate(target); result.setUserId(snapshots.get(i).getUserId());
+                    result.setClusterId(clusters.assignments().get(i)); result.setClusterScore(scale(clusters.confidences().get(i), 6));
+                    result.setModelVersion(version); result.setFeatureVersion(analysisProperties.getFeatureVersion());
+                    result.setTopnDishJson(writeJson(topDishes.getOrDefault(result.getClusterId(), List.of())));
+                    userClusterResultMapper.insert(result);
+                }
+            });
+            run.put("clusterCount", topDishes.size()); run.put("clusterModelVersion", version);
+            run.add(stage("clustering", "COMPLETE", null, target.minusDays(30), target.minusDays(1),
+                    Map.of("userSnapshotCount", snapshots.size(), "clusterRowCount", userClusterResultMapper.countDaily(target),
+                            "clusterCount", topDishes.size(), "modelVersion", version, "silhouette", clusters.silhouette(),
+                            "silhouetteThreshold", analysisProperties.getValidation().getSilhouetteMin(),
+                            "silhouettePassed", clusters.silhouette() >= analysisProperties.getValidation().getSilhouetteMin())));
+            try {
+                for (int i = 0; i < snapshots.size(); i++) {
+                    int cluster = clusters.assignments().get(i);
+                    writeCache(RedisKeys.userClusterKey(snapshots.get(i).getUserId()),
+                            writeJson(new ClusterCachePayload(cluster, topDishes.getOrDefault(cluster, List.of()))),
+                            analysisProperties.getRedis().getClusterUserTtlHours());
+                }
+                for (var entry : topDishes.entrySet()) writeCache(RedisKeys.clusterTopnKey(entry.getKey()),
+                        writeJson(entry.getValue()), analysisProperties.getRedis().getClusterTopnTtlHours());
+                run.add(stage("clusterCache", "COMPLETE", null, target, target, Map.of("cachedUserCount", snapshots.size(), "clusterKeyCount", topDishes.size())));
+            } catch (RuntimeException ex) { run.add(failure("clusterCache", target, ex)); }
+        } catch (RuntimeException ex) {
+            run.executed(false); run.add(failure("clustering", target, ex)); return run;
+        }
+        LocalDate start = target.minusDays(analysisProperties.getTrainingLookbackDays());
+        LocalDate end = target.minusDays(analysisProperties.getPredictionWindowDays());
+        if (!Boolean.TRUE.equals(analysisProperties.getXgboost().getEnabled())) {
+            run.add(stage("heatTraining", "SKIPPED", "XGBOOST_DISABLED", start, end, Map.of()));
+            return run;
+        }
+        try {
+            List<DishTimeseriesFeatureSnapshot> dishes = dishTimeseriesFeatureSnapshotMapper.findDaily(target, analysisProperties.getFeatureVersion());
+            if (dishes.isEmpty()) {
+                run.add(stage("heatTraining", "SKIPPED", "NO_DISH_SNAPSHOTS", start, end, Map.of()));
+                return run;
+            }
+            Booster booster = trainHeatModel(target);
+            if (booster == null) {
+                run.add(stage("heatTraining", "SKIPPED", "INSUFFICIENT_SAMPLES", start, end, Map.of("trainSampleCount", 0)));
+                run.add(stage("validation", "SKIPPED", "NO_NEW_MODEL", start, end, Map.of()));
+                return run;
+            }
+            booster.dispose();
+            Map<String, Object> meta = modelStore.metadata();
+            run.put("heatModelTrained", true);
+            run.add(stage("heatTraining", "COMPLETE", null, start, end, meta));
+            try {
+                Map<String, Object> metrics = logHeatValidation(target);
+                run.add(stage("validation", metrics.isEmpty() ? "SKIPPED" : "COMPLETE", metrics.isEmpty() ? "NO_EVAL_SAMPLES" : null, start, end, metrics));
+            } catch (RuntimeException ex) { run.add(failure("validation", target, ex)); }
+        } catch (RuntimeException ex) { run.add(failure("heatTraining", target, ex)); }
+        return run;
+    }
+
+    private AnalysisStage stage(String name, String status, String reason, LocalDate start, LocalDate end, Map<String, Object> outputs) {
+        return AnalysisStage.of(name, status, reason, start, end, outputs);
+    }
+
+    private AnalysisStage failure(String name, LocalDate date, RuntimeException ex) {
+        // Preserve the full cause in the failure event without serializing/logging unsafe messages.
+        BusinessException cause = ex instanceof BusinessException business ? business : new BusinessException("分析依赖或持久化失败", ex);
+        log.warn("Analysis stage failed, stage={}, date={}, causeType={}", name, date, cause.getCause() == null
+                ? cause.getClass().getSimpleName() : cause.getCause().getClass().getSimpleName());
+        return new AnalysisStage(name, "FAILED", "DEPENDENCY_FAILURE", date, date, Map.of("message", "分析阶段失败，请检查依赖和保留的产物"), cause);
+    }
+
+    @Override
+    public void runDailyPrediction(LocalDate windowStart) { runPredictionUseCase(windowStart); }
+
+    @Override
+    public AnalysisRun runPredictionUseCase(LocalDate windowStart) {
+        LocalDate target = normalizeDate(windowStart);
+        AnalysisRun run = new AnalysisRun(target);
+        run.put("windowStart", target);
+        try { predictDaily(target, run); }
+        catch (RuntimeException ex) { run.add(failure("prediction", target, ex)); }
+        return run;
+    }
+
+    private void predictDaily(LocalDate windowStart, AnalysisRun run) {
         LocalDate targetDate = normalizeDate(windowStart);
         LocalDate windowEnd = targetDate.plusDays(Math.max(1, analysisProperties.getPredictionWindowDays()) - 1L);
-        List<DishTimeseriesFeatureSnapshot> snapshots = dishTimeseriesFeatureSnapshotMapper.selectList(new QueryWrapper<DishTimeseriesFeatureSnapshot>()
-                .eq("snapshot_date", targetDate)
-                .eq("feature_version", analysisProperties.getFeatureVersion()));
+        List<DishTimeseriesFeatureSnapshot> snapshots = dishTimeseriesFeatureSnapshotMapper.findDaily(targetDate, analysisProperties.getFeatureVersion());
         if (snapshots == null || snapshots.isEmpty()) {
-            log.warn("Daily prediction skipped: dish snapshots are empty, windowStart={}", targetDate);
+            run.add(stage("prediction", "SKIPPED", "NO_DISH_SNAPSHOTS", targetDate, windowEnd, Map.of("predictionCount", 0)));
             return;
         }
 
         Map<Long, Dish> dishMap = dishService.list().stream()
                 .filter(dish -> dish != null && dish.getId() != null)
                 .collect(Collectors.toMap(Dish::getId, dish -> dish, (a, b) -> a));
-        Booster heatBooster = loadHeatModel();
+        HeatModelStore.Loaded loaded = modelStore.load();
+        Booster heatBooster = loaded == null ? null : loaded.booster();
+        try {
         Map<Long, Double> categoryMeanMap = buildCategoryMeanMap(snapshots, targetDate, heatBooster);
         double globalMean = categoryMeanMap.values().stream().mapToDouble(Double::doubleValue).average().orElse(1D);
         int smoothingM = Math.max(1, analysisProperties.getColdStart().getBayesianSmoothingM());
-        if (heatBooster == null && Boolean.TRUE.equals(analysisProperties.getXgboost().getEnabled())) {
-            log.warn("Heat model not loaded, fallback to on-demand XGBoost training, windowStart={}", targetDate);
-            heatBooster = trainHeatModel(targetDate);
-        }
-        String modelVersion = resolveHeatModelVersion(targetDate);
-
-        dishHeatPredictionResultMapper.delete(new QueryWrapper<DishHeatPredictionResult>()
-                .eq("window_start", targetDate)
-                .eq("window_end", windowEnd));
+        String modelVersion = loaded == null ? "baseline-" + analysisProperties.getFeatureVersion() : loaded.version();
 
         List<DishHeatPredictionResult> results = new ArrayList<>(snapshots.size());
         for (DishTimeseriesFeatureSnapshot snapshot : snapshots) {
@@ -305,7 +379,7 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
             explain.put("decaySales30d", scale(decimal(snapshot.getDecaySales30d()), 4));
             explain.put("isPromo", valueOrZero(snapshot.getIsPromo()));
             explain.put("weatherCode", snapshot.getWeatherCode());
-            explain.put("longTail", isLongTailSnapshot(snapshot));
+            explain.put("longTail", heatFeatures.isLongTailSnapshot(snapshot));
             explain.put("categoryId", snapshot.getCategoryId());
             Dish dish = dishMap.get(snapshot.getDishId());
             explain.put("dishName", dish == null ? null : dish.getName());
@@ -320,11 +394,19 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
             result.setFeatureVersion(analysisProperties.getFeatureVersion());
             result.setExplainJson(writeJson(explain));
             result.setStatus(1);
-            dishHeatPredictionResultMapper.insert(result);
             results.add(result);
-
+        }
+        transactions.executeWithoutResult(tx -> {
+            dishHeatPredictionResultMapper.deleteWindow(targetDate, windowEnd);
+            for (DishHeatPredictionResult result : results) dishHeatPredictionResultMapper.insert(result);
+        });
+        run.add(stage("prediction", loaded == null ? "PARTIAL" : "COMPLETE", loaded == null ? "NO_MODEL_BASELINE" : null,
+                targetDate, windowEnd, Map.of("predictionCount", dishHeatPredictionResultMapper.countWindow(targetDate, windowEnd),
+                        "dishSnapshotCount", snapshots.size(), "modelVersion", modelVersion, "modelLoaded", loaded != null)));
+        try {
+        for (DishHeatPredictionResult result : results) {
             writeCache(
-                    RedisKeys.dishHeatPredictionKey(targetDate.toString(), snapshot.getDishId()),
+                    RedisKeys.dishHeatPredictionKey(targetDate.toString(), result.getDishId()),
                     writeJson(result),
                     analysisProperties.getRedis().getHeatPredictionTtlHours()
             );
@@ -342,22 +424,20 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
                 analysisProperties.getRedis().getFallbackTtlHours()
         );
 
-        log.info("Daily prediction done, windowStart={}, windowEnd={}, modelVersion={}, resultCount={}",
-                targetDate, windowEnd, modelVersion, results.size());
+        run.add(stage("predictionCache", "COMPLETE", null, targetDate, windowEnd, Map.of("predictionCount", results.size())));
+        } catch (RuntimeException ex) { run.add(failure("predictionCache", targetDate, ex)); }
+        } finally { if (loaded != null) loaded.close(); }
     }
 
     @Override
     public void backfillSnapshots(LocalDate endDate, Integer days) {
         LocalDate targetEndDate = normalizeDate(endDate);
-        int totalDays = days == null || days <= 0 ? analysisProperties.getBackfillDays() : days;
+        int totalDays = days == null ? analysisProperties.getBackfillDays() : days;
+        if (totalDays < 1 || totalDays > 365) throw new BusinessException("回填天数必须在 1 到 365 之间");
         log.info("Backfill snapshots start, endDate={}, days={}", targetEndDate, totalDays);
         for (int i = 0; i < totalDays; i++) {
             LocalDate snapshotDate = targetEndDate.minusDays(i);
-            try {
-                generateDailySnapshots(snapshotDate);
-            } catch (Exception ex) {
-                log.warn("Backfill one day failed, snapshotDate={}, error={}", snapshotDate, ex.getMessage(), ex);
-            }
+            generateDailySnapshots(snapshotDate);
         }
         log.info("Backfill snapshots done, endDate={}, days={}", targetEndDate, totalDays);
     }
@@ -395,11 +475,7 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
     public List<UserClusterResultVO> listUserClusters(LocalDate snapshotDate, Integer limit) {
         LocalDate targetDate = normalizeDate(snapshotDate);
         int size = normalizeLimit(limit);
-        List<UserClusterResult> results = userClusterResultMapper.selectList(new QueryWrapper<UserClusterResult>()
-                .eq("snapshot_date", targetDate)
-                .orderByAsc("cluster_id")
-                .orderByAsc("user_id")
-                .last("limit " + size));
+        List<UserClusterResult> results = userClusterResultMapper.listDaily(targetDate, size);
         if (results == null || results.isEmpty()) {
             return Collections.emptyList();
         }
@@ -452,14 +528,8 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
             return heatResults.stream().map(DishHeatPredictionResult::getDishId).filter(Objects::nonNull).toList();
         }
 
-        AnalysisWindowData windowData = loadWindowData(today, 30);
-        return windowData.contexts().stream()
-                .collect(Collectors.groupingBy(ctx -> ctx.detail().getDishId(), Collectors.summingInt(ctx -> quantity(ctx.detail()))))
-                .entrySet().stream()
-                .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
-                .map(Map.Entry::getKey)
-                .limit(size)
-                .toList();
+        return orderDetailMapper.aggregateAnalysisSales(toDate(today.minusDays(30)), toDate(today), null, null, size)
+                .stream().map(com.codeying.vo.admin.analysis.AnalysisDishSales::getDishId).toList();
     }
 
     @Override
@@ -473,7 +543,7 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
         try {
             return objectMapper.readValue(raw, new TypeReference<Map<String, Object>>() {});
         } catch (Exception ex) {
-            log.warn("Read offline validation metrics failed, snapshotDate={}, error={}", targetDate, ex.getMessage());
+            log.warn("Read offline validation metrics failed, snapshotDate={}, causeType={}", targetDate, ex.getClass().getSimpleName());
             return Collections.emptyMap();
         }
     }
@@ -485,9 +555,7 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
             AnalysisWindowData window30
     ) {
         String featureVersion = analysisProperties.getFeatureVersion();
-        userBehaviorFeatureSnapshotMapper.delete(new QueryWrapper<UserBehaviorFeatureSnapshot>()
-                .eq("snapshot_date", snapshotDate)
-                .eq("feature_version", featureVersion));
+        userBehaviorFeatureSnapshotMapper.deleteDaily(snapshotDate, featureVersion);
 
         Map<Long, UserFeatureAggregation> userAggregationMap = new HashMap<>();
         for (OrderContext context : window30.contexts()) {
@@ -499,34 +567,27 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
             aggregation.consume(context, snapshotDate, flavorMap.getOrDefault(context.detail().getDishId(), Collections.emptyList()));
         }
 
-        for (User user : users) {
-            UserFeatureAggregation aggregation = userAggregationMap.getOrDefault(user.getId(), new UserFeatureAggregation());
-            UserBehaviorFeatureSnapshot snapshot = new UserBehaviorFeatureSnapshot();
-            snapshot.setSnapshotDate(snapshotDate);
-            snapshot.setUserId(user.getId());
-            snapshot.setRfmRecencyDays(aggregation.recencyDays(snapshotDate));
-            snapshot.setRfmFrequency30d(aggregation.orderCount());
-            snapshot.setRfmMonetary30d(scale(aggregation.monetary(), 2));
-            snapshot.setOrderLunchRatio(scale(aggregation.mealRatio(MealPeriod.LUNCH), 4));
-            snapshot.setOrderDinnerRatio(scale(aggregation.mealRatio(MealPeriod.DINNER), 4));
-            snapshot.setOrderNightRatio(scale(aggregation.mealRatio(MealPeriod.NIGHT), 4));
-            snapshot.setPriceLowRatio(scale(aggregation.priceRatio(PriceBand.LOW), 4));
-            snapshot.setPriceMidRatio(scale(aggregation.priceRatio(PriceBand.MID), 4));
-            snapshot.setPriceHighRatio(scale(aggregation.priceRatio(PriceBand.HIGH), 4));
-            snapshot.setCategoryPrefTop1(aggregation.topCategory(0));
-            snapshot.setCategoryPrefTop2(aggregation.topCategory(1));
+        for (UserBehaviorFeatureSnapshot snapshot : featureMapper.buildUserSnapshots(snapshotDate, toDate(snapshotDate.minusDays(30)),
+                toDate(snapshotDate), analysisProperties.getColdStart().getPriceBand().getLowMax(),
+                analysisProperties.getColdStart().getPriceBand().getMidMax())) {
+            UserFeatureAggregation aggregation = userAggregationMap.getOrDefault(snapshot.getUserId(), new UserFeatureAggregation());
+            snapshot.setRfmMonetary30d(scale(snapshot.getRfmMonetary30d(), 2));
+            snapshot.setOrderLunchRatio(scale(snapshot.getOrderLunchRatio(), 4));
+            snapshot.setOrderDinnerRatio(scale(snapshot.getOrderDinnerRatio(), 4));
+            snapshot.setOrderNightRatio(scale(snapshot.getOrderNightRatio(), 4));
+            snapshot.setPriceLowRatio(scale(snapshot.getPriceLowRatio(), 4));
+            snapshot.setPriceMidRatio(scale(snapshot.getPriceMidRatio(), 4));
+            snapshot.setPriceHighRatio(scale(snapshot.getPriceHighRatio(), 4));
             snapshot.setFlavorVectorJson(writeJson(aggregation.flavorVector()));
             snapshot.setFeatureVersion(featureVersion);
             userBehaviorFeatureSnapshotMapper.insert(snapshot);
         }
     }
 
-    private void saveDishSnapshots(LocalDate snapshotDate, List<Dish> dishes, AnalysisWindowData window30) {
+    private void saveDishSnapshots(LocalDate snapshotDate, List<DishTimeseriesFeatureSnapshot> snapshots) {
         String featureVersion = analysisProperties.getFeatureVersion();
-        dishTimeseriesFeatureSnapshotMapper.delete(new QueryWrapper<DishTimeseriesFeatureSnapshot>()
-                .eq("snapshot_date", snapshotDate)
-                .eq("feature_version", featureVersion));
-        for (DishTimeseriesFeatureSnapshot snapshot : buildDishSnapshots(snapshotDate, dishes, window30)) {
+        dishTimeseriesFeatureSnapshotMapper.deleteDaily(snapshotDate, featureVersion);
+        for (DishTimeseriesFeatureSnapshot snapshot : snapshots) {
             dishTimeseriesFeatureSnapshotMapper.insert(snapshot);
         }
     }
@@ -536,29 +597,15 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
             List<Dish> dishes,
             AnalysisWindowData window30
     ) {
-        Map<Long, DishFeatureAggregation> dishAggregationMap = new HashMap<>();
-        for (OrderContext context : window30.contexts()) {
-            Long dishId = context.detail().getDishId();
-            if (dishId == null) {
-                continue;
-            }
-            DishFeatureAggregation aggregation = dishAggregationMap.computeIfAbsent(dishId, ignored -> new DishFeatureAggregation());
-            aggregation.consume(context, snapshotDate, analysisProperties.getDecayLambda());
-        }
-
         String weatherCode = resolveWeatherCode(snapshotDate);
         List<DishTimeseriesFeatureSnapshot> snapshots = new ArrayList<>(dishes.size());
-        for (Dish dish : dishes) {
-            DishFeatureAggregation aggregation = dishAggregationMap.getOrDefault(dish.getId(), new DishFeatureAggregation());
-            DishTimeseriesFeatureSnapshot snapshot = new DishTimeseriesFeatureSnapshot();
-            snapshot.setSnapshotDate(snapshotDate);
-            snapshot.setDishId(dish.getId());
-            snapshot.setCategoryId(dish.getCategoryId());
-            snapshot.setSalesQty1d(aggregation.salesQty1d());
-            snapshot.setSalesQty7d(aggregation.salesQty7d());
-            snapshot.setSalesQty30d(aggregation.salesQty30d());
+        Map<Long, Dish> dishMap = dishes.stream().collect(Collectors.toMap(Dish::getId, dish -> dish));
+        for (DishTimeseriesFeatureSnapshot snapshot : featureMapper.buildDishSnapshots(toDate(snapshotDate.minusDays(30)),
+                toDate(snapshotDate), toDate(snapshotDate.minusDays(1)), toDate(snapshotDate.minusDays(7)),
+                snapshotDate, analysisProperties.getDecayLambda())) {
+            Dish dish = dishMap.get(snapshot.getDishId());
             snapshot.setRefundQty30d(0);
-            snapshot.setDecaySales30d(scale(aggregation.decaySales30d(), 4));
+            snapshot.setDecaySales30d(scale(snapshot.getDecaySales30d(), 4));
             snapshot.setIsHoliday(isWeekend(snapshotDate) ? 1 : 0);
             snapshot.setIsPromo(resolvePromotionFlag(dish, snapshotDate));
             snapshot.setWeatherCode(weatherCode);
@@ -665,27 +712,15 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
             userClusterMap.put(snapshots.get(i).getUserId(), assignments.get(i));
         }
 
-        AnalysisWindowData windowData = loadWindowData(snapshotDate, 30);
-        Map<Integer, Map<Long, Integer>> clusterDishCountMap = new HashMap<>();
-        for (OrderContext context : windowData.contexts()) {
-            Integer clusterId = userClusterMap.get(context.order().getUserId());
-            if (clusterId == null || context.detail().getDishId() == null) {
-                continue;
-            }
-            Map<Long, Integer> dishCountMap = clusterDishCountMap.computeIfAbsent(clusterId, ignored -> new HashMap<>());
-            dishCountMap.merge(context.detail().getDishId(), quantity(context.detail()), Integer::sum);
-        }
-
         List<Long> fallbackDishIds = listRecommendedDishIdsForUser(null, analysisProperties.getColdStart().getTopN());
         Map<Integer, List<Long>> topDishMap = new HashMap<>();
         Set<Integer> clusterIds = new HashSet<>(assignments);
         for (Integer clusterId : clusterIds) {
-            Map<Long, Integer> dishCountMap = clusterDishCountMap.getOrDefault(clusterId, Collections.emptyMap());
-            List<Long> topDishIds = dishCountMap.entrySet().stream()
-                    .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
-                    .map(Map.Entry::getKey)
-                    .limit(Math.max(1, analysisProperties.getColdStart().getTopN()))
-                    .toList();
+            List<Long> userIds = userClusterMap.entrySet().stream().filter(e -> e.getValue().equals(clusterId))
+                    .map(Map.Entry::getKey).toList();
+            List<Long> topDishIds = orderDetailMapper.aggregateAnalysisSales(toDate(snapshotDate.minusDays(30)),
+                    toDate(snapshotDate), userIds, null, Math.max(1, analysisProperties.getColdStart().getTopN()))
+                    .stream().map(com.codeying.vo.admin.analysis.AnalysisDishSales::getDishId).toList();
             if (topDishIds.isEmpty()) {
                 topDishIds = fallbackDishIds;
             }
@@ -694,66 +729,22 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
         return topDishMap;
     }
 
-    private KMeansResult buildKMeansResult(List<UserBehaviorFeatureSnapshot> snapshots) {
-        if (snapshots.size() == 1) {
-            return new KMeansResult(List.of(0), List.of(1D), 0D);
-        }
-
-        double[][] features = new double[snapshots.size()][];
-        for (int i = 0; i < snapshots.size(); i++) {
-            UserBehaviorFeatureSnapshot snapshot = snapshots.get(i);
-            features[i] = new double[]{
-                    valueOrZero(snapshot.getRfmRecencyDays()),
-                    valueOrZero(snapshot.getRfmFrequency30d()),
-                    decimal(snapshot.getRfmMonetary30d()),
-                    decimal(snapshot.getOrderLunchRatio()),
-                    decimal(snapshot.getOrderDinnerRatio()),
-                    decimal(snapshot.getOrderNightRatio()),
-                    decimal(snapshot.getPriceLowRatio()),
-                    decimal(snapshot.getPriceMidRatio()),
-                    decimal(snapshot.getPriceHighRatio())
-            };
-        }
-
-        double[][] normalized = zScore(features);
-        int k = Math.max(1, Math.min(analysisProperties.getClusterCount(), normalized.length));
-        List<double[]> centroids = initCentroids(normalized, k);
-        int[] assignments = new int[normalized.length];
-        for (int i = 0; i < assignments.length; i++) {
-            assignments[i] = -1;
-        }
-
-        boolean changed = true;
-        for (int iteration = 0; iteration < 30 && changed; iteration++) {
-            changed = assignClusters(normalized, centroids, assignments);
-            recomputeCentroids(normalized, centroids, assignments, k);
-        }
-
-        List<Integer> assignmentList = new ArrayList<>(assignments.length);
-        List<Double> confidences = new ArrayList<>(assignments.length);
-        for (int i = 0; i < assignments.length; i++) {
-            int clusterId = assignments[i];
-            assignmentList.add(clusterId);
-            confidences.add(1D / (1D + euclideanDistance(normalized[i], centroids.get(clusterId))));
-        }
-        double silhouette = silhouetteScore(normalized, assignments, k);
-        return new KMeansResult(assignmentList, confidences, silhouette);
-    }
-
-    private void logHeatValidation(LocalDate snapshotDate) {
+    private Map<String, Object> logHeatValidation(LocalDate snapshotDate) {
         HeatDataset dataset = buildHeatDataset(snapshotDate);
         HeatDatasetSplit split = splitHeatDataset(dataset);
         if (split.evalSamples().isEmpty()) {
             log.warn("Heat validation skipped: no eval samples, snapshotDate={}", snapshotDate);
-            return;
+            return Map.of();
         }
 
-        Booster booster = loadHeatModel();
+        HeatModelStore.Loaded loaded = modelStore.load();
+        Booster booster = loaded == null ? null : loaded.booster();
         if (booster == null) {
             log.warn("Heat validation skipped: model not found, snapshotDate={}", snapshotDate);
-            return;
+            return Map.of();
         }
 
+        try {
         double squaredError = 0D;
         double absoluteError = 0D;
         double averageActual = 0D;
@@ -768,7 +759,7 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
         }
         if (sampleCount == 0) {
             log.warn("Heat validation skipped: sampleCount is 0, snapshotDate={}", snapshotDate);
-            return;
+            return Map.of();
         }
 
         double rmse = Math.sqrt(squaredError / sampleCount);
@@ -797,6 +788,9 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
 
         Map<String, Object> metrics = new LinkedHashMap<>();
         metrics.put("snapshotDate", snapshotDate.toString());
+        metrics.put("modelVersion", loaded.version());
+        metrics.put("evalWindowStart", split.evalSamples().get(0).snapshotDate().toString());
+        metrics.put("evalWindowEnd", split.evalSamples().get(split.evalSamples().size() - 1).snapshotDate().toString());
         metrics.put("sampleCount", sampleCount);
         metrics.put("averageWindowSales", scale(averageWindowSales, 4));
         metrics.put("rmse", scale(rmse, 4));
@@ -808,76 +802,11 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
         metrics.put("rmsePass", rmseRatio <= analysisProperties.getValidation().getRmseRatioThreshold());
         metrics.put("maePass", maeRatio <= analysisProperties.getValidation().getMaeRatioThreshold());
         writeCache(RedisKeys.analysisOfflineValidationKey(snapshotDate.toString()), writeJson(metrics), 240);
+        return metrics;
+        } finally { loaded.close(); }
     }
-    private boolean shouldKeepHeatSample(DishTimeseriesFeatureSnapshot snapshot, LocalDate sampleDate, int label) {
-        if (snapshot == null || sampleDate == null) {
-            return false;
-        }
-        boolean zeroFuture = label <= 0;
-        boolean zeroHistory = valueOrZero(snapshot.getSalesQty30d()) <= analysisProperties.getXgboost().getLongTailSalesThreshold();
-        boolean neutralContext = valueOrZero(snapshot.getIsPromo()) == 0
-                && valueOrZero(snapshot.getIsHoliday()) == 0
-                && isNeutralWeather(snapshot.getWeatherCode());
-        if (!(zeroFuture && zeroHistory && neutralContext)) {
-            return true;
-        }
-        int hash = Objects.hash(sampleDate, snapshot.getDishId(), snapshot.getCategoryId());
-        double bucket = Math.floorMod(hash, 10_000) / 10_000D;
-        return bucket < analysisProperties.getXgboost().getZeroLabelKeepRate();
-    }
-
-    private float resolveHeatSampleWeight(DishTimeseriesFeatureSnapshot snapshot, int label) {
-        double weight = 1D;
-        if (!isLongTailSnapshot(snapshot) || label > analysisProperties.getXgboost().getLongTailSalesThreshold()) {
-            weight *= analysisProperties.getXgboost().getActiveSampleWeight();
-        }
-        if (valueOrZero(snapshot.getIsPromo()) == 1) {
-            weight *= analysisProperties.getXgboost().getPromoSampleWeight();
-        }
-        if (isSevereWeather(snapshot.getWeatherCode())) {
-            weight *= analysisProperties.getXgboost().getSevereWeatherSampleWeight();
-        }
-        return (float) Math.max(weight, 0.1D);
-    }
-
-    private boolean isLongTailSnapshot(DishTimeseriesFeatureSnapshot snapshot) {
-        return snapshot == null || valueOrZero(snapshot.getSalesQty30d()) <= analysisProperties.getXgboost().getLongTailSalesThreshold();
-    }
-
-    private boolean isNeutralWeather(String weatherCode) {
-        String normalizedWeatherCode = normalizeWeatherCode(weatherCode);
-        return Objects.equals(DEFAULT_WEATHER_CODE, normalizedWeatherCode) || Objects.equals("CLEAR", normalizedWeatherCode);
-    }
-
-    private boolean isSevereWeather(String weatherCode) {
-        String normalizedWeatherCode = normalizeWeatherCode(weatherCode);
-        return Objects.equals("RAIN", normalizedWeatherCode)
-                || Objects.equals("SNOW", normalizedWeatherCode)
-                || Objects.equals("THUNDER", normalizedWeatherCode)
-                || Objects.equals("WIND", normalizedWeatherCode);
-    }
-
-    private float transformHeatLabel(float rawLabel) {
-        if (!Boolean.TRUE.equals(analysisProperties.getXgboost().getEnableLogLabel())) {
-            return Math.max(rawLabel, 0F);
-        }
-        return (float) Math.log1p(Math.max(rawLabel, 0F));
-    }
-
-    private double restoreHeatLabel(float predictedLabel) {
-        double safeValue = Math.max(predictedLabel, 0F);
-        if (!Boolean.TRUE.equals(analysisProperties.getXgboost().getEnableLogLabel())) {
-            return safeValue;
-        }
-        return Math.max(Math.expm1(safeValue), 0D);
-    }
-
     private String resolveCurrentModelVersion(LocalDate snapshotDate) {
-        DishHeatPredictionResult result = dishHeatPredictionResultMapper.selectOne(new QueryWrapper<DishHeatPredictionResult>()
-                .eq("window_start", normalizeDate(snapshotDate))
-                .eq("status", 1)
-                .orderByDesc("id")
-                .last("limit 1"));
+        DishHeatPredictionResult result = dishHeatPredictionResultMapper.findLatestActive(normalizeDate(snapshotDate));
         if (result == null || !StringUtils.hasText(result.getModelVersion())) {
             return "unknown";
         }
@@ -907,35 +836,15 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
     }
 
     private List<Long> listDistrictHotDishIds(Long userId, Integer limit) {
-        List<AddressBook> userAddresses = addressBookMapper.findByUser(userId);
-        if (userAddresses == null || userAddresses.isEmpty()) {
-            return Collections.emptyList();
-        }
-        AddressBook targetAddress = userAddresses.stream()
-                .filter(address -> StringUtils.hasText(address.getDistrictName()))
-                .findFirst()
-                .orElse(null);
+        AddressBook targetAddress = addressBookMapper.findRecommendationDistrict(userId);
         if (targetAddress == null) {
             return Collections.emptyList();
         }
 
-        Map<Long, AddressBook> addressMap = addressBookMapper.listByDistrict(targetAddress.getDistrictName()).stream()
-                .filter(address -> address != null && address.getId() != null)
-                .collect(Collectors.toMap(AddressBook::getId, address -> address, (a, b) -> a));
-        AnalysisWindowData windowData = loadWindowData(LocalDate.now(APP_ZONE), 30);
-        Map<Long, Integer> hotDishMap = new HashMap<>();
-        for (OrderContext context : windowData.contexts()) {
-            AddressBook address = addressMap.get(context.order().getAddressBookId());
-            if (address == null || !Objects.equals(targetAddress.getDistrictName(), address.getDistrictName())) {
-                continue;
-            }
-            hotDishMap.merge(context.detail().getDishId(), quantity(context.detail()), Integer::sum);
-        }
-        return hotDishMap.entrySet().stream()
-                .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
-                .map(Map.Entry::getKey)
-                .limit(limit)
-                .toList();
+        LocalDate today = LocalDate.now(APP_ZONE);
+        return orderDetailMapper.aggregateAnalysisSales(toDate(today.minusDays(30)), toDate(today), null,
+                targetAddress.getDistrictName(), limit).stream()
+                .map(com.codeying.vo.admin.analysis.AnalysisDishSales::getDishId).toList();
     }
 
     private Map<Long, Double> buildCategoryMeanMap(
@@ -960,6 +869,9 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
     }
 
     private Booster trainHeatModel(LocalDate snapshotDate) {
+        // With no observed completed dish history, retained synthetic zero labels cannot establish training readiness.
+        if (orderDetailMapper.aggregateAnalysisSales(toDate(snapshotDate.minusDays(analysisProperties.getTrainingLookbackDays() + 30L)),
+                toDate(snapshotDate), null, null, null).isEmpty()) return null;
         HeatDataset dataset = buildHeatDataset(snapshotDate);
         HeatDatasetSplit split = splitHeatDataset(dataset);
         if (split.trainSamples().isEmpty()) {
@@ -967,8 +879,12 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
             return null;
         }
 
+        List<DMatrix> matrices = new ArrayList<>();
+        Booster trained = null;
+        boolean saved = false;
         try {
             DMatrix trainMatrix = toDMatrix(split.trainSamples(), true);
+            matrices.add(trainMatrix);
             Map<String, Object> params = new HashMap<>();
             params.put("objective", "reg:squarederror");
             params.put("eval_metric", "rmse");
@@ -983,7 +899,9 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
             Map<String, DMatrix> watches = new LinkedHashMap<>();
             watches.put("train", trainMatrix);
             if (!split.evalSamples().isEmpty()) {
-                watches.put("eval", toDMatrix(split.evalSamples(), true));
+                DMatrix evalMatrix = toDMatrix(split.evalSamples(), true);
+                matrices.add(evalMatrix);
+                watches.put("eval", evalMatrix);
             }
 
             Booster booster = XGBoost.train(
@@ -995,10 +913,7 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
                     null
             );
 
-            Files.createDirectories(getHeatModelDirectory());
-            Path modelPath = getHeatModelPath();
-            booster.saveModel(modelPath.toString());
-
+            trained = booster;
             String modelVersion = buildModelVersion("heat-xgb", snapshotDate);
             Map<String, Object> meta = new LinkedHashMap<>();
             meta.put("modelVersion", modelVersion);
@@ -1010,14 +925,17 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
             meta.put("longTailSalesThreshold", analysisProperties.getXgboost().getLongTailSalesThreshold());
             meta.put("zeroLabelKeepRate", analysisProperties.getXgboost().getZeroLabelKeepRate());
             meta.put("enableLogLabel", analysisProperties.getXgboost().getEnableLogLabel());
-            Files.writeString(getHeatModelMetaPath(), writeJson(meta));
+            modelStore.save(booster, meta);
 
             log.info("XGBoost heat training done, snapshotDate={}, modelVersion={}, trainSamples={}, evalSamples={}, modelPath={}",
-                    snapshotDate, modelVersion, split.trainSamples().size(), split.evalSamples().size(), modelPath);
+                    snapshotDate, modelVersion, split.trainSamples().size(), split.evalSamples().size(), modelStore.metadata().get("modelFile"));
+            saved = true;
             return booster;
-        } catch (IOException | XGBoostError ex) {
-            log.error("XGBoost heat training failed, snapshotDate={}, error={}", snapshotDate, ex.getMessage(), ex);
-            return null;
+        } catch (XGBoostError ex) {
+            throw new BusinessException("热度模型训练失败", ex);
+        } finally {
+            matrices.forEach(DMatrix::dispose);
+            if (!saved && trained != null) trained.dispose();
         }
     }
 
@@ -1043,15 +961,15 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
             Map<Long, Integer> futureSalesMap = loadDishWindowSales(sampleDate, predictionWindowDays);
             for (DishTimeseriesFeatureSnapshot snapshot : snapshots) {
                 int label = futureSalesMap.getOrDefault(snapshot.getDishId(), 0);
-                if (!shouldKeepHeatSample(snapshot, sampleDate, label)) {
+                if (!heatFeatures.shouldKeepHeatSample(snapshot, sampleDate, label)) {
                     continue;
                 }
                 samples.add(new HeatTrainingSample(
                         sampleDate,
                         snapshot.getDishId(),
-                        toHeatFeatures(snapshot, sampleDate),
+                        heatFeatures.toHeatFeatures(snapshot, sampleDate),
                         label,
-                        resolveHeatSampleWeight(snapshot, label)
+                        heatFeatures.resolveHeatSampleWeight(snapshot, label)
                 ));
             }
         }
@@ -1089,16 +1007,10 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
     }
 
     private Map<Long, Integer> loadDishWindowSales(LocalDate windowStart, int windowDays) {
-        AnalysisWindowData windowData = loadWindowData(windowStart.plusDays(windowDays), windowDays);
-        Map<Long, Integer> salesMap = new HashMap<>();
-        for (OrderContext context : windowData.contexts()) {
-            Long dishId = context.detail().getDishId();
-            if (dishId == null) {
-                continue;
-            }
-            salesMap.merge(dishId, quantity(context.detail()), Integer::sum);
-        }
-        return salesMap;
+        return orderDetailMapper.aggregateAnalysisSales(toDate(windowStart), toDate(windowStart.plusDays(windowDays)),
+                null, null, null).stream().collect(Collectors.toMap(
+                com.codeying.vo.admin.analysis.AnalysisDishSales::getDishId,
+                com.codeying.vo.admin.analysis.AnalysisDishSales::getQuantity));
     }
 
     private DMatrix toDMatrix(List<HeatTrainingSample> samples, boolean withLabel) throws XGBoostError {
@@ -1111,281 +1023,42 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
             System.arraycopy(sample.features(), 0, data, offset, sample.features().length);
             offset += sample.features().length;
             if (withLabel) {
-                labels[index] = transformHeatLabel(sample.label());
+                labels[index] = heatFeatures.transformHeatLabel(sample.label());
                 weights[index] = sample.sampleWeight();
             }
         }
         DMatrix matrix = new DMatrix(data, samples.size(), HEAT_FEATURE_COUNT, MISSING_VALUE);
-        if (withLabel) {
-            matrix.setLabel(labels);
-            matrix.setWeight(weights);
+        try {
+            if (withLabel) {
+                matrix.setLabel(labels);
+                matrix.setWeight(weights);
+            }
+            return matrix;
+        } catch (XGBoostError | RuntimeException ex) {
+            matrix.dispose();
+            throw ex;
         }
-        return matrix;
     }
 
     private double predictWindowSales(DishTimeseriesFeatureSnapshot snapshot, LocalDate targetDate, Booster booster) {
-        return predictWindowSales(toHeatFeatures(snapshot, targetDate), booster);
+        return predictWindowSales(heatFeatures.toHeatFeatures(snapshot, targetDate), booster);
     }
 
     private double predictWindowSales(float[] features, Booster booster) {
         if (booster == null) {
-            return forecastWindowSalesBaseline(features[0], features[1], features[2], features[3], (int) features[17]);
+            return heatFeatures.forecastWindowSalesBaseline(features[0], features[1], features[2], features[3], (int) features[17]);
         }
+        DMatrix matrix = null;
         try {
-            DMatrix matrix = new DMatrix(features, 1, HEAT_FEATURE_COUNT, MISSING_VALUE);
+            matrix = new DMatrix(features, 1, HEAT_FEATURE_COUNT, MISSING_VALUE);
             float[][] predicted = booster.predict(matrix);
-            if (predicted.length == 0 || predicted[0].length == 0) {
-                return 0D;
+            if (predicted.length == 0 || predicted[0].length == 0 || !Float.isFinite(predicted[0][0])) {
+                throw new BusinessException("热度模型返回无效预测");
             }
-            return restoreHeatLabel(predicted[0][0]);
+            return heatFeatures.restoreHeatLabel(predicted[0][0]);
         } catch (XGBoostError ex) {
-            log.warn("XGBoost inference failed, fallback to baseline, error={}", ex.getMessage());
-            return forecastWindowSalesBaseline(features[0], features[1], features[2], features[3], (int) features[17]);
-        }
-    }
-
-    private float[] toHeatFeatures(DishTimeseriesFeatureSnapshot snapshot, LocalDate targetDate) {
-        float sales1d = snapshot.getSalesQty1d() == null ? 0F : snapshot.getSalesQty1d();
-        float sales7d = snapshot.getSalesQty7d() == null ? 0F : snapshot.getSalesQty7d();
-        float sales30d = snapshot.getSalesQty30d() == null ? 0F : snapshot.getSalesQty30d();
-        float decaySales30d = snapshot.getDecaySales30d() == null ? 0F : snapshot.getDecaySales30d().floatValue();
-        float avgSales7d = sales7d / 7F;
-        float avgSales30d = sales30d / 30F;
-        float salesMomentum = avgSales7d - avgSales30d;
-        float[] weatherFeatures = encodeWeatherFeatures(snapshot.getWeatherCode());
-        float promoFlag = snapshot.getIsPromo() == null ? 0F : snapshot.getIsPromo();
-        float longTailFlag = isLongTailSnapshot(snapshot) ? 1F : 0F;
-        return new float[]{
-                sales1d,
-                sales7d,
-                sales30d,
-                decaySales30d,
-                avgSales7d,
-                avgSales30d,
-                salesMomentum,
-                snapshot.getPrice() == null ? 0F : snapshot.getPrice().floatValue(),
-                snapshot.getIsHoliday() == null ? 0F : snapshot.getIsHoliday(),
-                promoFlag,
-                promoFlag * Math.max(avgSales7d, 1F),
-                weatherFeatures[0],
-                weatherFeatures[1],
-                weatherFeatures[2],
-                weatherFeatures[3],
-                weatherFeatures[4],
-                targetDate == null ? 0F : targetDate.getDayOfWeek().getValue(),
-                isWeekend(targetDate) ? 1F : 0F,
-                Math.max(1, analysisProperties.getPredictionWindowDays()),
-                snapshot.getCategoryId() == null ? 0F : snapshot.getCategoryId().floatValue(),
-                longTailFlag
-        };
-    }
-
-    private float[] encodeWeatherFeatures(String weatherCode) {
-        String normalizedWeatherCode = normalizeWeatherCode(weatherCode);
-        return switch (normalizedWeatherCode) {
-            case "CLOUDY", "OVERCAST", "FOG" -> new float[]{0F, 1F, 0F, 0F, 0.25F};
-            case "RAIN", "SNOW" -> new float[]{0F, 0F, 1F, 0F, 0.65F};
-            case "WIND", "THUNDER" -> new float[]{0F, 0F, 0F, 1F, 1F};
-            default -> new float[]{1F, 0F, 0F, 0F, 0F};
-        };
-    }
-
-    private String normalizeWeatherCode(String weatherCode) {
-        if (!StringUtils.hasText(weatherCode)) {
-            return DEFAULT_WEATHER_CODE;
-        }
-        return weatherCode.trim().toUpperCase(Locale.ROOT);
-    }
-
-    private Booster loadHeatModel() {
-        Path modelPath = getHeatModelPath();
-        if (!Files.exists(modelPath)) {
-            return null;
-        }
-        try {
-            return XGBoost.loadModel(modelPath.toString());
-        } catch (XGBoostError ex) {
-            log.warn("Load XGBoost model failed, path={}, error={}", modelPath, ex.getMessage());
-            return null;
-        }
-    }
-
-    private String resolveHeatModelVersion(LocalDate targetDate) {
-        Path metaPath = getHeatModelMetaPath();
-        if (Files.exists(metaPath)) {
-            try {
-                Map<String, Object> meta = objectMapper.readValue(Files.readString(metaPath), new TypeReference<Map<String, Object>>() {});
-                Object modelVersion = meta.get("modelVersion");
-                if (modelVersion instanceof String value && StringUtils.hasText(value)) {
-                    return value;
-                }
-            } catch (Exception ex) {
-                log.warn("Read XGBoost metadata failed, path={}, error={}", metaPath, ex.getMessage());
-            }
-        }
-        return buildModelVersion("heat-xgb", targetDate);
-    }
-
-    private Path getHeatModelDirectory() {
-        return Paths.get(analysisProperties.getXgboost().getModelDir()).normalize();
-    }
-
-    private Path getHeatModelPath() {
-        return getHeatModelDirectory().resolve("dish-heat-xgboost.json");
-    }
-
-    private Path getHeatModelMetaPath() {
-        return getHeatModelDirectory().resolve("dish-heat-xgboost.meta.json");
-    }
-
-    private double forecastWindowSalesBaseline(DishTimeseriesFeatureSnapshot snapshot, LocalDate targetDate) {
-        return forecastWindowSalesBaseline(
-                snapshot.getSalesQty1d() == null ? 0F : snapshot.getSalesQty1d(),
-                snapshot.getSalesQty7d() == null ? 0F : snapshot.getSalesQty7d(),
-                snapshot.getSalesQty30d() == null ? 0F : snapshot.getSalesQty30d(),
-                snapshot.getDecaySales30d() == null ? 0F : snapshot.getDecaySales30d().floatValue(),
-                isWeekend(targetDate) ? 1 : 0
-        );
-    }
-
-    private double forecastWindowSalesBaseline(float sales1d, float sales7dValue, float sales30dValue, float decay30d, int weekendFlag) {
-        double sales7d = sales7dValue / 7D;
-        double sales30d = sales30dValue / 30D;
-        double decay = decay30d / 30D;
-        double weekendBoost = weekendFlag == 1 ? 1.10D : 1D;
-        double dailyForecast = ((sales1d * 0.25D) + (sales7d * 0.45D) + (sales30d * 0.20D) + (decay * 0.10D)) * weekendBoost;
-        return Math.max(dailyForecast * Math.max(1, analysisProperties.getPredictionWindowDays()), 0D);
-    }
-
-    private double[][] zScore(double[][] values) {
-        int rowCount = values.length;
-        int colCount = values[0].length;
-        double[][] normalized = new double[rowCount][colCount];
-        double[] means = new double[colCount];
-        double[] stds = new double[colCount];
-
-        for (int col = 0; col < colCount; col++) {
-            double sum = 0D;
-            for (double[] value : values) {
-                sum += value[col];
-            }
-            means[col] = sum / rowCount;
-
-            double varianceSum = 0D;
-            for (double[] value : values) {
-                varianceSum += Math.pow(value[col] - means[col], 2);
-            }
-            stds[col] = Math.sqrt(varianceSum / rowCount);
-            if (stds[col] == 0D) {
-                stds[col] = 1D;
-            }
-        }
-
-        for (int row = 0; row < rowCount; row++) {
-            for (int col = 0; col < colCount; col++) {
-                normalized[row][col] = (values[row][col] - means[col]) / stds[col];
-            }
-        }
-        return normalized;
-    }
-
-    private List<double[]> initCentroids(double[][] values, int k) {
-        List<double[]> centroids = new ArrayList<>(k);
-        for (int i = 0; i < k; i++) {
-            centroids.add(values[i % values.length].clone());
-        }
-        return centroids;
-    }
-
-    private boolean assignClusters(double[][] values, List<double[]> centroids, int[] assignments) {
-        boolean changed = false;
-        for (int i = 0; i < values.length; i++) {
-            double minDistance = Double.MAX_VALUE;
-            int bestCluster = 0;
-            for (int clusterId = 0; clusterId < centroids.size(); clusterId++) {
-                double distance = euclideanDistance(values[i], centroids.get(clusterId));
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    bestCluster = clusterId;
-                }
-            }
-            if (assignments[i] != bestCluster) {
-                assignments[i] = bestCluster;
-                changed = true;
-            }
-        }
-        return changed;
-    }
-
-    private void recomputeCentroids(double[][] values, List<double[]> centroids, int[] assignments, int k) {
-        int dimensions = values[0].length;
-        double[][] sums = new double[k][dimensions];
-        int[] counts = new int[k];
-        for (int i = 0; i < values.length; i++) {
-            int clusterId = assignments[i];
-            counts[clusterId]++;
-            for (int col = 0; col < dimensions; col++) {
-                sums[clusterId][col] += values[i][col];
-            }
-        }
-
-        for (int clusterId = 0; clusterId < k; clusterId++) {
-            if (counts[clusterId] == 0) {
-                centroids.set(clusterId, values[ThreadLocalRandom.current().nextInt(values.length)].clone());
-                continue;
-            }
-            double[] centroid = new double[dimensions];
-            for (int col = 0; col < dimensions; col++) {
-                centroid[col] = sums[clusterId][col] / counts[clusterId];
-            }
-            centroids.set(clusterId, centroid);
-        }
-    }
-
-    private double silhouetteScore(double[][] values, int[] assignments, int k) {
-        if (values.length <= 1 || k <= 1) {
-            return 0D;
-        }
-        double totalScore = 0D;
-        for (int i = 0; i < values.length; i++) {
-            int ownCluster = assignments[i];
-            double a = averageDistance(values, assignments, i, ownCluster);
-            double b = Double.MAX_VALUE;
-            for (int clusterId = 0; clusterId < k; clusterId++) {
-                if (clusterId == ownCluster) {
-                    continue;
-                }
-                b = Math.min(b, averageDistance(values, assignments, i, clusterId));
-            }
-            if (b == Double.MAX_VALUE) {
-                totalScore += 0D;
-                continue;
-            }
-            double max = Math.max(a, b);
-            totalScore += max == 0D ? 0D : (b - a) / max;
-        }
-        return totalScore / values.length;
-    }
-
-    private double averageDistance(double[][] values, int[] assignments, int index, int clusterId) {
-        double sum = 0D;
-        int count = 0;
-        for (int i = 0; i < values.length; i++) {
-            if (i == index || assignments[i] != clusterId) {
-                continue;
-            }
-            sum += euclideanDistance(values[index], values[i]);
-            count++;
-        }
-        return count == 0 ? 0D : sum / count;
-    }
-
-    private double euclideanDistance(double[] left, double[] right) {
-        double sum = 0D;
-        for (int i = 0; i < left.length; i++) {
-            sum += Math.pow(left[i] - right[i], 2);
-        }
-        return Math.sqrt(sum);
+            throw new BusinessException("热度预测失败", ex);
+        } finally { if (matrix != null) matrix.dispose(); }
     }
 
     private String buildModelVersion(String module, LocalDate date) {
@@ -1406,7 +1079,7 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
         try {
             return objectMapper.readValue(json, new TypeReference<List<Long>>() {});
         } catch (Exception ex) {
-            log.warn("Parse Long list failed, error={}", ex.getMessage());
+            log.warn("Parse Long list failed, causeType={}", ex.getClass().getSimpleName());
             return Collections.emptyList();
         }
     }
@@ -1415,8 +1088,7 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
         try {
             return objectMapper.writeValueAsString(value);
         } catch (Exception ex) {
-            log.warn("Serialize JSON failed, error={}", ex.getMessage());
-            return "[]";
+            throw new BusinessException("分析结果序列化失败", ex);
         }
     }
 
@@ -1428,7 +1100,9 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
     }
 
     private LocalDate normalizeDate(LocalDate date) {
-        return date == null ? LocalDate.now(APP_ZONE) : date;
+        LocalDate target = date == null ? LocalDate.now(APP_ZONE) : date;
+        if (target.getYear() < 1000 || target.getYear() > 9998) throw new BusinessException("分析日期超出支持范围");
+        return target;
     }
 
     private Date toDate(LocalDate date) {
@@ -1472,27 +1146,10 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
         return value.setScale(scale, RoundingMode.HALF_UP);
     }
 
-    private enum MealPeriod {
-        /** LUNCH enum item. */
-        LUNCH,
-        /** DINNER enum item. */
-        DINNER,
-        NIGHT
-    }
-
-    private enum PriceBand {
-        /** LOW enum item. */
-        LOW,
-        /** MID enum item. */
-        MID,
-        HIGH
-    }
-
     private record OrderContext(Orders order, OrderDetail detail, Dish dish) {}
 
     private record AnalysisWindowData(List<OrderContext> contexts, Map<Long, Orders> orderMap) {}
 
-    private record KMeansResult(List<Integer> assignments, List<Double> confidences, double silhouette) {}
 
     private record HeatTrainingSample(LocalDate snapshotDate, Long dishId, float[] features, float label, float sampleWeight) {}
 
@@ -1502,189 +1159,23 @@ public class AnalysisApplicationServiceImpl implements AnalysisApplicationServic
 
     private record ClusterCachePayload(Integer clusterId, List<Long> topDishIds) {}
 
+    /** Flavor token encoding is pure feature math; order/sales/business counts are Mapper SQL. */
     private final class UserFeatureAggregation {
-/**
- * HashSet<>
- * @return 
- */
-
-        private final Set<Long> orderIds = new HashSet<>();
-/**
- * HashMap<>
- * @return 
- */
-        private final Map<Long, BigDecimal> orderAmountMap = new HashMap<>();
-/**
- * HashMap<>
- * @return 
- */
-        private final Map<MealPeriod, Integer> mealOrderCountMap = new HashMap<>();
-/**
- * HashMap<>
- * @return 
- */
-        private final Map<PriceBand, Integer> priceCountMap = new HashMap<>();
-/**
- * HashMap<>
- * @return 
- */
-        private final Map<Long, Integer> categoryCountMap = new HashMap<>();
-/**
- * HashMap<>
- * @return 
- */
         private final Map<String, Integer> flavorCountMap = new HashMap<>();
-        private LocalDateTime latestOrderTime;
-
-        private void consume(OrderContext context, LocalDate snapshotDate, List<DishFlavor> flavorDefinitions) {
-            Orders order = context.order();
-            OrderDetail detail = context.detail();
-            Dish dish = context.dish();
-            if (order.getId() != null && orderIds.add(order.getId())) {
-                orderAmountMap.put(order.getId(), order.getAmount() == null ? BigDecimal.ZERO : order.getAmount());
-                mealOrderCountMap.merge(resolveMealPeriod(order.getOrderTime()), 1, Integer::sum);
-                latestOrderTime = latestOrderTime == null || toLocalDateTime(order.getOrderTime()).isAfter(latestOrderTime)
-                        ? toLocalDateTime(order.getOrderTime()) : latestOrderTime;
-            }
-
-            int quantity = quantity(detail);
-            priceCountMap.merge(resolvePriceBand(dish.getPrice()), quantity, Integer::sum);
-            if (dish.getCategoryId() != null) {
-                categoryCountMap.merge(dish.getCategoryId(), quantity, Integer::sum);
-            }
-
-            List<String> tokens = tokenizeFlavors(detail.getDishFlavor());
-            if (tokens.isEmpty()) {
-                for (DishFlavor flavor : flavorDefinitions) {
-                    tokens.addAll(tokenizeFlavors(flavor.getValue()));
-                }
-            }
-            for (String token : tokens) {
-                flavorCountMap.merge(token, quantity, Integer::sum);
-            }
+        private void consume(OrderContext context, LocalDate date, List<DishFlavor> definitions) {
+            List<String> tokens = tokenizeFlavors(context.detail().getDishFlavor());
+            if (tokens.isEmpty()) for (DishFlavor flavor : definitions) tokens.addAll(tokenizeFlavors(flavor.getValue()));
+            for (String token : tokens) flavorCountMap.merge(token, quantity(context.detail()), Integer::sum);
         }
-
-        private int recencyDays(LocalDate snapshotDate) {
-            if (latestOrderTime == null) {
-                return 9999;
-            }
-            return Math.max(0, (int) ChronoUnit.DAYS.between(latestOrderTime.toLocalDate(), snapshotDate));
-        }
-
-        private int orderCount() {
-            return orderIds.size();
-        }
-
-        private BigDecimal monetary() {
-            return orderAmountMap.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
-        }
-
-        private BigDecimal mealRatio(MealPeriod mealPeriod) {
-            int total = orderCount();
-            if (total == 0) {
-                return BigDecimal.ZERO;
-            }
-            return BigDecimal.valueOf(mealOrderCountMap.getOrDefault(mealPeriod, 0))
-                    .divide(BigDecimal.valueOf(total), 6, RoundingMode.HALF_UP);
-        }
-
-        private BigDecimal priceRatio(PriceBand priceBand) {
-            int total = priceCountMap.values().stream().mapToInt(Integer::intValue).sum();
-            if (total == 0) {
-                return BigDecimal.ZERO;
-            }
-            return BigDecimal.valueOf(priceCountMap.getOrDefault(priceBand, 0))
-                    .divide(BigDecimal.valueOf(total), 6, RoundingMode.HALF_UP);
-        }
-
-        private Long topCategory(int index) {
-            List<Long> categories = categoryCountMap.entrySet().stream()
-                    .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
-                    .map(Map.Entry::getKey)
-                    .toList();
-            return categories.size() > index ? categories.get(index) : null;
-        }
-
         private Map<String, BigDecimal> flavorVector() {
             int total = flavorCountMap.values().stream().mapToInt(Integer::intValue).sum();
-            if (total == 0) {
-                return Collections.emptyMap();
-            }
+            if (total == 0) return Collections.emptyMap();
             Map<String, BigDecimal> vector = new LinkedHashMap<>();
-            flavorCountMap.entrySet().stream()
-                    .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
-                    .limit(10)
-                    .forEach(entry -> vector.put(
-                            entry.getKey(),
-                            BigDecimal.valueOf(entry.getValue()).divide(BigDecimal.valueOf(total), 6, RoundingMode.HALF_UP)
-                    ));
+            flavorCountMap.entrySet().stream().sorted((a, b) -> Integer.compare(b.getValue(), a.getValue())).limit(10)
+                    .forEach(entry -> vector.put(entry.getKey(), BigDecimal.valueOf(entry.getValue())
+                            .divide(BigDecimal.valueOf(total), 6, RoundingMode.HALF_UP)));
             return vector;
         }
-    }
-
-    private final class DishFeatureAggregation {
-
-        private int salesQty1d;
-        private int salesQty7d;
-        private int salesQty30d;
-        private double decaySales30d;
-
-        private void consume(OrderContext context, LocalDate snapshotDate, Double lambda) {
-            LocalDate orderDate = toLocalDateTime(context.order().getOrderTime()).toLocalDate();
-            int quantity = quantity(context.detail());
-            long daysAgo = ChronoUnit.DAYS.between(orderDate, snapshotDate);
-            if (daysAgo <= 0 || daysAgo > 30) {
-                return;
-            }
-            salesQty30d += quantity;
-            if (daysAgo <= 7) {
-                salesQty7d += quantity;
-            }
-            if (daysAgo == 1) {
-                salesQty1d += quantity;
-            }
-            decaySales30d += quantity * Math.exp(-lambda * daysAgo);
-        }
-
-        private int salesQty1d() {
-            return salesQty1d;
-        }
-
-        private int salesQty7d() {
-            return salesQty7d;
-        }
-
-        private int salesQty30d() {
-            return salesQty30d;
-        }
-
-        private BigDecimal decaySales30d() {
-            return BigDecimal.valueOf(decaySales30d);
-        }
-    }
-
-    private MealPeriod resolveMealPeriod(Date orderTime) {
-        LocalTime localTime = toLocalDateTime(orderTime).toLocalTime();
-        if (!localTime.isBefore(LocalTime.of(10, 0)) && localTime.isBefore(LocalTime.of(15, 0))) {
-            return MealPeriod.LUNCH;
-        }
-        if (!localTime.isBefore(LocalTime.of(17, 0)) && localTime.isBefore(LocalTime.of(22, 0))) {
-            return MealPeriod.DINNER;
-        }
-        return MealPeriod.NIGHT;
-    }
-
-    private PriceBand resolvePriceBand(BigDecimal price) {
-        BigDecimal normalizedPrice = price == null ? BigDecimal.ZERO : price;
-        BigDecimal lowMax = BigDecimal.valueOf(analysisProperties.getColdStart().getPriceBand().getLowMax());
-        BigDecimal midMax = BigDecimal.valueOf(analysisProperties.getColdStart().getPriceBand().getMidMax());
-        if (normalizedPrice.compareTo(lowMax) <= 0) {
-            return PriceBand.LOW;
-        }
-        if (normalizedPrice.compareTo(midMax) <= 0) {
-            return PriceBand.MID;
-        }
-        return PriceBand.HIGH;
     }
 
     private List<String> tokenizeFlavors(String rawFlavor) {

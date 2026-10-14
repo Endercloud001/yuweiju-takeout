@@ -15,4 +15,16 @@ public interface UserClusterResultMapper extends BaseMapper<UserClusterResult> {
                 .eq("user_id", userId).orderByDesc("snapshot_date").orderByDesc("id").last("limit 1"));
     }
 
+    /** Existing daily cluster ordering and bounded page. */
+    default java.util.List<UserClusterResult> listDaily(java.time.LocalDate date, int limit) {
+        return selectList(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<UserClusterResult>()
+                .eq("snapshot_date", date).orderByAsc("cluster_id").orderByAsc("user_id").last("limit " + limit));
+    }
+    /** Rebuild one selected cluster day. */
+    default int deleteDaily(java.time.LocalDate date) {
+        return delete(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<UserClusterResult>().eq("snapshot_date", date));
+    }
+    default long countDaily(java.time.LocalDate date) {
+        return selectCount(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<UserClusterResult>().eq("snapshot_date", date));
+    }
 }
