@@ -150,7 +150,8 @@ public class Issue13Probe {
     }
     static OrdersSubmitDTO dto() {var d=new OrdersSubmitDTO();d.setAddressBookId(user);d.setPayMethod(1);d.setPackAmount(0);return d;}
     static void assertOrder(long id) {
-        require(sql.queryForObject("SELECT COUNT(*) FROM orders WHERE id=? AND user_id=? AND amount=36",Integer.class,id,user)==1,"correct committed order");
+        // Current issue10 charging: 2*18 goods + 2 per-item packing + 2 delivery.
+        require(sql.queryForObject("SELECT COUNT(*) FROM orders WHERE id=? AND user_id=? AND amount=40 AND pack_amount=2",Integer.class,id,user)==1,"correct committed trusted order40");
         require(sql.queryForObject("SELECT COUNT(*) FROM order_detail WHERE order_id=? AND dish_id=? AND number=2 AND amount=18",Integer.class,id,user)==1,"correct committed detail");
         require(cart.listForUser(user).isEmpty(),"only submitted user cart cleared");
         require(cart.listForUser(other).size()==1,"other user cart unchanged");

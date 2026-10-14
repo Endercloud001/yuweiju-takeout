@@ -1,0 +1,4072 @@
+{
+  "generatedAt": "2026-10-14T10:58:38.094474+00:00",
+  "startCommit": "b50afbe396d048e566106e93b48fb67a957828b6",
+  "candidateBinding": "the task commit containing this report; host fills final exact SHA in acceptance record",
+  "workerBusinessPassed": true,
+  "productionSourceChanged": false,
+  "checks": [
+    {
+      "batch": "runtime-1",
+      "issue": 7,
+      "command": [
+        "bash",
+        "/home/agent/workspace/.sandcastle/environment/issue7-check.sh"
+      ],
+      "cwd": "/home/agent/workspace",
+      "started": "2026-10-14T10:19:32.413626+00:00",
+      "finished": "2026-10-14T10:20:45.338831+00:00",
+      "exit": 0,
+      "log": ".scratch/issue21/issue7-batch1.log",
+      "sourceStartCommit": "b50afbe396d048e566106e93b48fb67a957828b6",
+      "versionMeaning": "current task working tree; exact-candidate independent verification still waiting",
+      "businessPassed": true,
+      "businessAssertions": [
+        "REAL_SQL_SPRING_HTTP_REDIS_PASS",
+        "LEGACY_PORTAL_REMOVED_AND_ADMIN_JWT_PRESERVED_PASS"
+      ],
+      "businessEvidence": ".scratch/issue21/issue7-batch1.log",
+      "resourceCloseStatus": {
+        "spring": "normal source finally/try-with-resources returned; final assertion marker and exit verified",
+        "fixtureCleanup": "scoped finally returned; explicit cleanup assertions where emitted"
+      }
+    },
+    {
+      "batch": "runtime-1",
+      "issue": 8,
+      "command": [
+        "bash",
+        "/home/agent/workspace/.sandcastle/environment/issue8-check.sh"
+      ],
+      "cwd": "/home/agent/workspace",
+      "started": "2026-10-14T10:20:45.347972+00:00",
+      "finished": "2026-10-14T10:21:58.295482+00:00",
+      "exit": 0,
+      "log": ".scratch/issue21/issue8-batch1.log",
+      "sourceStartCommit": "b50afbe396d048e566106e93b48fb67a957828b6",
+      "versionMeaning": "current task working tree; exact-candidate independent verification still waiting",
+      "businessPassed": true,
+      "businessAssertions": [
+        "isolated database name",
+        "isolated MySQL hostname and URL",
+        "isolated Redis hostname/database",
+        "real Redis owned key roundtrip",
+        "preexisting synthetic admin compatible without editing it",
+        "synthetic admin normal password HTTP login",
+        "local dev mock user HTTP login (not real WeChat)",
+        "missing authentication denied /admin/category/page",
+        "wrong user token denied /admin/category/page",
+        "missing authentication denied /admin/dish/page",
+        "wrong user token denied /admin/dish/page",
+        "missing authentication denied /admin/setmeal/page",
+        "wrong user token denied /admin/setmeal/page",
+        "current public catalog anonymous access: /user/category/list",
+        "public catalog ignores token scope: /user/category/list",
+        "public catalog results unchanged by irrelevant token",
+        "current public catalog anonymous access: /user/dish/list",
+        "public catalog ignores token scope: /user/dish/list",
+        "public catalog results unchanged by irrelevant token",
+        "current public catalog anonymous access: /user/setmeal/list",
+        "public catalog ignores token scope: /user/setmeal/list",
+        "public catalog results unchanged by irrelevant token",
+        "current public catalog anonymous access: /user/setmeal/dish/0",
+        "public catalog ignores token scope: /user/setmeal/dish/0",
+        "public catalog results unchanged by irrelevant token",
+        "protected user boundary denies missing authentication",
+        "protected user boundary denies wrong admin token",
+        "protected user accepts authenticated local mock identity",
+        "admin POST /admin/category",
+        "admin POST /admin/category",
+        "admin POST /admin/category",
+        "admin POST /admin/category",
+        "admin GET /admin/category/page",
+        "category combined name/type, trim, sort and page total",
+        "admin GET /admin/category/page",
+        "category second page sort/update-time/id tie-break",
+        "user GET /user/category/list",
+        "user category enabled only, type/sort/id order",
+        "user GET /user/category/list",
+        "user GET /user/category/list",
+        "user category type selection",
+        "admin GET /admin/category/list",
+        "admin category includes disabled",
+        "admin POST /admin/category/status/0",
+        "user GET /user/category/list",
+        "admin category disable reflected in user list",
+        "admin POST /admin/category/status/1",
+        "admin PUT /admin/category",
+        "category admin edit persists",
+        "admin POST /admin/dish",
+        "admin POST /admin/dish",
+        "admin POST /admin/dish",
+        "admin POST /admin/dish",
+        "admin GET /admin/dish/page",
+        "dish combined filters, trim, pagination and id tie-break",
+        "admin GET /admin/dish/page",
+        "dish second page",
+        "admin GET /admin/dish/list",
+        "admin dish list includes stopped and maintains order",
+        "user GET /user/dish/list",
+        "admin dish write -> sellable user list and flavor roundtrip",
+        "admin GET /admin/dish/900003",
+        "admin flavor detail roundtrip",
+        "admin POST /admin/dish/status/0",
+        "user GET /user/dish/list",
+        "admin dish stop immediately removes user selection",
+        "admin POST /admin/dish/status/1",
+        "admin PUT /admin/dish",
+        "admin GET /admin/dish/900003",
+        "dish update replaces former flavors",
+        "user GET /user/dish/list",
+        "updated flavor available to user",
+        "business refusal: 存在菜品",
+        "admin POST /admin/setmeal",
+        "admin POST /admin/setmeal",
+        "admin POST /admin/setmeal",
+        "admin GET /admin/setmeal/page",
+        "setmeal combined filters, trim, pagination and order",
+        "admin GET /admin/setmeal/page",
+        "setmeal second page",
+        "user GET /user/setmeal/list",
+        "admin setmeal write -> sellable user list",
+        "user GET /user/setmeal/dish/32",
+        "setmeal user detail dish/copies roundtrip",
+        "admin GET /admin/setmeal/32",
+        "setmeal admin association roundtrip",
+        "admin PUT /admin/setmeal",
+        "user GET /user/setmeal/dish/32",
+        "user GET /user/setmeal/dish/32",
+        "setmeal update replaces former detail for user",
+        "admin POST /admin/setmeal/status/0",
+        "user GET /user/setmeal/list",
+        "stopped setmeal excluded from user selection",
+        "admin POST /admin/setmeal/status/1",
+        "business refusal: 存在套餐",
+        "admin POST /admin/category",
+        "admin DELETE /admin/category",
+        "unassociated category deletion succeeds",
+        "business refusal: 关联套餐",
+        "mixed associated/free dish batch refused atomically",
+        "business refusal: 正在售卖",
+        "mixed stopped/selling setmeal batch preserves both roots and associations",
+        "admin GET /admin/category/page",
+        "category empty/bound suspicious filter: i8_e02386345f-absent",
+        "admin GET /admin/category/page",
+        "category empty/bound suspicious filter: ' OR 1=1 --",
+        "admin GET /admin/category/page",
+        "category out-of-range empty page",
+        "admin GET /admin/dish/page",
+        "dish empty/bound suspicious filter: i8_e02386345f-absent",
+        "admin GET /admin/dish/page",
+        "dish empty/bound suspicious filter: ' OR 1=1 --",
+        "admin GET /admin/dish/page",
+        "dish out-of-range empty page",
+        "admin GET /admin/setmeal/page",
+        "setmeal empty/bound suspicious filter: i8_e02386345f-absent",
+        "admin GET /admin/setmeal/page",
+        "setmeal empty/bound suspicious filter: ' OR 1=1 --",
+        "admin GET /admin/setmeal/page",
+        "setmeal out-of-range empty page",
+        "user GET /user/dish/list",
+        "user GET /user/setmeal/list",
+        "user GET /user/setmeal/dish/0",
+        "empty user directory and missing setmeal detail",
+        "dish/setmeal use cases called through Spring transaction proxies",
+        "second flavor insert fails with expected MySQL trigger cause",
+        "failed second flavor insert rolls back root edit, first insert and restores former flavor IDs/values",
+        "independent product unchanged after dish rollback",
+        "setmeal detail insert fails with expected MySQL trigger cause",
+        "failed setmeal detail rolls back root edit, partial detail and restores former association IDs/copies",
+        "independent product unchanged after setmeal rollback",
+        "task failure triggers removed",
+        "admin DELETE /admin/setmeal",
+        "stopped setmeal deletion removes its details",
+        "admin DELETE /admin/dish",
+        "unassociated dish deletion removes flavors",
+        "finally confirms no owned triggers remain",
+        "sentinel root and flavors preserved before owned cleanup",
+        "cleanup removed owned setmeal row i8_e02386345fs1",
+        "cleanup removed owned setmeal row i8_e02386345fs2",
+        "cleanup removed owned setmeal row i8_e02386345fs0",
+        "cleanup removed owned dish row i8_e02386345fd1",
+        "cleanup removed owned dish row i8_e02386345fd2",
+        "cleanup removed owned dish row i8_e02386345fd0",
+        "cleanup removed owned dish row i8_e02386345fsentinel",
+        "cleanup removed owned category row i8_e02386345fc1",
+        "cleanup removed owned category row i8_e02386345fc2",
+        "cleanup removed owned category row i8_e02386345fc0",
+        "cleanup removed owned category row i8_e02386345fcs",
+        "cleanup removed owned category row i8_e02386345fempty",
+        "owned local mock user removed",
+        "owned Redis key removed, no flush",
+        "preexisting category rows unchanged after cleanup",
+        "preexisting dish rows unchanged after cleanup",
+        "preexisting dish_flavor rows unchanged after cleanup",
+        "preexisting setmeal rows unchanged after cleanup",
+        "preexisting setmeal_dish rows unchanged after cleanup"
+      ],
+      "businessEvidence": ".scratch/issue8/scenario-results.json",
+      "resourceCloseStatus": {
+        "cleanupPassed": true,
+        "resources": {}
+      }
+    },
+    {
+      "batch": "runtime-final",
+      "issue": 9,
+      "command": [
+        "bash",
+        "/home/agent/workspace/.sandcastle/environment/issue9-check.sh"
+      ],
+      "cwd": "/home/agent/workspace",
+      "started": "2026-10-14T10:53:27.328163+00:00",
+      "finished": "2026-10-14T10:54:42.271189+00:00",
+      "exit": 0,
+      "log": ".scratch/issue21/issue9-batch2-final.log",
+      "sourceStartCommit": "b50afbe396d048e566106e93b48fb67a957828b6",
+      "versionMeaning": "current task working tree; exact-candidate independent verification still waiting",
+      "businessPassed": true,
+      "businessAssertions": [
+        "isolated MySQL database",
+        "isolated MySQL host/port before writes",
+        "isolated Redis host/port/database before writes",
+        "real Redis owned key roundtrip",
+        "preexisting synthetic admin unchanged and compatible",
+        "normal synthetic admin HTTP password login",
+        "POST /user/user/login",
+        "POST /user/user/login",
+        "two distinct dev mock synthetic users (not real WeChat)",
+        "cart/address real Spring transaction proxies",
+        "anonymous refused POST /user/shoppingCart/add",
+        "wrong admin scope refused POST /user/shoppingCart/add",
+        "anonymous refused POST /user/shoppingCart/sub",
+        "wrong admin scope refused POST /user/shoppingCart/sub",
+        "anonymous refused GET /user/shoppingCart/list",
+        "wrong admin scope refused GET /user/shoppingCart/list",
+        "anonymous refused DELETE /user/shoppingCart/clean",
+        "wrong admin scope refused DELETE /user/shoppingCart/clean",
+        "anonymous refused POST /user/addressBook",
+        "wrong admin scope refused POST /user/addressBook",
+        "anonymous refused PUT /user/addressBook",
+        "wrong admin scope refused PUT /user/addressBook",
+        "anonymous refused DELETE /user/addressBook?id=0",
+        "wrong admin scope refused DELETE /user/addressBook?id=0",
+        "anonymous refused GET /user/addressBook/list",
+        "wrong admin scope refused GET /user/addressBook/list",
+        "anonymous refused GET /user/addressBook/default",
+        "wrong admin scope refused GET /user/addressBook/default",
+        "anonymous refused GET /user/addressBook/0",
+        "wrong admin scope refused GET /user/addressBook/0",
+        "anonymous refused PUT /user/addressBook/default",
+        "wrong admin scope refused PUT /user/addressBook/default",
+        "GET /user/shoppingCart/list",
+        "empty cart list",
+        "DELETE /user/shoppingCart/clean",
+        "GET /user/addressBook/list",
+        "empty address list",
+        "GET /user/addressBook/default",
+        "empty default is null",
+        "proxy add requires identity without HTTP",
+        "proxy list requires identity without HTTP",
+        "proxy clean requires identity without HTTP",
+        "proxy add refuses both kinds",
+        "proxy subtract refuses both kinds",
+        "proxy add refuses missing kind",
+        "proxy stopped dish add refusal",
+        "proxy missing goods add refusal",
+        "HTTP business refusal: 必须且只能",
+        "HTTP business refusal: 必须且只能",
+        "HTTP business refusal: 购物车中无此商品",
+        "other user subtraction never mutates owner cart",
+        "POST /user/shoppingCart/add",
+        "one-step add ignores unknown quantity/owner, blank flavor normalized null",
+        "POST /user/shoppingCart/add",
+        "existing add preserves original name/image/price snapshot",
+        "POST /user/shoppingCart/sub",
+        "one-step subtract restores complete original cart row",
+        "stored empty and request whitespace/null flavor share identity",
+        "POST /user/shoppingCart/add",
+        "flavored item trimmed and distinct from plain item",
+        "POST /user/shoppingCart/add",
+        "setmeal quantity preserves stored snapshot",
+        "HTTP business refusal: 商品不可售",
+        "existing stopped item add refused without quantity mutation",
+        "trusted cart quote refuses remaining stopped goods",
+        "HTTP business refusal: 商品不可售",
+        "refused stopped quote never rewrites stored cart",
+        "subtract stopped flavored item at one deletes it",
+        "stopped existing setmeal refuses add",
+        "bound conditional cart writes cannot mutate another user ID",
+        "DELETE /user/shoppingCart/clean",
+        "scoped cleaning leaves other user entire snapshot unchanged",
+        "legacy negative number add preserves existing plus-one behavior",
+        "legacy nonpositive number subtraction deletes owned row",
+        "POST /user/addressBook",
+        "POST /user/addressBook",
+        "first address forced default despite request zero",
+        "phone/detail trimming preserved",
+        "POST /user/addressBook",
+        "POST /user/addressBook",
+        "GET /user/addressBook/list",
+        "address default-first then descending ID ordering",
+        "GET /user/addressBook/default",
+        "explicit default creation clears previous default",
+        "PUT /user/addressBook",
+        "updating default address ignores requested zero flag",
+        "PUT /user/addressBook",
+        "updating nondefault address ignores requested one flag",
+        "GET /user/addressBook/984069421",
+        "updated owner detail HTTP roundtrip",
+        "HTTP business refusal: 地址不存在",
+        "HTTP business refusal: 地址不存在",
+        "HTTP business refusal: 地址不存在",
+        "HTTP business refusal: 地址不存在",
+        "proxy detail refuses foreign/missing ID",
+        "proxy deletion refuses foreign/missing ID",
+        "proxy default refuses foreign/missing ID",
+        "proxy update refuses foreign/missing ID",
+        "HTTP business refusal: 地址不存在",
+        "HTTP business refusal: 地址不存在",
+        "HTTP business refusal: 地址不存在",
+        "HTTP business refusal: 地址不存在",
+        "proxy detail refuses foreign/missing ID",
+        "proxy deletion refuses foreign/missing ID",
+        "proxy default refuses foreign/missing ID",
+        "proxy update refuses foreign/missing ID",
+        "HTTP business refusal: 地址不存在",
+        "HTTP business refusal: 地址不存在",
+        "HTTP business refusal: 地址不存在",
+        "HTTP business refusal: 地址不存在",
+        "proxy detail refuses foreign/missing ID",
+        "proxy deletion refuses foreign/missing ID",
+        "proxy default refuses foreign/missing ID",
+        "proxy update refuses foreign/missing ID",
+        "proxy address create requires identity",
+        "proxy address default requires identity",
+        "proxy create validates phone independently of DTO HTTP",
+        "proxy create validates detail independently of DTO HTTP",
+        "HTTP business refusal: 参数错误",
+        "HTTP business refusal: 手机号不能为空",
+        "all address ownership refusals preserve other user rows",
+        "PUT /user/addressBook/default",
+        "HTTP default switch leaves exactly selected owned default",
+        "real proxy default target UPDATE fails after clearing former default",
+        "switch failure rolls back old default and all rows, other user unchanged",
+        "real proxy default creation clear UPDATE fails after address INSERT",
+        "creation failure removes inserted row and preserves former default and other user",
+        "real proxy replacement UPDATE fails after deleting former default",
+        "replacement failure restores deleted address exact ID/default and other user",
+        "real proxy cart increment SQL failure propagates original cause",
+        "failed cart increment preserves quantity/row/snapshot and other user",
+        "real proxy cart insert SQL failure propagates original cause",
+        "failed cart insert leaves rows/snapshots unchanged and no partial new item",
+        "new synthetic user has no existing recommendation context",
+        "existing statistics Redis GET failure isolated while core cart succeeds",
+        "SQL transaction does not roll back task-owned Redis wrong-type fixture",
+        "DELETE /user/addressBook",
+        "default deletion selects latest remaining ID, not list order",
+        "DELETE /user/addressBook",
+        "nondefault deletion preserves selected default",
+        "HTTP business refusal: 地址不存在",
+        "wrong-address checkout refusal preserves prepared cart",
+        "checkout uses synthetic address through explicit map substitute",
+        "POST /user/order/submit",
+        "existing checkout consumes owned address and stores address snapshot",
+        "existing checkout preserves prepared cart goods/flavor/price/image/quantity snapshots in SQL",
+        "current trusted quote plus per-item packing and delivery ignores requested zero packing",
+        "checkout clears only submitting user cart and uses no external map call",
+        "PUT /user/addressBook",
+        "address edit leaves persisted historical order address snapshot unchanged",
+        "DELETE /user/addressBook",
+        "last address deletion leaves empty list and no default",
+        "successful address operations and checkout preserve other user sentinel",
+        "HTTP business refusal: 购物车为空",
+        "owned trigger absent",
+        "remove task-owned failure trigger",
+        "owned trigger absent",
+        "remove task-owned failure trigger",
+        "owned trigger absent",
+        "remove task-owned failure trigger",
+        "owned trigger absent",
+        "remove task-owned failure trigger",
+        "owned trigger absent",
+        "remove task-owned failure trigger",
+        "owned order and details absent",
+        "owned cart/address cleanup without clearing original users",
+        "owned user context key absent",
+        "remove only synthetic user's owned dependent rows/keys",
+        "owned cart/address cleanup without clearing original users",
+        "owned user context key absent",
+        "remove only synthetic user's owned dependent rows/keys",
+        "owned mock users absent",
+        "remove owned mock users",
+        "remove owned setmeal fixtures",
+        "remove owned dish fixtures",
+        "remove owned category fixtures",
+        "remove only uniquely named owned synthetic admin, preserve existing admin",
+        "owned Redis key absent without flush",
+        "remove tracked owned Redis key",
+        "owned Redis key absent without flush",
+        "remove tracked owned Redis key",
+        "original employee fixture rows unchanged",
+        "verify original employee including sentinel rows",
+        "original user fixture rows unchanged",
+        "verify original user including sentinel rows",
+        "original address_book fixture rows unchanged",
+        "verify original address_book including sentinel rows",
+        "original shopping_cart fixture rows unchanged",
+        "verify original shopping_cart including sentinel rows",
+        "original category fixture rows unchanged",
+        "verify original category including sentinel rows",
+        "original dish fixture rows unchanged",
+        "verify original dish including sentinel rows",
+        "original dish_flavor fixture rows unchanged",
+        "verify original dish_flavor including sentinel rows",
+        "original setmeal fixture rows unchanged",
+        "verify original setmeal including sentinel rows",
+        "original setmeal_dish fixture rows unchanged",
+        "verify original setmeal_dish including sentinel rows",
+        "original orders fixture rows unchanged",
+        "verify original orders including sentinel rows",
+        "original order_detail fixture rows unchanged",
+        "verify original order_detail including sentinel rows",
+        "original order_risk_result fixture rows unchanged",
+        "verify original order_risk_result including sentinel rows",
+        "original order_risk_feature_snapshot fixture rows unchanged",
+        "verify original order_risk_feature_snapshot including sentinel rows",
+        "Redis key set restored, no untracked new keys",
+        "verify complete Redis key cleanup"
+      ],
+      "businessEvidence": ".scratch/issue9/scenario-results.json",
+      "resourceCloseStatus": {
+        "cleanupPassed": true,
+        "resources": {}
+      }
+    },
+    {
+      "batch": "runtime-1-correction",
+      "issue": 10,
+      "command": [
+        "bash",
+        "/home/agent/workspace/.sandcastle/environment/issue10-check.sh"
+      ],
+      "cwd": "/home/agent/workspace",
+      "started": "2026-10-14T10:26:40.085318+00:00",
+      "finished": "2026-10-14T10:27:52.753737+00:00",
+      "exit": 0,
+      "log": ".scratch/issue21/issue10-batch1-correction.log",
+      "sourceStartCommit": "b50afbe396d048e566106e93b48fb67a957828b6",
+      "versionMeaning": "current task working tree; exact-candidate independent verification still waiting",
+      "businessPassed": true,
+      "businessAssertions": [
+        "isolated MySQL database",
+        "isolated MySQL host/port before writes",
+        "isolated Redis host/port/database before writes",
+        "real Redis owned key roundtrip",
+        "preexisting synthetic admin unchanged and compatible",
+        "normal synthetic admin HTTP password login",
+        "POST /user/user/login",
+        "POST /user/user/login",
+        "two distinct dev mock synthetic users (not real WeChat)",
+        "cart/address real Spring transaction proxies",
+        "order real transaction proxy",
+        "actual dish schema decimal10,2 primary id InnoDB",
+        "actual setmeal schema decimal10,2 primary id InnoDB",
+        "actual shopping_cart schema decimal10,2 primary id InnoDB",
+        "actual shopping_cart quantity/amount NOT NULL",
+        "actual orders schema decimal10,2 primary id InnoDB",
+        "actual order_detail schema decimal10,2 primary id InnoDB",
+        "actual order_detail quantity/amount NOT NULL",
+        "POST /user/addressBook",
+        "POST /user/addressBook",
+        "anonymous read refused",
+        "admin scope user read refused",
+        "anonymous read refused",
+        "admin scope user read refused",
+        "anonymous submit refused",
+        "wrong scope submit refused",
+        "anonymous mock payment refused",
+        "wrong scope mock payment refused",
+        "anonymous history refused",
+        "wrong scope history refused",
+        "anonymous admin list refused",
+        "wrong scope admin list refused",
+        "direct missing identity refused",
+        "direct invalid identity refused",
+        "direct empty cart refused",
+        "HTTP business refusal: 购物车为空",
+        "checkout uses synthetic address through explicit map substitute",
+        "POST /user/order/submit",
+        "authoritative response SQL details quantity/packing total=40.00",
+        "success clears only owned cart",
+        "GET /user/order/orderDetail/978",
+        "GET /admin/order/details/978",
+        "new user/admin details agree with stored amount=40.00",
+        "checkout uses synthetic address through explicit map substitute",
+        "authoritative response SQL details quantity/packing total=21.00",
+        "success clears only owned cart",
+        "GET /user/order/orderDetail/979",
+        "GET /admin/order/details/979",
+        "new user/admin details agree with stored amount=21.00",
+        "checkout uses synthetic address through explicit map substitute",
+        "POST /user/order/submit",
+        "authoritative response SQL details quantity/packing total=40.00",
+        "success clears only owned cart",
+        "GET /user/order/orderDetail/980",
+        "GET /admin/order/details/980",
+        "new user/admin details agree with stored amount=40.00",
+        "checkout uses synthetic address through explicit map substitute",
+        "authoritative response SQL details quantity/packing total=97.00",
+        "success clears only owned cart",
+        "GET /user/order/orderDetail/981",
+        "GET /admin/order/details/981",
+        "new user/admin details agree with stored amount=97.00",
+        "GET /user/shoppingCart/list",
+        "trusted HTTP read current price after cached tampering/catalog edit",
+        "trusted read does not rewrite cached cart",
+        "checkout uses synthetic address through explicit map substitute",
+        "POST /user/order/submit",
+        "authoritative response SQL details quantity/packing total=21.37",
+        "success clears only owned cart",
+        "GET /user/order/orderDetail/982",
+        "GET /admin/order/details/982",
+        "new user/admin details agree with stored amount=21.37",
+        "checkout uses synthetic address through explicit map substitute",
+        "POST /user/order/submit",
+        "authoritative response SQL details quantity/packing total=22.99",
+        "success clears only owned cart",
+        "GET /user/order/orderDetail/983",
+        "GET /admin/order/details/983",
+        "new user/admin details agree with stored amount=22.99",
+        "detail stores trusted current unit price",
+        "direct foreign/missing address refused",
+        "HTTP business refusal: 地址不存在",
+        "direct foreign/missing address refused",
+        "HTTP business refusal: 参数错误",
+        "direct foreign/missing address refused",
+        "HTTP business refusal: 参数错误",
+        "HTTP business refusal: 参数错误",
+        "direct missing address refused",
+        "direct missing user refused",
+        "direct invalid quantity/overflow refused",
+        "HTTP business refusal: 数量",
+        "direct invalid quantity/overflow refused",
+        "HTTP business refusal: 数量",
+        "direct invalid quantity/overflow refused",
+        "HTTP business refusal: 金额",
+        "direct total packing int overflow refused",
+        "HTTP business refusal: 数量",
+        "direct negative price/amount overflow refused",
+        "HTTP business refusal: 金额",
+        "direct negative price/amount overflow refused",
+        "HTTP business refusal: 金额",
+        "direct unsaleable catalog refused",
+        "HTTP business refusal: 商品不可售",
+        "direct malformed/missing product refused",
+        "HTTP business refusal: 商品",
+        "direct malformed/missing product refused",
+        "HTTP business refusal: 商品",
+        "direct malformed/missing product refused",
+        "HTTP business refusal: 商品",
+        "refusals preserve cart once owned malformed fixtures restored",
+        "all invalid requests create no orders",
+        "checkout uses synthetic address through explicit map substitute",
+        "authoritative response SQL details quantity/packing total=99999999.99",
+        "success clears only owned cart",
+        "GET /user/order/orderDetail/984",
+        "GET /admin/order/details/984",
+        "new user/admin details agree with stored amount=99999999.99",
+        "checkout uses synthetic address through explicit map substitute",
+        "authoritative response SQL details quantity/packing total=3.00",
+        "success clears only owned cart",
+        "GET /user/order/orderDetail/985",
+        "GET /admin/order/details/985",
+        "new user/admin details agree with stored amount=3.00",
+        "checkout uses synthetic address through explicit map substitute",
+        "direct real orders trigger failure retains cause",
+        "checkout uses synthetic address through explicit map substitute",
+        "HTTP business refusal: 下单失败",
+        "direct and HTTP orders failure no partial writes/cart clear",
+        "checkout uses synthetic address through explicit map substitute",
+        "direct real order_detail trigger failure retains cause",
+        "checkout uses synthetic address through explicit map substitute",
+        "HTTP business refusal: 下单失败",
+        "direct and HTTP order_detail failure no partial writes/cart clear",
+        "checkout uses synthetic address through explicit map substitute",
+        "POST /user/order/submit",
+        "authoritative response SQL details quantity/packing total=21.00",
+        "success clears only owned cart",
+        "GET /user/order/orderDetail/988",
+        "GET /admin/order/details/988",
+        "new user/admin details agree with stored amount=21.00",
+        "HTTP business refusal: 订单不存在",
+        "PUT /user/order/payment",
+        "mock payment leaves authoritative stored new amount unchanged",
+        "GET /user/order/historyOrders",
+        "real HTTP history lists only owner stored orders",
+        "GET /admin/order/conditionSearch",
+        "real HTTP admin filtered list stores old19",
+        "GET /user/order/orderDetail/977",
+        "historical amount remains19 through user detail",
+        "anonymous admin details refused",
+        "user scope admin details refused",
+        "GET /admin/order/details/977",
+        "real HTTP admin preserves historical19",
+        "admin old amount stored19",
+        "history uses stored old amount",
+        "HTTP business refusal: 订单不存在",
+        "direct two-user order ownership refusal",
+        "old order and historical detail image never recomputed or rewritten",
+        "all billing scenarios preserve other user cart/address sentinel",
+        "owned trigger absent",
+        "remove task-owned failure trigger",
+        "owned trigger absent",
+        "remove task-owned failure trigger",
+        "owned order and details absent",
+        "owned order and details absent",
+        "owned order and details absent",
+        "owned order and details absent",
+        "owned order and details absent",
+        "owned order and details absent",
+        "owned order and details absent",
+        "owned order and details absent",
+        "owned order and details absent",
+        "owned order and details absent",
+        "owned cart/address cleanup without clearing original users",
+        "owned user context key absent",
+        "remove only synthetic user's owned dependent rows/keys",
+        "owned cart/address cleanup without clearing original users",
+        "owned user context key absent",
+        "remove only synthetic user's owned dependent rows/keys",
+        "owned mock users absent",
+        "remove owned mock users",
+        "remove owned setmeal fixtures",
+        "remove owned dish fixtures",
+        "remove owned category fixtures",
+        "remove only uniquely named owned synthetic admin, preserve existing admin",
+        "owned Redis key absent without flush",
+        "remove tracked owned Redis key",
+        "original employee fixture rows unchanged",
+        "verify original employee including sentinel rows",
+        "original user fixture rows unchanged",
+        "verify original user including sentinel rows",
+        "original address_book fixture rows unchanged",
+        "verify original address_book including sentinel rows",
+        "original shopping_cart fixture rows unchanged",
+        "verify original shopping_cart including sentinel rows",
+        "original category fixture rows unchanged",
+        "verify original category including sentinel rows",
+        "original dish fixture rows unchanged",
+        "verify original dish including sentinel rows",
+        "original dish_flavor fixture rows unchanged",
+        "verify original dish_flavor including sentinel rows",
+        "original setmeal fixture rows unchanged",
+        "verify original setmeal including sentinel rows",
+        "original setmeal_dish fixture rows unchanged",
+        "verify original setmeal_dish including sentinel rows",
+        "original orders fixture rows unchanged",
+        "verify original orders including sentinel rows",
+        "original order_detail fixture rows unchanged",
+        "verify original order_detail including sentinel rows",
+        "original order_risk_result fixture rows unchanged",
+        "verify original order_risk_result including sentinel rows",
+        "original order_risk_feature_snapshot fixture rows unchanged",
+        "verify original order_risk_feature_snapshot including sentinel rows",
+        "Redis key set restored, no untracked new keys",
+        "verify complete Redis key cleanup",
+        "owned model files/directories absent",
+        "cleanup only unique run-owned model paths"
+      ],
+      "businessEvidence": ".scratch/issue10/scenario-results.json",
+      "resourceCloseStatus": {
+        "cleanupPassed": true,
+        "resources": {}
+      }
+    },
+    {
+      "batch": "runtime-1-correction",
+      "issue": 11,
+      "command": [
+        "bash",
+        "/home/agent/workspace/.sandcastle/environment/issue11-check.sh",
+        "/home/agent/workspace",
+        "/home/agent/workspace/.sandcastle/environment"
+      ],
+      "cwd": "/home/agent/workspace",
+      "started": "2026-10-14T10:27:52.894067+00:00",
+      "finished": "2026-10-14T10:29:12.332247+00:00",
+      "exit": 0,
+      "log": ".scratch/issue21/issue11-batch1-correction.log",
+      "sourceStartCommit": "b50afbe396d048e566106e93b48fb67a957828b6",
+      "versionMeaning": "current task working tree; exact-candidate independent verification still waiting",
+      "businessPassed": true,
+      "businessAssertions": [
+        "ASSERT DATABASE_is_sandcastle_fixture PASS",
+        "ASSERT unused_task_ids_orders PASS",
+        "ASSERT transactional_orders PASS",
+        "ASSERT unused_task_ids_order_detail PASS",
+        "ASSERT transactional_order_detail PASS",
+        "ASSERT unused_task_ids_shopping_cart PASS",
+        "ASSERT transactional_shopping_cart PASS",
+        "ASSERT unused_task_ids_user PASS",
+        "ASSERT transactional_user PASS",
+        "ASSERT unused_task_ids_order_risk_feature_snapshot PASS",
+        "ASSERT transactional_order_risk_feature_snapshot PASS",
+        "ASSERT unused_task_ids_order_risk_result PASS",
+        "ASSERT transactional_order_risk_result PASS",
+        "ASSERT unused_task_child_rows PASS",
+        "ASSERT unused_task_triggers PASS",
+        "ASSERT unused_task_evidence_table PASS",
+        "ASSERT real_Service_Spring_proxy PASS",
+        "ASSERT background_training_scoring_disabled PASS",
+        "ASSERT payment_state_1_allowed_matches PASS",
+        "ASSERT payment_state_1_persisted PASS",
+        "ASSERT payment_state_1_unrelated_fields_unchanged PASS",
+        "ASSERT payment_paid_and_checkout PASS",
+        "ASSERT payment_repeat_response PASS",
+        "ASSERT payment_repeat_no_regression PASS",
+        "ASSERT payment_state_2_allowed_matches PASS",
+        "ASSERT payment_state_2_no_write PASS",
+        "ASSERT payment_state_3_allowed_matches PASS",
+        "ASSERT payment_state_3_no_write PASS",
+        "ASSERT payment_state_4_allowed_matches PASS",
+        "ASSERT payment_state_4_no_write PASS",
+        "ASSERT payment_state_5_allowed_matches PASS",
+        "ASSERT payment_state_5_no_write PASS",
+        "ASSERT payment_state_6_allowed_matches PASS",
+        "ASSERT payment_state_6_no_write PASS",
+        "ASSERT payment_missing_order_denied PASS",
+        "ASSERT payment_missing_order_no_write PASS",
+        "ASSERT payment_anonymous_denied PASS",
+        "ASSERT payment_foreign_owner_denied PASS",
+        "ASSERT payment_foreign_no_write PASS",
+        "ASSERT confirm_state_1_allowed_matches PASS",
+        "ASSERT confirm_state_1_no_write PASS",
+        "ASSERT confirm_state_2_allowed_matches PASS",
+        "ASSERT confirm_state_2_persisted PASS",
+        "ASSERT confirm_state_2_unrelated_fields_unchanged PASS",
+        "ASSERT confirm_repeat_response PASS",
+        "ASSERT confirm_repeat_no_regression PASS",
+        "ASSERT confirm_state_3_allowed_matches PASS",
+        "ASSERT confirm_state_3_no_write PASS",
+        "ASSERT confirm_state_4_allowed_matches PASS",
+        "ASSERT confirm_state_4_no_write PASS",
+        "ASSERT confirm_state_5_allowed_matches PASS",
+        "ASSERT confirm_state_5_no_write PASS",
+        "ASSERT confirm_state_6_allowed_matches PASS",
+        "ASSERT confirm_state_6_no_write PASS",
+        "ASSERT confirm_missing_order_denied PASS",
+        "ASSERT confirm_missing_order_no_write PASS",
+        "ASSERT confirm_anonymous_denied PASS",
+        "ASSERT confirm_user_token_to_admin_denied PASS",
+        "ASSERT reject_state_1_allowed_matches PASS",
+        "ASSERT reject_state_1_no_write PASS",
+        "ASSERT reject_state_2_allowed_matches PASS",
+        "ASSERT reject_state_2_persisted PASS",
+        "ASSERT reject_state_2_unrelated_fields_unchanged PASS",
+        "ASSERT reject_trimmed_reason_and_time PASS",
+        "ASSERT reject_repeat_response PASS",
+        "ASSERT reject_repeat_no_regression PASS",
+        "ASSERT reject_state_3_allowed_matches PASS",
+        "ASSERT reject_state_3_no_write PASS",
+        "ASSERT reject_state_4_allowed_matches PASS",
+        "ASSERT reject_state_4_no_write PASS",
+        "ASSERT reject_state_5_allowed_matches PASS",
+        "ASSERT reject_state_5_no_write PASS",
+        "ASSERT reject_state_6_allowed_matches PASS",
+        "ASSERT reject_state_6_no_write PASS",
+        "ASSERT reject_missing_order_denied PASS",
+        "ASSERT reject_missing_order_no_write PASS",
+        "ASSERT reject_anonymous_denied PASS",
+        "ASSERT reject_user_token_to_admin_denied PASS",
+        "ASSERT userCancel_state_1_allowed_matches PASS",
+        "ASSERT userCancel_state_1_persisted PASS",
+        "ASSERT userCancel_state_1_unrelated_fields_unchanged PASS",
+        "ASSERT userCancel_reason_and_time PASS",
+        "ASSERT userCancel_repeat_response PASS",
+        "ASSERT userCancel_repeat_no_regression PASS",
+        "ASSERT userCancel_state_2_allowed_matches PASS",
+        "ASSERT userCancel_state_2_persisted PASS",
+        "ASSERT userCancel_state_2_unrelated_fields_unchanged PASS",
+        "ASSERT userCancel_reason_and_time PASS",
+        "ASSERT userCancel_repeat_response PASS",
+        "ASSERT userCancel_repeat_no_regression PASS",
+        "ASSERT userCancel_state_3_allowed_matches PASS",
+        "ASSERT userCancel_state_3_no_write PASS",
+        "ASSERT userCancel_state_4_allowed_matches PASS",
+        "ASSERT userCancel_state_4_no_write PASS",
+        "ASSERT userCancel_state_5_allowed_matches PASS",
+        "ASSERT userCancel_state_5_no_write PASS",
+        "ASSERT userCancel_state_6_allowed_matches PASS",
+        "ASSERT userCancel_state_6_no_write PASS",
+        "ASSERT userCancel_missing_order_denied PASS",
+        "ASSERT userCancel_missing_order_no_write PASS",
+        "ASSERT userCancel_anonymous_denied PASS",
+        "ASSERT userCancel_foreign_owner_denied PASS",
+        "ASSERT userCancel_foreign_no_write PASS",
+        "ASSERT adminCancel_state_1_allowed_matches PASS",
+        "ASSERT adminCancel_state_1_persisted PASS",
+        "ASSERT adminCancel_state_1_unrelated_fields_unchanged PASS",
+        "ASSERT adminCancel_reason_and_time PASS",
+        "ASSERT adminCancel_repeat_response PASS",
+        "ASSERT adminCancel_repeat_no_regression PASS",
+        "ASSERT adminCancel_state_2_allowed_matches PASS",
+        "ASSERT adminCancel_state_2_persisted PASS",
+        "ASSERT adminCancel_state_2_unrelated_fields_unchanged PASS",
+        "ASSERT adminCancel_reason_and_time PASS",
+        "ASSERT adminCancel_repeat_response PASS",
+        "ASSERT adminCancel_repeat_no_regression PASS",
+        "ASSERT adminCancel_state_3_allowed_matches PASS",
+        "ASSERT adminCancel_state_3_persisted PASS",
+        "ASSERT adminCancel_state_3_unrelated_fields_unchanged PASS",
+        "ASSERT adminCancel_reason_and_time PASS",
+        "ASSERT adminCancel_repeat_response PASS",
+        "ASSERT adminCancel_repeat_no_regression PASS",
+        "ASSERT adminCancel_state_4_allowed_matches PASS",
+        "ASSERT adminCancel_state_4_no_write PASS",
+        "ASSERT adminCancel_state_5_allowed_matches PASS",
+        "ASSERT adminCancel_state_5_no_write PASS",
+        "ASSERT adminCancel_state_6_allowed_matches PASS",
+        "ASSERT adminCancel_state_6_no_write PASS",
+        "ASSERT adminCancel_missing_order_denied PASS",
+        "ASSERT adminCancel_missing_order_no_write PASS",
+        "ASSERT adminCancel_anonymous_denied PASS",
+        "ASSERT adminCancel_user_token_to_admin_denied PASS",
+        "ASSERT deliver_state_1_allowed_matches PASS",
+        "ASSERT deliver_state_1_no_write PASS",
+        "ASSERT deliver_state_2_allowed_matches PASS",
+        "ASSERT deliver_state_2_no_write PASS",
+        "ASSERT deliver_state_3_allowed_matches PASS",
+        "ASSERT deliver_state_3_persisted PASS",
+        "ASSERT deliver_state_3_unrelated_fields_unchanged PASS",
+        "ASSERT deliver_repeat_response PASS",
+        "ASSERT deliver_repeat_no_regression PASS",
+        "ASSERT deliver_state_4_allowed_matches PASS",
+        "ASSERT deliver_state_4_no_write PASS",
+        "ASSERT deliver_state_5_allowed_matches PASS",
+        "ASSERT deliver_state_5_no_write PASS",
+        "ASSERT deliver_state_6_allowed_matches PASS",
+        "ASSERT deliver_state_6_no_write PASS",
+        "ASSERT deliver_missing_order_denied PASS",
+        "ASSERT deliver_missing_order_no_write PASS",
+        "ASSERT deliver_anonymous_denied PASS",
+        "ASSERT deliver_user_token_to_admin_denied PASS",
+        "ASSERT complete_state_1_allowed_matches PASS",
+        "ASSERT complete_state_1_no_write PASS",
+        "ASSERT complete_state_2_allowed_matches PASS",
+        "ASSERT complete_state_2_no_write PASS",
+        "ASSERT complete_state_3_allowed_matches PASS",
+        "ASSERT complete_state_3_no_write PASS",
+        "ASSERT complete_state_4_allowed_matches PASS",
+        "ASSERT complete_state_4_persisted PASS",
+        "ASSERT complete_state_4_unrelated_fields_unchanged PASS",
+        "ASSERT complete_delivery_time PASS",
+        "ASSERT complete_repeat_response PASS",
+        "ASSERT complete_repeat_no_regression PASS",
+        "ASSERT complete_state_5_allowed_matches PASS",
+        "ASSERT complete_state_5_no_write PASS",
+        "ASSERT complete_state_6_allowed_matches PASS",
+        "ASSERT complete_state_6_no_write PASS",
+        "ASSERT complete_missing_order_denied PASS",
+        "ASSERT complete_missing_order_no_write PASS",
+        "ASSERT complete_anonymous_denied PASS",
+        "ASSERT complete_user_token_to_admin_denied PASS",
+        "ASSERT reject_blank_reason_denied PASS",
+        "ASSERT reject_blank_reason_no_write PASS",
+        "ASSERT adminCancel_blank_reason_denied PASS",
+        "ASSERT adminCancel_blank_reason_no_write PASS",
+        "ASSERT chain_payment_business_success PASS",
+        "ASSERT mock_response_compatible PASS",
+        "ASSERT chain_user_read_2_business_success PASS",
+        "ASSERT chain_admin_read_2_business_success PASS",
+        "ASSERT chain_two_consumers_same_checkout_2 PASS",
+        "ASSERT chain_read_status_2 PASS",
+        "ASSERT chain_read_amount_image_2 PASS",
+        "ASSERT chain_checkout_visible_2 PASS",
+        "ASSERT chain_read_status_2 PASS",
+        "ASSERT chain_read_amount_image_2 PASS",
+        "ASSERT chain_checkout_visible_2 PASS",
+        "ASSERT chain_sql_status_2 PASS",
+        "ASSERT chain_confirm_business_success PASS",
+        "ASSERT chain_user_read_3_business_success PASS",
+        "ASSERT chain_admin_read_3_business_success PASS",
+        "ASSERT chain_two_consumers_same_checkout_3 PASS",
+        "ASSERT chain_read_status_3 PASS",
+        "ASSERT chain_read_amount_image_3 PASS",
+        "ASSERT chain_checkout_visible_3 PASS",
+        "ASSERT chain_read_status_3 PASS",
+        "ASSERT chain_read_amount_image_3 PASS",
+        "ASSERT chain_checkout_visible_3 PASS",
+        "ASSERT chain_sql_status_3 PASS",
+        "ASSERT chain_payment_retry_after_confirm_business_success PASS",
+        "ASSERT chain_payment_retry_after_confirm_unchanged PASS",
+        "ASSERT chain_deliver_business_success PASS",
+        "ASSERT chain_user_read_4_business_success PASS",
+        "ASSERT chain_admin_read_4_business_success PASS",
+        "ASSERT chain_two_consumers_same_checkout_4 PASS",
+        "ASSERT chain_read_status_4 PASS",
+        "ASSERT chain_read_amount_image_4 PASS",
+        "ASSERT chain_checkout_visible_4 PASS",
+        "ASSERT chain_read_status_4 PASS",
+        "ASSERT chain_read_amount_image_4 PASS",
+        "ASSERT chain_checkout_visible_4 PASS",
+        "ASSERT chain_sql_status_4 PASS",
+        "ASSERT chain_payment_retry_after_deliver_business_success PASS",
+        "ASSERT chain_payment_retry_after_deliver_unchanged PASS",
+        "ASSERT chain_complete_business_success PASS",
+        "ASSERT chain_user_read_5_business_success PASS",
+        "ASSERT chain_admin_read_5_business_success PASS",
+        "ASSERT chain_two_consumers_same_checkout_5 PASS",
+        "ASSERT chain_two_consumers_same_delivery PASS",
+        "ASSERT chain_read_status_5 PASS",
+        "ASSERT chain_read_amount_image_5 PASS",
+        "ASSERT chain_checkout_visible_5 PASS",
+        "ASSERT chain_delivery_visible PASS",
+        "ASSERT chain_read_status_5 PASS",
+        "ASSERT chain_read_amount_image_5 PASS",
+        "ASSERT chain_checkout_visible_5 PASS",
+        "ASSERT chain_delivery_visible PASS",
+        "ASSERT chain_sql_status_5 PASS",
+        "ASSERT chain_payment_retry_after_complete_business_success PASS",
+        "ASSERT chain_payment_retry_after_complete_unchanged PASS",
+        "ASSERT chain_details_exactly_preserved PASS",
+        "ASSERT markPaid_state_1 PASS",
+        "ASSERT payment_state_1_persisted PASS",
+        "ASSERT payment_state_1_unrelated_fields_unchanged PASS",
+        "ASSERT payment_paid_and_checkout PASS",
+        "ASSERT markPaid_state_2 PASS",
+        "ASSERT markPaid_state_2_no_regression PASS",
+        "ASSERT markPaid_state_3 PASS",
+        "ASSERT markPaid_state_3_no_regression PASS",
+        "ASSERT markPaid_state_4 PASS",
+        "ASSERT markPaid_state_4_no_regression PASS",
+        "ASSERT markPaid_state_5 PASS",
+        "ASSERT markPaid_state_5_no_regression PASS",
+        "ASSERT markPaid_state_6 PASS",
+        "ASSERT markPaid_state_6_no_regression PASS",
+        "ASSERT markPaid_missing_denied PASS",
+        "ASSERT markPaid_invalid_id_denied PASS",
+        "ASSERT markPaid_invalid_id_denied PASS",
+        "ASSERT markPaid_invalid_id_denied PASS",
+        "ASSERT markPaid_inconsistent_unpaid_state_denied PASS",
+        "ASSERT reminder_state_1 PASS",
+        "ASSERT reminder_state_1_sql_unchanged PASS",
+        "ASSERT reminder_wrong_state_no_throttle PASS",
+        "ASSERT reminder_state_2 PASS",
+        "ASSERT reminder_state_2_sql_unchanged PASS",
+        "ASSERT reminder_repeat_throttled PASS",
+        "ASSERT reminder_redis_ttl PASS",
+        "ASSERT reminder_state_3 PASS",
+        "ASSERT reminder_state_3_sql_unchanged PASS",
+        "ASSERT reminder_wrong_state_no_throttle PASS",
+        "ASSERT reminder_state_4 PASS",
+        "ASSERT reminder_state_4_sql_unchanged PASS",
+        "ASSERT reminder_wrong_state_no_throttle PASS",
+        "ASSERT reminder_state_5 PASS",
+        "ASSERT reminder_state_5_sql_unchanged PASS",
+        "ASSERT reminder_wrong_state_no_throttle PASS",
+        "ASSERT reminder_state_6 PASS",
+        "ASSERT reminder_state_6_sql_unchanged PASS",
+        "ASSERT reminder_wrong_state_no_throttle PASS",
+        "ASSERT reminder_foreign_anonymous_denied PASS",
+        "ASSERT reminder_foreign_anonymous_denied PASS",
+        "ASSERT reminder_missing_denied PASS",
+        "ASSERT reminder_reusable_ownership PASS",
+        "ASSERT repetition_foreign_anonymous_denied PASS",
+        "ASSERT repetition_foreign_anonymous_denied PASS",
+        "ASSERT repetition_missing_denied PASS",
+        "ASSERT repetition_rejections_no_writes PASS",
+        "ASSERT repetition_second_insert_http_failed PASS",
+        "ASSERT repetition_rollback_real_sql_writes_reached PASS",
+        "ASSERT repetition_rollback_all_sql_writes_inside_proxy_transaction PASS",
+        "ASSERT repetition_clear_and_first_insert_reached PASS",
+        "ASSERT repetition_old_cart_exactly_restored PASS",
+        "ASSERT repetition_other_cart_unchanged PASS",
+        "ASSERT repetition_reusable_proxy_failure_rolled_back PASS",
+        "ASSERT repetition_valid_business_success PASS",
+        "ASSERT repetition_success_real_sql_writes_reached PASS",
+        "ASSERT repetition_success_all_sql_writes_inside_proxy_transaction PASS",
+        "ASSERT repetition_cart_size PASS",
+        "ASSERT repetition_stored_dish_id PASS",
+        "ASSERT repetition_stored_setmeal_id PASS",
+        "ASSERT repetition_stored_name PASS",
+        "ASSERT repetition_stored_image PASS",
+        "ASSERT repetition_stored_amount PASS",
+        "ASSERT repetition_stored_number PASS",
+        "ASSERT repetition_stored_dish_flavor PASS",
+        "ASSERT repetition_stored_dish_id PASS",
+        "ASSERT repetition_stored_setmeal_id PASS",
+        "ASSERT repetition_stored_name PASS",
+        "ASSERT repetition_stored_image PASS",
+        "ASSERT repetition_stored_amount PASS",
+        "ASSERT repetition_stored_number PASS",
+        "ASSERT repetition_stored_dish_flavor PASS",
+        "ASSERT repetition_valid_other_unchanged PASS",
+        "ASSERT repetition_repeat_business_success PASS",
+        "ASSERT repetition_repeat_no_duplicate_cart PASS",
+        "ASSERT repetition_own_state_1_business_success PASS",
+        "ASSERT repetition_empty_details_clears_only_own PASS",
+        "ASSERT repetition_own_state_2_business_success PASS",
+        "ASSERT repetition_empty_details_clears_only_own PASS",
+        "ASSERT repetition_own_state_3_business_success PASS",
+        "ASSERT repetition_empty_details_clears_only_own PASS",
+        "ASSERT repetition_own_state_4_business_success PASS",
+        "ASSERT repetition_empty_details_clears_only_own PASS",
+        "ASSERT repetition_own_state_5_business_success PASS",
+        "ASSERT repetition_empty_details_clears_only_own PASS",
+        "ASSERT repetition_own_state_6_business_success PASS",
+        "ASSERT repetition_empty_details_clears_only_own PASS",
+        "ASSERT payment_core_sql_http_failed PASS",
+        "ASSERT payment_core_full_rows_unchanged PASS",
+        "ASSERT payment_core_failure_real_sql_writes_reached PASS",
+        "ASSERT payment_core_failure_all_sql_writes_inside_proxy_transaction PASS",
+        "ASSERT confirm_core_sql_http_failed PASS",
+        "ASSERT confirm_core_full_rows_unchanged PASS",
+        "ASSERT confirm_core_failure_real_sql_writes_reached PASS",
+        "ASSERT confirm_core_failure_all_sql_writes_inside_proxy_transaction PASS",
+        "ASSERT reject_core_sql_http_failed PASS",
+        "ASSERT reject_core_full_rows_unchanged PASS",
+        "ASSERT reject_core_failure_real_sql_writes_reached PASS",
+        "ASSERT reject_core_failure_all_sql_writes_inside_proxy_transaction PASS",
+        "ASSERT userCancel_core_sql_http_failed PASS",
+        "ASSERT userCancel_core_full_rows_unchanged PASS",
+        "ASSERT userCancel_core_failure_real_sql_writes_reached PASS",
+        "ASSERT userCancel_core_failure_all_sql_writes_inside_proxy_transaction PASS",
+        "ASSERT adminCancel_core_sql_http_failed PASS",
+        "ASSERT adminCancel_core_full_rows_unchanged PASS",
+        "ASSERT adminCancel_core_failure_real_sql_writes_reached PASS",
+        "ASSERT adminCancel_core_failure_all_sql_writes_inside_proxy_transaction PASS",
+        "ASSERT deliver_core_sql_http_failed PASS",
+        "ASSERT deliver_core_full_rows_unchanged PASS",
+        "ASSERT deliver_core_failure_real_sql_writes_reached PASS",
+        "ASSERT deliver_core_failure_all_sql_writes_inside_proxy_transaction PASS",
+        "ASSERT complete_core_sql_http_failed PASS",
+        "ASSERT complete_core_full_rows_unchanged PASS",
+        "ASSERT complete_core_failure_real_sql_writes_reached PASS",
+        "ASSERT complete_core_failure_all_sql_writes_inside_proxy_transaction PASS",
+        "ASSERT markPaid_core_failed_and_unchanged PASS",
+        "ASSERT markPaid_core_failure_real_sql_writes_reached PASS",
+        "ASSERT markPaid_core_failure_all_sql_writes_inside_proxy_transaction PASS",
+        "ASSERT confirm_vs_reject_both_read_same_old_state PASS",
+        "ASSERT confirm_vs_reject_exactly_one_winner PASS",
+        "ASSERT confirm_vs_reject_persisted_winner PASS",
+        "ASSERT confirm_cancelled_retry_cannot_regress PASS",
+        "ASSERT payment_vs_userCancel_both_read_same_old_state PASS",
+        "ASSERT payment_vs_userCancel_exactly_one_winner PASS",
+        "ASSERT payment_vs_userCancel_persisted_winner PASS",
+        "ASSERT payment_cancelled_retry_cannot_regress PASS",
+        "ASSERT admin_statistics_business_success PASS",
+        "ASSERT statistics_named_counts_correct PASS",
+        "ASSERT existing_disabled_risk_task_hook_no_mutation PASS",
+        "ASSERT websocket_transport_message_cannot_mutate_fulfillment PASS",
+        "ASSERT other_order_cart_exactly_unchanged PASS",
+        "ASSERT scoring_disabled_no_risk_writes PASS",
+        "ASSERT cleanup_shared_rows_exactly_preserved PASS",
+        "ASSERT cleanup_task_triggers_absent PASS",
+        "ASSERT cleanup_task_evidence_table_absent PASS",
+        "ASSERT cleanup_task_redis_absent PASS",
+        "ASSERT Spring_context_closed PASS"
+      ],
+      "businessEvidence": ".scratch/issue21/issue11-batch1-correction.log",
+      "resourceCloseStatus": {
+        "spring": "normal source finally/try-with-resources returned; final assertion marker and exit verified",
+        "fixtureCleanup": "scoped finally returned; explicit cleanup assertions where emitted"
+      }
+    },
+    {
+      "batch": "runtime-1-correction",
+      "issue": 12,
+      "command": [
+        "bash",
+        "/home/agent/workspace/.sandcastle/environment/issue12-check.sh",
+        "/home/agent/workspace",
+        "/home/agent/workspace/.sandcastle/environment"
+      ],
+      "cwd": "/home/agent/workspace",
+      "started": "2026-10-14T10:29:12.571734+00:00",
+      "finished": "2026-10-14T10:30:29.229383+00:00",
+      "exit": 0,
+      "log": ".scratch/issue21/issue12-batch1-correction.log",
+      "sourceStartCommit": "b50afbe396d048e566106e93b48fb67a957828b6",
+      "versionMeaning": "current task working tree; exact-candidate independent verification still waiting",
+      "businessPassed": true,
+      "businessAssertions": [
+        "ASSERT DATABASE_is_sandcastle_fixture PASS",
+        "ASSERT schema_orders_primary_id PASS",
+        "ASSERT schema_order_detail_primary_id PASS",
+        "ASSERT schema_dish_primary_id PASS",
+        "ASSERT schema_setmeal_primary_id PASS",
+        "ASSERT schema_user_primary_id PASS",
+        "ASSERT schema_employee_primary_id PASS",
+        "ASSERT unused_ids_orders PASS",
+        "ASSERT unused_ids_order_detail PASS",
+        "ASSERT unused_ids_dish PASS",
+        "ASSERT unused_ids_setmeal PASS",
+        "ASSERT unused_ids_user PASS",
+        "ASSERT unused_detail_order_ids PASS",
+        "ASSERT unused_task_trigger_names PASS",
+        "ASSERT unused_task_audit_table PASS",
+        "ASSERT two_distinct_fixture_owners PASS",
+        "ASSERT historicalA_catalogB_and_missing_products PASS",
+        "ASSERT audit_detects_noop_update_and_insert PASS",
+        "ASSERT http_/user/order/historyOrders PASS",
+        "ASSERT user_history_business_success PASS",
+        "ASSERT own_history_only_sort PASS",
+        "ASSERT user_history_amount19_912002 PASS",
+        "ASSERT user_history_detail_count_912002 PASS",
+        "ASSERT user_history_amount19_912001 PASS",
+        "ASSERT user_history_detail_count_912001 PASS",
+        "ASSERT user_history_stored_image_912021 PASS",
+        "ASSERT user_history_stored_fields_912021 PASS",
+        "ASSERT user_history_stored_image_912022 PASS",
+        "ASSERT user_history_stored_fields_912022 PASS",
+        "ASSERT user_history_stored_image_912023 PASS",
+        "ASSERT user_history_stored_fields_912023 PASS",
+        "ASSERT user_history_stored_image_912024 PASS",
+        "ASSERT user_history_stored_fields_912024 PASS",
+        "ASSERT user_history_stored_image_912025 PASS",
+        "ASSERT user_history_stored_fields_912025 PASS",
+        "ASSERT user_history_stored_image_912026 PASS",
+        "ASSERT user_history_stored_fields_912026 PASS",
+        "ASSERT user_history_stored_image_912027 PASS",
+        "ASSERT user_history_stored_fields_912027 PASS",
+        "ASSERT user_history_stored_image_912028 PASS",
+        "ASSERT user_history_stored_fields_912028 PASS",
+        "ASSERT user_history_all_rows_and_image_bytes_unchanged PASS",
+        "ASSERT user_history_zero_insert_update_attempts PASS",
+        "ASSERT http_/user/order/orderDetail/912001 PASS",
+        "ASSERT user_detail_business_success PASS",
+        "ASSERT user_detail_amount19_912001 PASS",
+        "ASSERT user_detail_detail_count_912001 PASS",
+        "ASSERT user_detail_stored_image_912021 PASS",
+        "ASSERT user_detail_stored_fields_912021 PASS",
+        "ASSERT user_detail_stored_image_912022 PASS",
+        "ASSERT user_detail_stored_fields_912022 PASS",
+        "ASSERT user_detail_stored_image_912023 PASS",
+        "ASSERT user_detail_stored_fields_912023 PASS",
+        "ASSERT user_detail_stored_image_912024 PASS",
+        "ASSERT user_detail_stored_fields_912024 PASS",
+        "ASSERT user_detail_stored_image_912025 PASS",
+        "ASSERT user_detail_stored_fields_912025 PASS",
+        "ASSERT user_detail_stored_image_912026 PASS",
+        "ASSERT user_detail_stored_fields_912026 PASS",
+        "ASSERT user_detail_stored_image_912027 PASS",
+        "ASSERT user_detail_stored_fields_912027 PASS",
+        "ASSERT user_detail_stored_image_912028 PASS",
+        "ASSERT user_detail_stored_fields_912028 PASS",
+        "ASSERT http_/user/order/orderDetail/912002 PASS",
+        "ASSERT user_detail_business_success PASS",
+        "ASSERT user_detail_amount19_912002 PASS",
+        "ASSERT user_detail_detail_count_912002 PASS",
+        "ASSERT user_detail_all_rows_and_image_bytes_unchanged PASS",
+        "ASSERT user_detail_zero_insert_update_attempts PASS",
+        "ASSERT http_/admin/order/conditionSearch PASS",
+        "ASSERT admin_page_business_success PASS",
+        "ASSERT admin_history_total_sort PASS",
+        "ASSERT admin_page_amount19_912003 PASS",
+        "ASSERT admin_page_detail_count_912003 PASS",
+        "ASSERT admin_page_stored_image_912029 PASS",
+        "ASSERT admin_page_stored_fields_912029 PASS",
+        "ASSERT admin_page_amount19_912002 PASS",
+        "ASSERT admin_page_detail_count_912002 PASS",
+        "ASSERT admin_page_amount19_912001 PASS",
+        "ASSERT admin_page_detail_count_912001 PASS",
+        "ASSERT admin_page_stored_image_912021 PASS",
+        "ASSERT admin_page_stored_fields_912021 PASS",
+        "ASSERT admin_page_stored_image_912022 PASS",
+        "ASSERT admin_page_stored_fields_912022 PASS",
+        "ASSERT admin_page_stored_image_912023 PASS",
+        "ASSERT admin_page_stored_fields_912023 PASS",
+        "ASSERT admin_page_stored_image_912024 PASS",
+        "ASSERT admin_page_stored_fields_912024 PASS",
+        "ASSERT admin_page_stored_image_912025 PASS",
+        "ASSERT admin_page_stored_fields_912025 PASS",
+        "ASSERT admin_page_stored_image_912026 PASS",
+        "ASSERT admin_page_stored_fields_912026 PASS",
+        "ASSERT admin_page_stored_image_912027 PASS",
+        "ASSERT admin_page_stored_fields_912027 PASS",
+        "ASSERT admin_page_stored_image_912028 PASS",
+        "ASSERT admin_page_stored_fields_912028 PASS",
+        "ASSERT admin_page_all_rows_and_image_bytes_unchanged PASS",
+        "ASSERT admin_page_zero_insert_update_attempts PASS",
+        "ASSERT http_/admin/order/details/912001 PASS",
+        "ASSERT admin_detail_business_success PASS",
+        "ASSERT admin_detail_amount19_912001 PASS",
+        "ASSERT admin_detail_detail_count_912001 PASS",
+        "ASSERT admin_detail_stored_image_912021 PASS",
+        "ASSERT admin_detail_stored_fields_912021 PASS",
+        "ASSERT admin_detail_stored_image_912022 PASS",
+        "ASSERT admin_detail_stored_fields_912022 PASS",
+        "ASSERT admin_detail_stored_image_912023 PASS",
+        "ASSERT admin_detail_stored_fields_912023 PASS",
+        "ASSERT admin_detail_stored_image_912024 PASS",
+        "ASSERT admin_detail_stored_fields_912024 PASS",
+        "ASSERT admin_detail_stored_image_912025 PASS",
+        "ASSERT admin_detail_stored_fields_912025 PASS",
+        "ASSERT admin_detail_stored_image_912026 PASS",
+        "ASSERT admin_detail_stored_fields_912026 PASS",
+        "ASSERT admin_detail_stored_image_912027 PASS",
+        "ASSERT admin_detail_stored_fields_912027 PASS",
+        "ASSERT admin_detail_stored_image_912028 PASS",
+        "ASSERT admin_detail_stored_fields_912028 PASS",
+        "ASSERT http_/admin/order/details/912002 PASS",
+        "ASSERT admin_detail_business_success PASS",
+        "ASSERT admin_detail_amount19_912002 PASS",
+        "ASSERT admin_detail_detail_count_912002 PASS",
+        "ASSERT http_/admin/order/details/912003 PASS",
+        "ASSERT admin_detail_business_success PASS",
+        "ASSERT admin_detail_amount19_912003 PASS",
+        "ASSERT admin_detail_detail_count_912003 PASS",
+        "ASSERT admin_detail_stored_image_912029 PASS",
+        "ASSERT admin_detail_stored_fields_912029 PASS",
+        "ASSERT admin_detail_all_rows_and_image_bytes_unchanged PASS",
+        "ASSERT admin_detail_zero_insert_update_attempts PASS",
+        "ASSERT http_/user/order/historyOrders PASS",
+        "ASSERT anonymous_user PASS",
+        "ASSERT http_/user/order/orderDetail/912001 PASS",
+        "ASSERT anonymous_user PASS",
+        "ASSERT http_/admin/order/conditionSearch PASS",
+        "ASSERT anonymous_admin PASS",
+        "ASSERT http_/admin/order/details/912001 PASS",
+        "ASSERT anonymous_admin PASS",
+        "ASSERT http_/user/order/orderDetail/912001 PASS",
+        "ASSERT other_user_detail_rejected PASS",
+        "ASSERT http_/user/order/orderDetail/912003 PASS",
+        "ASSERT own_user_other_detail_rejected PASS",
+        "ASSERT http_/user/order/historyOrders PASS",
+        "ASSERT other_history_business_success PASS",
+        "ASSERT other_history_only PASS",
+        "ASSERT http_/user/order/historyOrders PASS",
+        "ASSERT user_paging_business_success PASS",
+        "ASSERT user_page_two PASS",
+        "ASSERT user_paging_amount19_912001 PASS",
+        "ASSERT user_paging_detail_count_912001 PASS",
+        "ASSERT user_paging_stored_image_912021 PASS",
+        "ASSERT user_paging_stored_fields_912021 PASS",
+        "ASSERT user_paging_stored_image_912022 PASS",
+        "ASSERT user_paging_stored_fields_912022 PASS",
+        "ASSERT user_paging_stored_image_912023 PASS",
+        "ASSERT user_paging_stored_fields_912023 PASS",
+        "ASSERT user_paging_stored_image_912024 PASS",
+        "ASSERT user_paging_stored_fields_912024 PASS",
+        "ASSERT user_paging_stored_image_912025 PASS",
+        "ASSERT user_paging_stored_fields_912025 PASS",
+        "ASSERT user_paging_stored_image_912026 PASS",
+        "ASSERT user_paging_stored_fields_912026 PASS",
+        "ASSERT user_paging_stored_image_912027 PASS",
+        "ASSERT user_paging_stored_fields_912027 PASS",
+        "ASSERT user_paging_stored_image_912028 PASS",
+        "ASSERT user_paging_stored_fields_912028 PASS",
+        "ASSERT http_/user/order/historyOrders PASS",
+        "ASSERT user_empty_business_success PASS",
+        "ASSERT user_empty_page PASS",
+        "ASSERT http_/admin/order/conditionSearch PASS",
+        "ASSERT admin_paging_business_success PASS",
+        "ASSERT admin_page_two PASS",
+        "ASSERT admin_paging_amount19_912002 PASS",
+        "ASSERT admin_paging_detail_count_912002 PASS",
+        "ASSERT http_/admin/order/conditionSearch PASS",
+        "ASSERT admin_empty_business_success PASS",
+        "ASSERT admin_empty_page PASS",
+        "ASSERT all_auth_paging_queries_all_rows_and_image_bytes_unchanged PASS",
+        "ASSERT all_auth_paging_queries_zero_insert_update_attempts PASS",
+        "ASSERT cleanup_shared_rows_exactly_unchanged PASS",
+        "ASSERT cleanup_task_triggers PASS",
+        "ASSERT cleanup_task_audit_table PASS"
+      ],
+      "businessEvidence": ".scratch/issue21/issue12-batch1-correction.log",
+      "resourceCloseStatus": {
+        "spring": "normal source finally/try-with-resources returned; final assertion marker and exit verified",
+        "fixtureCleanup": "scoped finally returned; explicit cleanup assertions where emitted"
+      }
+    },
+    {
+      "batch": "runtime-final",
+      "issue": 13,
+      "command": [
+        "bash",
+        "/home/agent/workspace/.sandcastle/environment/issue13-check.sh"
+      ],
+      "cwd": "/home/agent/workspace",
+      "started": "2026-10-14T10:54:42.444930+00:00",
+      "finished": "2026-10-14T10:56:01.973379+00:00",
+      "exit": 0,
+      "log": ".scratch/issue21/issue13-batch2-final.log",
+      "sourceStartCommit": "b50afbe396d048e566106e93b48fb67a957828b6",
+      "versionMeaning": "current task working tree; exact-candidate independent verification still waiting",
+      "businessPassed": true,
+      "businessAssertions": [
+        {
+          "scenario": "isolation-and-proxies",
+          "result": "PASS"
+        },
+        {
+          "scenario": "exposure-context-before",
+          "result": "PASS"
+        },
+        {
+          "scenario": "exposure-context-after",
+          "result": "PASS"
+        },
+        {
+          "scenario": "exposure-set-before",
+          "result": "PASS"
+        },
+        {
+          "scenario": "exposure-set-after",
+          "result": "PASS"
+        },
+        {
+          "scenario": "exposure-counter-before",
+          "result": "PASS"
+        },
+        {
+          "scenario": "exposure-counter-after",
+          "result": "PASS"
+        },
+        {
+          "scenario": "exposure-expiry-before",
+          "result": "PASS"
+        },
+        {
+          "scenario": "click-context-before",
+          "result": "PASS"
+        },
+        {
+          "scenario": "click-context-after",
+          "result": "PASS"
+        },
+        {
+          "scenario": "click-set-before",
+          "result": "PASS"
+        },
+        {
+          "scenario": "click-set-after",
+          "result": "PASS"
+        },
+        {
+          "scenario": "click-counter-before",
+          "result": "PASS"
+        },
+        {
+          "scenario": "click-counter-after",
+          "result": "PASS"
+        },
+        {
+          "scenario": "click-expiry-before",
+          "result": "PASS"
+        },
+        {
+          "scenario": "conversion-context-before",
+          "result": "PASS"
+        },
+        {
+          "scenario": "conversion-context-after",
+          "result": "PASS"
+        },
+        {
+          "scenario": "conversion-set-before",
+          "result": "PASS"
+        },
+        {
+          "scenario": "conversion-set-after",
+          "result": "PASS"
+        },
+        {
+          "scenario": "conversion-counter-before",
+          "result": "PASS"
+        },
+        {
+          "scenario": "conversion-counter-after",
+          "result": "PASS"
+        },
+        {
+          "scenario": "conversion-expiry-before",
+          "result": "PASS"
+        },
+        {
+          "scenario": "submit-get-before",
+          "result": "PASS"
+        },
+        {
+          "scenario": "submit-context-before",
+          "result": "PASS"
+        },
+        {
+          "scenario": "submit-context-after",
+          "result": "PASS"
+        },
+        {
+          "scenario": "submit-set-before",
+          "result": "PASS"
+        },
+        {
+          "scenario": "submit-set-after",
+          "result": "PASS"
+        },
+        {
+          "scenario": "submit-counter-before",
+          "result": "PASS"
+        },
+        {
+          "scenario": "submit-counter-after",
+          "result": "PASS"
+        },
+        {
+          "scenario": "submit-off",
+          "result": "PASS"
+        },
+        {
+          "scenario": "cart-get-before",
+          "result": "PASS"
+        },
+        {
+          "scenario": "cart-context-before",
+          "result": "PASS"
+        },
+        {
+          "scenario": "cart-context-after",
+          "result": "PASS"
+        },
+        {
+          "scenario": "cart-set-before",
+          "result": "PASS"
+        },
+        {
+          "scenario": "cart-set-after",
+          "result": "PASS"
+        },
+        {
+          "scenario": "cart-counter-before",
+          "result": "PASS"
+        },
+        {
+          "scenario": "cart-counter-after",
+          "result": "PASS"
+        },
+        {
+          "scenario": "core-order",
+          "result": "PASS"
+        },
+        {
+          "scenario": "core-detail",
+          "result": "PASS"
+        },
+        {
+          "scenario": "core-cart",
+          "result": "PASS"
+        },
+        {
+          "scenario": "auth-address-saleability",
+          "result": "PASS"
+        },
+        {
+          "scenario": "risk-mapper-failure",
+          "result": "PASS"
+        },
+        {
+          "scenario": "http-roundtrip",
+          "result": "PASS"
+        }
+      ],
+      "businessEvidence": ".scratch/issue13-check/probe-results-985303528.json",
+      "resourceCloseStatus": {
+        "spring": "normal source finally/try-with-resources returned; final assertion marker and exit verified",
+        "fixtureCleanup": "scoped finally returned; explicit cleanup assertions where emitted"
+      }
+    },
+    {
+      "batch": "runtime-1-correction2",
+      "issue": 14,
+      "command": [
+        "bash",
+        "/home/agent/workspace/.sandcastle/environment/issue14-check.sh",
+        "/home/agent/workspace",
+        "/home/agent/workspace/.sandcastle/environment"
+      ],
+      "cwd": "/home/agent/workspace",
+      "started": "2026-10-14T10:35:27.079996+00:00",
+      "finished": "2026-10-14T10:36:45.298839+00:00",
+      "exit": 0,
+      "log": ".scratch/issue21/issue14-batch1-correction2.log",
+      "sourceStartCommit": "b50afbe396d048e566106e93b48fb67a957828b6",
+      "versionMeaning": "current task working tree; exact-candidate independent verification still waiting",
+      "businessPassed": true,
+      "businessAssertions": [
+        "ASSERT internal_database PASS",
+        "ASSERT fixture_ids_unoccupied PASS",
+        "ASSERT page_success_ PASS",
+        "ASSERT total_sort_tied_order_time PASS",
+        "ASSERT missing_risk_page PASS",
+        "ASSERT page_success_&status=6 PASS",
+        "ASSERT state PASS",
+        "ASSERT page_success_&riskLevel=HIGH PASS",
+        "ASSERT latest_correlation PASS",
+        "ASSERT page_success_&minRiskScore=70 PASS",
+        "ASSERT score PASS",
+        "ASSERT page_success_&riskLevel=HIGH&minRiskScore=70&status=5 PASS",
+        "ASSERT combined_predicates_latest_ties PASS",
+        "ASSERT page_success_&beginTime=2026-10-01%2012:00:00&endTime=2026-10-01%2012:00:00 PASS",
+        "ASSERT inclusive_time PASS",
+        "ASSERT total_page PASS",
+        "ASSERT empty_page_total PASS",
+        "ASSERT page_success_&status=99 PASS",
+        "ASSERT no_records PASS",
+        "ASSERT page_success_&riskLevel=HIGH%27%20OR%201=1%20-- PASS",
+        "ASSERT bound_risk_input PASS",
+        "ASSERT trimmed_substrings PASS",
+        "ASSERT display_latest_model_tie PASS",
+        "ASSERT missing_risk_detail PASS",
+        "ASSERT unauthenticated_page PASS",
+        "ASSERT unauthenticated_detail PASS",
+        "ASSERT ownership PASS",
+        "ASSERT missing_detail PASS",
+        "ASSERT page_success_ PASS",
+        "ASSERT optional_page_core_retained PASS",
+        "ASSERT optional_page_risk_914002 PASS",
+        "ASSERT optional_page_risk_914001 PASS",
+        "ASSERT optional_page_risk_914005 PASS",
+        "ASSERT optional_page_risk_914004 PASS",
+        "ASSERT optional_page_risk_914003 PASS",
+        "ASSERT optional_detail_core_retained PASS",
+        "ASSERT optional_detail_risk PASS",
+        "ASSERT risk_filter_failure_no_unfiltered_retry PASS",
+        "ASSERT score_filter_failure PASS",
+        "ASSERT user_detail_regression PASS",
+        "ASSERT core_detail_assembly_page PASS",
+        "ASSERT core_detail_assembly_detail PASS",
+        "ASSERT core_sql_page PASS",
+        "ASSERT core_sql_detail PASS",
+        "ASSERT user_core_sql PASS",
+        "ASSERT fixture_cleanup PASS"
+      ],
+      "businessEvidence": ".scratch/issue21/issue14-batch1-correction2.log",
+      "resourceCloseStatus": {
+        "spring": "normal source finally/try-with-resources returned; final assertion marker and exit verified",
+        "fixtureCleanup": "scoped finally returned; explicit cleanup assertions where emitted"
+      }
+    },
+    {
+      "batch": "runtime-1-correction2",
+      "issue": 15,
+      "command": [
+        "bash",
+        "/home/agent/workspace/.sandcastle/environment/issue15-check.sh"
+      ],
+      "cwd": "/home/agent/workspace",
+      "started": "2026-10-14T10:36:45.335439+00:00",
+      "finished": "2026-10-14T10:38:01.273009+00:00",
+      "exit": 0,
+      "log": ".scratch/issue21/issue15-batch1-correction2.log",
+      "sourceStartCommit": "b50afbe396d048e566106e93b48fb67a957828b6",
+      "versionMeaning": "current task working tree; exact-candidate independent verification still waiting",
+      "businessPassed": true,
+      "businessAssertions": [
+        "ERROR wait rejects unexpected CHAT_MESSAGE before ERROR",
+        "completed package JDBC driver loads",
+        "real Spring transaction proxy",
+        "isolated DB before fixture writes",
+        "isolated JDBC host",
+        "isolated Redis host and port",
+        "actual employee engine and primary key",
+        "actual user engine and primary key",
+        "actual customer_service_session engine and primary key",
+        "actual customer_service_session bigint and DATETIME constraints",
+        "actual customer_service_message engine and primary key",
+        "actual customer_service_message bigint and DATETIME constraints",
+        "actual message content and cursor index constraints",
+        "no preexisting synthetic open session to mutate",
+        "actual fixture admin login HTTP200",
+        "actual fixture admin login business success",
+        "actual fixture user A login HTTP200",
+        "actual fixture user A login business success",
+        "actual fixture user B login HTTP200",
+        "actual fixture user B login business success",
+        "two actual distinct fixture user IDs and admin ID",
+        "fresh fixture token for blacklist HTTP200",
+        "fresh fixture token for blacklist business success",
+        "task fixture blacklist uses real Redis",
+        "blacklisted protected HTTP protected HTTP401 code0",
+        "blacklisted user WS policy close",
+        "anonymous /admin/customerService/session/openList protected HTTP401 code0",
+        "wrong scope /admin/customerService/session/openList protected HTTP401 code0",
+        "anonymous /admin/customerService/message/list?sessionId=1 protected HTTP401 code0",
+        "wrong scope /admin/customerService/message/list?sessionId=1 protected HTTP401 code0",
+        "protected admin close protected HTTP401 code0",
+        "protected admin close protected HTTP401 code0",
+        "protected user open protected HTTP401 code0",
+        "protected user history protected HTTP401 code0",
+        "protected user open protected HTTP401 code0",
+        "protected user history protected HTTP401 code0",
+        "user token admin WS policy close",
+        "admin token user WS policy close",
+        "anonymous user WS policy close",
+        "anonymous admin WS policy close",
+        "user opens session HTTP200",
+        "user opens session business success",
+        "open ownership and state",
+        "reopen existing HTTP200",
+        "reopen existing business success",
+        "open reuses session",
+        "empty history HTTP200",
+        "empty history business success",
+        "empty list valid",
+        "admin open list HTTP200",
+        "admin open list business success",
+        "open session visible in admin summary",
+        "other user HTTP history compatible code0",
+        "other user HTTP history friendly message",
+        "nonexistent user history compatible code0",
+        "nonexistent user history friendly message",
+        "nonexistent admin history HTTP200",
+        "nonexistent admin history business success",
+        "nonexistent admin history remains empty success",
+        "nonexistent close compatible no-op HTTP200",
+        "nonexistent close compatible no-op business success",
+        "reused Service refuses other history",
+        "reused Service refuses other write",
+        "reused Service refuses blank",
+        "reused user Service refuses trim-to-empty controls",
+        "reused admin Service refuses trim-to-empty controls",
+        "invalid reused content has no SQL writes",
+        "reused Service nonexistent send",
+        "other user connection session policy close",
+        "user connection ready",
+        "admin connection ready",
+        "foreign WS send ERROR",
+        "foreign WS send friendly message",
+        "foreign WS no SQL insert",
+        "missing WS send ERROR",
+        "missing WS send friendly message",
+        "blank WS send ERROR",
+        "blank WS send friendly message",
+        "invalid WS JSON ERROR",
+        "invalid WS JSON friendly message",
+        "user typing forbidden ERROR",
+        "user typing forbidden friendly message",
+        "user to admin sender CHAT_MESSAGE",
+        "user to admin receiver CHAT_MESSAGE",
+        "user to admin same trusted event",
+        "user to admin persisted event content and role",
+        "user to admin actual JDBC DATETIME and matching session time",
+        "user to admin existing JSON timestamp matches actual persisted Date within SQL precision",
+        "WS normalization preserved",
+        "admin typing lock",
+        "typing trusted admin ID",
+        "admin to user sender CHAT_MESSAGE",
+        "admin to user receiver CHAT_MESSAGE",
+        "admin to user same trusted event",
+        "admin to user persisted event content and role",
+        "admin to user actual JDBC DATETIME and matching session time",
+        "admin to user existing JSON timestamp matches actual persisted Date within SQL precision",
+        "successful admin reply releases typing lock",
+        "stable generated message ordering",
+        "own persisted history HTTP200",
+        "own persisted history business success",
+        "history ascending IDs",
+        "latest limit one HTTP200",
+        "latest limit one business success",
+        "history newest page limit",
+        "exclusive cursor page HTTP200",
+        "exclusive cursor page business success",
+        "cursor strictly less and stable",
+        "empty cursor HTTP200",
+        "empty cursor business success",
+        "empty cursor success",
+        "invalid HTTP zero limit compatible code0",
+        "invalid HTTP excessive limit compatible code0",
+        "missing HTTP session ID compatible code0",
+        "user reconnected",
+        "reconnect history HTTP200",
+        "reconnect history business success",
+        "reconnect keeps persisted history",
+        "before rollback sender no delivery",
+        "before rollback receiver no delivery",
+        "task INSERT trigger installed",
+        "insert core failure ERROR",
+        "insert core failure friendly message",
+        "failed sender no delivery",
+        "failed receiver no delivery",
+        "insert real SQL transaction rolled back both rows",
+        "reused Service propagates actual core SQL failure",
+        "reused Service actual proxy rollback",
+        "task trigger removed",
+        "lock before failing admin core",
+        "before rollback sender no delivery",
+        "before rollback receiver no delivery",
+        "task UPDATE trigger installed",
+        "session update core failure ERROR",
+        "session update core failure friendly message",
+        "failed sender no delivery",
+        "failed receiver no delivery",
+        "session update real SQL transaction rolled back both rows",
+        "reused Service propagates actual core SQL failure",
+        "reused Service actual proxy rollback",
+        "task trigger removed",
+        "failed SQL retains transport typing owner lock",
+        "retry after rollback sender CHAT_MESSAGE",
+        "retry after rollback receiver CHAT_MESSAGE",
+        "retry after rollback same trusted event",
+        "retry after rollback persisted event content and role",
+        "retry after rollback actual JDBC DATETIME and matching session time",
+        "retry after rollback existing JSON timestamp matches actual persisted Date within SQL precision",
+        "retry releases retained lock",
+        "successful retry removes transient lock",
+        "explicit lock",
+        "explicit unlock",
+        "disconnect lock",
+        "admin disconnect removes transient lock",
+        "admin reconnected",
+        "commit despite failing delivery target sender CHAT_MESSAGE",
+        "commit despite failing delivery target receiver CHAT_MESSAGE",
+        "commit despite failing delivery target same trusted event",
+        "commit despite failing delivery target persisted event content and role",
+        "commit despite failing delivery target actual JDBC DATETIME and matching session time",
+        "commit despite failing delivery target existing JSON timestamp matches actual persisted Date within SQL precision",
+        "core commit survives deterministic transport IOException",
+        "WS logs conceal malformed body tokens SQL content and delivery exception details",
+        "close session HTTP200",
+        "close session business success",
+        "closed persisted and reason trimmed",
+        "closed user WS send ERROR",
+        "closed user WS send friendly message",
+        "closed admin WS send ERROR",
+        "closed admin WS send friendly message",
+        "closed WS no new messages",
+        "reused Service closed user send",
+        "reused Service closed admin send",
+        "closed own history readable",
+        "close idempotent HTTP200",
+        "close idempotent business success",
+        "closed reconnect rejected policy close",
+        "open after close HTTP200",
+        "open after close business success",
+        "new session after close",
+        "direct reuse default negative zero and maximum history limits",
+        "real maximum history HTTP200",
+        "real maximum history business success",
+        "HTTP maximum history page",
+        "failing transport target removed",
+        "owned WS closed",
+        "owned WS closed",
+        "owned WS closed",
+        "owned WS closed",
+        "owned WS closed",
+        "owned WS closed",
+        "owned WS closed",
+        "owned WS closed",
+        "owned WS closed",
+        "owned WS closed",
+        "owned WS closed",
+        "owned WS closed",
+        "owned triggers cleanup",
+        "owned synthetic session and messages removed",
+        "owned synthetic session and messages removed",
+        "shared employee rows unchanged",
+        "shared user rows unchanged",
+        "shared customer_service_session rows unchanged",
+        "shared customer_service_message rows unchanged",
+        "owned fixture blacklist key removed",
+        "Spring HTTP WS context stopped",
+        "owned HTTP client stopped"
+      ],
+      "businessEvidence": ".scratch/issue15/scenario-results.json",
+      "resourceCloseStatus": {
+        "cleanupPassed": true,
+        "resources": {}
+      }
+    },
+    {
+      "batch": "runtime-1-correction2",
+      "issue": 16,
+      "command": [
+        "bash",
+        "/home/agent/workspace/.sandcastle/environment/issue16-check.sh"
+      ],
+      "cwd": "/home/agent/workspace",
+      "started": "2026-10-14T10:38:01.411034+00:00",
+      "finished": "2026-10-14T10:39:37.277059+00:00",
+      "exit": 0,
+      "log": ".scratch/issue21/issue16-batch1-correction2.log",
+      "sourceStartCommit": "b50afbe396d048e566106e93b48fb67a957828b6",
+      "versionMeaning": "current task working tree; exact-candidate independent verification still waiting",
+      "businessPassed": true,
+      "businessAssertions": [
+        {
+          "name": "non-json",
+          "elapsedMs": 54,
+          "passed": true,
+          "outboundRequests": 1
+        },
+        {
+          "name": "bad-envelope",
+          "elapsedMs": 48,
+          "passed": true,
+          "outboundRequests": 1
+        },
+        {
+          "name": "missing-content",
+          "elapsedMs": 47,
+          "passed": true,
+          "outboundRequests": 1
+        },
+        {
+          "name": "numeric-content",
+          "elapsedMs": 50,
+          "passed": true,
+          "outboundRequests": 1
+        },
+        {
+          "name": "fenced-envelope",
+          "elapsedMs": 45,
+          "passed": true,
+          "outboundRequests": 1
+        },
+        {
+          "name": "bad-json",
+          "elapsedMs": 45,
+          "passed": true,
+          "outboundRequests": 1
+        },
+        {
+          "name": "missing-fields",
+          "elapsedMs": 45,
+          "passed": true,
+          "outboundRequests": 1
+        },
+        {
+          "name": "oversized",
+          "elapsedMs": 46,
+          "passed": true,
+          "outboundRequests": 1
+        },
+        {
+          "name": "empty",
+          "elapsedMs": 44,
+          "passed": true,
+          "outboundRequests": 1
+        },
+        {
+          "name": "unknown",
+          "elapsedMs": 46,
+          "passed": true,
+          "outboundRequests": 1
+        },
+        {
+          "name": "mixed",
+          "elapsedMs": 47,
+          "passed": true,
+          "outboundRequests": 1
+        },
+        {
+          "name": "stopped",
+          "elapsedMs": 43,
+          "passed": true,
+          "outboundRequests": 1
+        },
+        {
+          "name": "fractional",
+          "elapsedMs": 45,
+          "passed": true,
+          "outboundRequests": 1
+        },
+        {
+          "name": "string-id",
+          "elapsedMs": 44,
+          "passed": true,
+          "outboundRequests": 1
+        },
+        {
+          "name": "402",
+          "elapsedMs": 80,
+          "passed": true,
+          "outboundRequests": 1
+        },
+        {
+          "name": "503",
+          "elapsedMs": 63,
+          "passed": true,
+          "outboundRequests": 1
+        },
+        {
+          "name": "timeout",
+          "elapsedMs": 239,
+          "passed": true,
+          "outboundRequests": 1
+        },
+        {
+          "name": "continuous-failure-recovery",
+          "passed": true,
+          "suppressedRequests": 4,
+          "outboundRequests": 5
+        },
+        {
+          "syntheticOrders": 5,
+          "passed": true,
+          "name": "named-history-heat-cluster-queries"
+        }
+      ],
+      "businessEvidence": ".scratch/issue16/scenario-results.json",
+      "resourceCloseStatus": {
+        "cleanupPassed": true,
+        "resources": {}
+      }
+    },
+    {
+      "batch": "runtime-1-correction2",
+      "issue": 17,
+      "command": [
+        "bash",
+        "/home/agent/workspace/.sandcastle/environment/issue17-check.sh"
+      ],
+      "cwd": "/home/agent/workspace",
+      "started": "2026-10-14T10:39:37.637862+00:00",
+      "finished": "2026-10-14T10:43:04.841634+00:00",
+      "exit": 0,
+      "log": ".scratch/issue21/issue17-batch1-correction2.log",
+      "sourceStartCommit": "b50afbe396d048e566106e93b48fb67a957828b6",
+      "versionMeaning": "current task working tree; exact-candidate independent verification still waiting",
+      "businessPassed": true,
+      "businessAssertions": [
+        "explicit_fixture_business_timezone",
+        "internal_mysql_url_checked_before_sql_writes",
+        "internal_schema_checked_before_sql_writes",
+        "isolated_database",
+        "named_employee_fixture",
+        "named_category_fixture",
+        "named_user_fixture",
+        "compound_unique_key_user_behavior_feature_snapshot",
+        "compound_unique_key_dish_timeseries_feature_snapshot",
+        "compound_unique_key_user_cluster_result",
+        "compound_unique_key_dish_heat_prediction_result",
+        "actual_primary_keys_loaded",
+        "named_fixture_composite_primary_key_read_only_no_risk_training",
+        "background_business_tasks_disabled",
+        "existing_dev_weather_degrade_fixture_no_external_calls",
+        "real_spring_service_proxy",
+        "real_mapper_proxy",
+        "fresh_redis_db_namespace_before_business_writes",
+        "anonymous_rejected_snapshot/run",
+        "user_token_rejected_snapshot/run",
+        "wrong_scope_rejected_snapshot/run",
+        "anonymous_rejected_training/run",
+        "user_token_rejected_training/run",
+        "wrong_scope_rejected_training/run",
+        "anonymous_rejected_prediction/run",
+        "user_token_rejected_prediction/run",
+        "wrong_scope_rejected_prediction/run",
+        "anonymous_rejected_backfill",
+        "user_token_rejected_backfill",
+        "wrong_scope_rejected_backfill",
+        "protected_read_heat",
+        "wrong_scope_read_heat",
+        "protected_read_clusters",
+        "wrong_scope_read_clusters",
+        "protected_read_metrics/offline",
+        "wrong_scope_read_metrics/offline",
+        "protected_read_metrics/online",
+        "wrong_scope_read_metrics/online",
+        "invalid_date_friendly",
+        "invalid_range_rejected",
+        "excessive_range_rejected",
+        "new_target_within_supported_range",
+        "new_history_window_unoccupied",
+        "new_target_user_behavior_feature_snapshot",
+        "new_target_dish_timeseries_feature_snapshot",
+        "new_target_user_cluster_result",
+        "new_target_prediction_window",
+        "feature_version_parameter_binding",
+        "real_bound_completed_sales_join",
+        "district_parameter_binding",
+        "missing_dish_snapshots_skipped",
+        "prediction_skip_legacy_code_one_truthful_status",
+        "missing_user_snapshots_not_executed",
+        "legacy_weekly_executed_skip_compatible",
+        "new_snapshots_committed",
+        "missing_dish_training_partial_with_cluster_outputs",
+        "missing_model_baseline_not_model_success",
+        "prediction_does_not_claim_or_train_new_model",
+        "real_new_full_synchronous_pipeline",
+        "genuine_new_training_with_enough_synthetic_samples",
+        "actual_sql_counts_match_pipeline",
+        "response_counts_match_sql",
+        "saved_model_version_matches_prediction_sql",
+        "new_version_model_file_saved",
+        "new_model_loaded_with_real_version",
+        "reloaded_xgboost_prediction_finite",
+        "admin_rank_and_cluster_compatibility",
+        "miniapp_cluster_recommendation_ids_compatible",
+        "recommendation_sql_recovery_after_cache_miss",
+        "this_model_metrics_not_historical_success",
+        "original_effect_thresholds_retained",
+        "sql_feature_counts_and_amount_match_source_history",
+        "real_sql_failure_retains_internal_cause",
+        "prediction_replacement_delete_rolled_back",
+        "failure_response_sanitized",
+        "failed_snapshot_pipeline_stops_training",
+        "both_snapshot_tables_rollback_on_second_table_failure",
+        "failed_cluster_write_not_executed",
+        "cluster_replacement_partial_insert_rolled_back",
+        "insufficient_observed_samples_old_model_not_success",
+        "model_save_dependency_partial_clustering_retained",
+        "model_save_failure_cause_retained",
+        "failed_model_save_preserves_previous_published_version",
+        "redis_failure_does_not_hide_committed_predictions",
+        "real_smile_runtime_available_without_replacing_analysis_algorithm",
+        "owned_failure_triggers_removed_configuration_restored"
+      ],
+      "businessEvidence": ".scratch/issue17/run-FhYEnRBy/scenario-results.json",
+      "resourceCloseStatus": {
+        "cleanupPassed": true,
+        "resources": {}
+      }
+    },
+    {
+      "batch": "runtime-1-correction2",
+      "issue": 18,
+      "command": [
+        "bash",
+        "/home/agent/workspace/.sandcastle/environment/issue18-check.sh"
+      ],
+      "cwd": "/home/agent/workspace",
+      "started": "2026-10-14T10:43:04.909025+00:00",
+      "finished": "2026-10-14T10:47:20.947464+00:00",
+      "exit": 0,
+      "log": ".scratch/issue21/issue18-batch1-correction2.log",
+      "sourceStartCommit": "b50afbe396d048e566106e93b48fb67a957828b6",
+      "versionMeaning": "current task working tree; exact-candidate independent verification still waiting",
+      "businessPassed": true,
+      "businessAssertions": [
+        "output_inside_task_root",
+        "fixture_catalog_before_writes",
+        "actual_fixture_tables_before_writes",
+        "actual_score_composite_key",
+        "actual_snapshot_composite_key",
+        "actual_model_version_key",
+        "fresh_schema_actual_spring_connection",
+        "fresh_current_training_window",
+        "probe_disables_all_scheduled_callbacks_including_reply_locks",
+        "all_background_business_tasks_disabled",
+        "actual_risk_spring_transaction_proxy",
+        "actual_named_mapper_proxy",
+        "auth_rejected_training/run",
+        "auth_rejected_training/run",
+        "auth_rejected_training/run",
+        "auth_rejected_training/readiness",
+        "auth_rejected_training/readiness",
+        "auth_rejected_training/readiness",
+        "auth_rejected_models",
+        "auth_rejected_models",
+        "auth_rejected_models",
+        "auth_rejected_replay?modelVersion=absent",
+        "auth_rejected_replay?modelVersion=absent",
+        "auth_rejected_replay?modelVersion=absent",
+        "auth_rejected_feedback",
+        "auth_rejected_feedback",
+        "auth_rejected_feedback",
+        "HTTP_POST_/admin/order-risk/training/run",
+        "no_data_skip_code1_never_trained",
+        "HTTP_GET_/admin/order-risk/replay",
+        "missing_model_not_empty_replay",
+        "HTTP_POST_/admin/order-risk/training/run",
+        "missing_holdout_not_trained",
+        "missing_model_explicit_rule_scoring",
+        "HTTP_POST_/admin/order-risk/training/run",
+        "insufficient_labels_skip",
+        "HTTP_GET_/admin/order-risk/models",
+        "skips_no_model_metadata",
+        "HTTP_GET_/admin/order-risk/training/readiness",
+        "real_90day_train_30day_holdout_labels",
+        "unlabelled_candidate_separate_from_explicit_feedback",
+        "feature_version_sql_bound",
+        "HTTP_POST_/admin/order-risk/training/run",
+        "new_real_lr_rf_training_activated_without_old_model",
+        "new_model_file_inside_unique_run",
+        "new_version_metadata_matches_file_response",
+        "real_serialized_model_reload",
+        "real_standardizer_rows",
+        "HTTP_GET_/admin/order-risk/replay",
+        "replay_actual_new_sample_metrics",
+        "HTTP_POST_/admin/order-risk/training/run",
+        "old_active_not_new_training_when_samples_missing",
+        "skipped_run_preserves_old_active",
+        "fresh_spring_managed_risk_proxy_for_file_reload",
+        "missing_order_no_score_or_snapshot",
+        "ordinary_abnormal_actual_loaded_model_inference",
+        "candidate_and_feedback_label_distinct",
+        "score_explanations_retained",
+        "missing_details_explicit_incomplete_rule_fallback",
+        "incomplete_snapshot_excluded_from_training",
+        "HTTP_POST_/admin/order-risk/feedback",
+        "feedback_decision_persisted",
+        "feedback_label_persisted",
+        "missing_order_feedback_rejected",
+        "unsupported_feedback_no_user_ban",
+        "HTTP_POST_/admin/order-risk/training/run",
+        "sql_publish_failure_truthful_partial_not_success",
+        "failed_publish_rolls_back_old_active_archive",
+        "HTTP_POST_/admin/order-risk/training/run",
+        "filesystem_failure_no_false_activation",
+        "feedback_failure_internal_cause_retained",
+        "feedback_label_rollback_on_decision_failure",
+        "HTTP_GET_/admin/order-risk/replay",
+        "invalid_replay_not_empty_metrics",
+        "HTTP_GET_/admin/order-risk/replay",
+        "existing_model_empty_replay_distinct",
+        "HTTP_GET_/admin/order-risk/replay",
+        "missing_file_distinct",
+        "actual_public_catalog_exclusion",
+        "anonymous_order_rejected",
+        "HTTP_POST_/user/order/submit",
+        "normal_order_real_sql_transaction",
+        "foreign_order_read_rejected",
+        "foreign_order_payment_rejected",
+        "HTTP_PUT_/user/order/payment",
+        "normal_simulated_payment_unchanged",
+        "HTTP_PUT_/admin/order/rejection",
+        "order_level_rejection_semantics",
+        "HTTP_POST_/user/order/submit",
+        "optional_risk_failure_preserves_core_order_transaction",
+        "failed_optional_score_savepoint_no_partial_snapshot",
+        "original_policy_thresholds_weights_unchanged",
+        "real_sql_and_file_failure_cause_chains_retained",
+        "dependency_messages_sanitized_from_risk_logs",
+        "owned_failure_triggers_removed_no_data_or_file_cleanup"
+      ],
+      "businessEvidence": ".scratch/issue18/run-l4SclHnS/scenario-results.json",
+      "resourceCloseStatus": {
+        "cleanupPassed": true,
+        "resources": {}
+      }
+    },
+    {
+      "batch": "runtime-1-correction2",
+      "issue": 20,
+      "command": [
+        "bash",
+        "/home/agent/workspace/.sandcastle/environment/issue20-check.sh"
+      ],
+      "cwd": "/home/agent/workspace",
+      "started": "2026-10-14T10:47:21.016845+00:00",
+      "finished": "2026-10-14T10:48:43.425358+00:00",
+      "exit": 0,
+      "log": ".scratch/issue21/issue20-batch1-correction2.log",
+      "sourceStartCommit": "b50afbe396d048e566106e93b48fb67a957828b6",
+      "versionMeaning": "current task working tree; exact-candidate independent verification still waiting",
+      "businessPassed": true,
+      "businessAssertions": [
+        "actual packaged JDBC driver present",
+        "isolated database before writes",
+        "isolated JDBC host before writes",
+        "isolated Redis before writes",
+        "actual employee schema engine and primary key",
+        "actual user schema engine and primary key",
+        "actual category schema engine and primary key",
+        "actual dish schema engine and primary key",
+        "actual dish image amount and uniqueness constraints",
+        "actual dish_flavor schema engine and primary key",
+        "actual setmeal schema engine and primary key",
+        "actual setmeal image amount and uniqueness constraints",
+        "actual setmeal_dish schema engine and primary key",
+        "actual orders schema engine and primary key",
+        "actual order_detail schema engine and primary key",
+        "actual historical-detail constraints",
+        "actual address_book schema engine and primary key",
+        "real fixture admin login transport",
+        "real fixture admin login business success",
+        "actual admin fixture ID",
+        "real fixture user A login transport",
+        "real fixture user A login business success",
+        "real fixture user B login transport",
+        "real fixture user B login business success",
+        "two actual distinct fixture users",
+        "task-owned Redis roundtrip",
+        "anonymous library HTTP401",
+        "anonymous library business refusal",
+        "wrong scope library HTTP401",
+        "wrong scope library business refusal",
+        "anonymous upload HTTP401",
+        "anonymous upload business refusal",
+        "wrong scope upload HTTP401",
+        "wrong scope upload business refusal",
+        "refusals do not reach storage",
+        "missing multipart file transport",
+        "missing multipart file business refusal",
+        "missing multipart file friendly message",
+        "missing multipart file sanitized",
+        "empty file transport",
+        "empty file business refusal",
+        "empty file friendly message",
+        "empty file sanitized",
+        "blank filename transport",
+        "blank filename business refusal",
+        "blank filename friendly message",
+        "blank filename sanitized",
+        "format refusal x transport",
+        "format refusal x business refusal",
+        "format refusal x friendly message",
+        "format refusal x sanitized",
+        "format refusal x. transport",
+        "format refusal x. business refusal",
+        "format refusal x. friendly message",
+        "format refusal x. sanitized",
+        "format refusal x.gif transport",
+        "format refusal x.gif business refusal",
+        "format refusal x.gif friendly message",
+        "format refusal x.gif sanitized",
+        "format refusal x.webp transport",
+        "format refusal x.webp business refusal",
+        "format refusal x.webp friendly message",
+        "format refusal x.webp sanitized",
+        "default 5MiB exceeded transport",
+        "default 5MiB exceeded business refusal",
+        "default 5MiB exceeded friendly message",
+        "default 5MiB exceeded sanitized",
+        "requested limit exceeded transport",
+        "requested limit exceeded business refusal",
+        "requested limit exceeded friendly message",
+        "requested limit exceeded sanitized",
+        "hard 20MiB exceeded transport",
+        "hard 20MiB exceeded business refusal",
+        "hard 20MiB exceeded friendly message",
+        "hard 20MiB exceeded sanitized",
+        "validation refusals do not upload",
+        "real SDK upload png transport",
+        "real SDK upload png business success",
+        "existing scene/dir/name rules png",
+        "uploaded png loopback URL",
+        "uploaded png readable exact bytes",
+        "uploaded png valid image",
+        "real SDK upload jpg transport",
+        "real SDK upload jpg business success",
+        "existing scene/dir/name rules jpg",
+        "uploaded jpg loopback URL",
+        "uploaded jpg readable exact bytes",
+        "uploaded jpg valid image",
+        "real SDK upload jpeg transport",
+        "real SDK upload jpeg business success",
+        "existing scene/dir/name rules jpeg",
+        "uploaded jpeg loopback URL",
+        "uploaded jpeg readable exact bytes",
+        "uploaded jpeg valid image",
+        "real SDK upload bmp transport",
+        "real SDK upload bmp business success",
+        "existing scene/dir/name rules bmp",
+        "uploaded bmp loopback URL",
+        "uploaded bmp readable exact bytes",
+        "uploaded bmp valid image",
+        "real SDK special filename transport",
+        "real SDK special filename business success",
+        "encoded filename loopback URL",
+        "encoded filename readable exact bytes",
+        "encoded filename valid image",
+        "library scene dish transport",
+        "library scene dish business success",
+        "filtered configured return limit dish",
+        "configured extensions preserved dish",
+        "library image dish loopback URL",
+        "library image dish readable exact bytes",
+        "library image dish valid image",
+        "configured extensions preserved dish",
+        "library image dish loopback URL",
+        "library image dish readable exact bytes",
+        "library image dish valid image",
+        "configured extensions preserved dish",
+        "library image dish loopback URL",
+        "library image dish readable exact bytes",
+        "library image dish valid image",
+        "library scene setmeal transport",
+        "library scene setmeal business success",
+        "filtered configured return limit setmeal",
+        "configured extensions preserved setmeal",
+        "library image setmeal loopback URL",
+        "library image setmeal readable exact bytes",
+        "library image setmeal valid image",
+        "configured extensions preserved setmeal",
+        "library image setmeal loopback URL",
+        "library image setmeal readable exact bytes",
+        "library image setmeal valid image",
+        "configured extensions preserved setmeal",
+        "library image setmeal loopback URL",
+        "library image setmeal readable exact bytes",
+        "library image setmeal valid image",
+        "library scene general transport",
+        "library scene general business success",
+        "filtered configured return limit general",
+        "configured extensions preserved general",
+        "library image general loopback URL",
+        "library image general readable exact bytes",
+        "library image general valid image",
+        "configured extensions preserved general",
+        "library image general loopback URL",
+        "library image general readable exact bytes",
+        "library image general valid image",
+        "configured extensions preserved general",
+        "library image general loopback URL",
+        "library image general readable exact bytes",
+        "library image general valid image",
+        "library scene unknown transport",
+        "library scene unknown business success",
+        "filtered configured return limit unknown",
+        "configured extensions preserved unknown",
+        "library image unknown loopback URL",
+        "library image unknown readable exact bytes",
+        "library image unknown valid image",
+        "configured extensions preserved unknown",
+        "library image unknown loopback URL",
+        "library image unknown readable exact bytes",
+        "library image unknown valid image",
+        "configured extensions preserved unknown",
+        "library image unknown loopback URL",
+        "library image unknown readable exact bytes",
+        "library image unknown valid image",
+        "real SDK marker pagination past non-images",
+        "requested library limit transport",
+        "requested library limit business success",
+        "requested limit one",
+        "default library limit transport",
+        "default library limit business success",
+        "default configured limit three",
+        "empty library transport",
+        "empty library business success",
+        "empty library remains success",
+        "invalid library limit transport",
+        "invalid library limit business refusal",
+        "invalid library limit friendly message",
+        "invalid library limit sanitized",
+        "real SDK storage failure transport",
+        "real SDK storage failure business refusal",
+        "real SDK storage failure friendly message",
+        "real SDK storage failure sanitized",
+        "real SDK upload cause retained",
+        "real SDK list failure transport",
+        "real SDK list failure business refusal",
+        "real SDK list failure friendly message",
+        "real SDK list failure sanitized",
+        "real SDK list cause retained",
+        "application logs conceal upstream body signed query and filename",
+        "upload-to-dish create transport",
+        "upload-to-dish create business success",
+        "real SQL persisted uploaded dish URL",
+        "dish load transport",
+        "dish load business success",
+        "dish load exact upload URL",
+        "select-to-setmeal create transport",
+        "select-to-setmeal create business success",
+        "real SQL persisted selected meal URL",
+        "meal load transport",
+        "meal load business success",
+        "meal load exact selected URL",
+        "real child rows persisted via named Mapper save paths",
+        "select-to-dish update transport",
+        "select-to-dish update business success",
+        "upload-to-meal update transport",
+        "upload-to-meal update business success",
+        "real SQL both update selection paths",
+        "updated product load transport",
+        "updated product load business success",
+        "saved product URL loopback URL",
+        "saved product URL readable exact bytes",
+        "saved product URL valid image",
+        "updated product load transport",
+        "updated product load business success",
+        "saved product URL loopback URL",
+        "saved product URL readable exact bytes",
+        "saved product URL valid image",
+        "miniapp current dish API transport",
+        "miniapp current dish API business success",
+        "miniapp receives saved current image",
+        "miniapp current meal API transport",
+        "miniapp current meal API business success",
+        "miniapp receives saved meal image",
+        "own historical order transport",
+        "own historical order business success",
+        "historical two product details",
+        "historical URL retained on HTTP",
+        "historical URL retained on HTTP",
+        "other owner historical refusal transport",
+        "other owner historical refusal business refusal",
+        "other owner historical refusal sanitized",
+        "historical SQL rows unchanged after current product saves and reads",
+        "retained historical fixture loopback URL",
+        "retained historical fixture readable exact bytes",
+        "retained historical fixture valid image",
+        "historical order SQL row unchanged",
+        "shared employee rows unchanged",
+        "shared user rows unchanged",
+        "shared category rows unchanged",
+        "shared dish rows unchanged",
+        "shared dish_flavor rows unchanged",
+        "shared setmeal rows unchanged",
+        "shared setmeal_dish rows unchanged",
+        "shared orders rows unchanged",
+        "shared order_detail rows unchanged",
+        "shared address_book rows unchanged",
+        "owned Redis key stopped",
+        "Spring context stopped",
+        "local OSS server stopped"
+      ],
+      "businessEvidence": ".scratch/issue20/scenario-results.json",
+      "resourceCloseStatus": {
+        "cleanupPassed": true,
+        "resources": {}
+      }
+    },
+    {
+      "batch": "runtime-final",
+      "issue": 21,
+      "command": [
+        "bash",
+        "/home/agent/workspace/.sandcastle/environment/issue21-check.sh"
+      ],
+      "cwd": "/home/agent/workspace",
+      "started": "2026-10-14T10:56:02.011776+00:00",
+      "finished": "2026-10-14T10:57:09.759748+00:00",
+      "exit": 0,
+      "log": ".scratch/issue21/issue21-batch2-final.log",
+      "sourceStartCommit": "b50afbe396d048e566106e93b48fb67a957828b6",
+      "versionMeaning": "current task working tree; exact-candidate independent verification still waiting",
+      "businessPassed": true,
+      "businessAssertions": [
+        {
+          "scenario": "dedicated_catalog_before_writes",
+          "passed": true
+        },
+        {
+          "scenario": "dedicated_redis_before_writes",
+          "passed": true
+        },
+        {
+          "scenario": "real_order_transaction_proxy",
+          "passed": true
+        },
+        {
+          "scenario": "actual_schema_amount_decimal_ids_bigint",
+          "passed": true
+        },
+        {
+          "scenario": "normal_password_invalid_refusal_no_token",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_POST_/admin/employee/login",
+          "passed": true
+        },
+        {
+          "scenario": "normal_password_token_issued",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_POST_/user/user/login",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_POST_/user/user/login",
+          "passed": true
+        },
+        {
+          "scenario": "synthetic_login_distinct_identities",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/user/category/list",
+          "passed": true
+        },
+        {
+          "scenario": "public_catalog_owned_category",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/user/dish/list",
+          "passed": true
+        },
+        {
+          "scenario": "public_catalog_saleable18_missing_image",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_POST_/user/shoppingCart/add",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/user/shoppingCart/list",
+          "passed": true
+        },
+        {
+          "scenario": "cart_owned_trusted18",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/user/shoppingCart/list",
+          "passed": true
+        },
+        {
+          "scenario": "other_cart_empty",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_POST_/user/addressBook",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/user/addressBook/default",
+          "passed": true
+        },
+        {
+          "scenario": "owned_default_address",
+          "passed": true
+        },
+        {
+          "scenario": "refused_GET_/user/addressBook/985303530",
+          "passed": true
+        },
+        {
+          "scenario": "historical974_stored19",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/admin/order/details/974",
+          "passed": true
+        },
+        {
+          "scenario": "historical974_admin19",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/user/order/orderDetail/974",
+          "passed": true
+        },
+        {
+          "scenario": "historical974_owner19_original_image",
+          "passed": true
+        },
+        {
+          "scenario": "refused_POST_/user/order/submit",
+          "passed": true
+        },
+        {
+          "scenario": "foreign_submit_no_write",
+          "passed": true
+        },
+        {
+          "scenario": "anonymous_submit_401",
+          "passed": true
+        },
+        {
+          "scenario": "map_fixture_boundary",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_POST_/user/order/submit",
+          "passed": true
+        },
+        {
+          "scenario": "trusted_submit21",
+          "passed": true
+        },
+        {
+          "scenario": "SQL_trusted_items_pack_delivery",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/user/shoppingCart/list",
+          "passed": true
+        },
+        {
+          "scenario": "submitted_cart_cleared",
+          "passed": true
+        },
+        {
+          "scenario": "refused_PUT_/user/order/payment",
+          "passed": true
+        },
+        {
+          "scenario": "refused_GET_/user/order/orderDetail/914685",
+          "passed": true
+        },
+        {
+          "scenario": "foreign_payment_detail_no_write",
+          "passed": true
+        },
+        {
+          "scenario": "anonymous_history_401",
+          "passed": true
+        },
+        {
+          "scenario": "user_admin_scope_401",
+          "passed": true
+        },
+        {
+          "scenario": "anonymous_admin_401",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_PUT_/user/order/payment",
+          "passed": true
+        },
+        {
+          "scenario": "mock_payment_response",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/user/order/orderDetail/914685",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/admin/order/details/914685",
+          "passed": true
+        },
+        {
+          "scenario": "state_2_same_user_admin_SQL",
+          "passed": true
+        },
+        {
+          "scenario": "state_2_paid",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_PUT_/admin/order/confirm",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/user/order/orderDetail/914685",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/admin/order/details/914685",
+          "passed": true
+        },
+        {
+          "scenario": "state_3_same_user_admin_SQL",
+          "passed": true
+        },
+        {
+          "scenario": "state_3_paid",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_PUT_/admin/order/delivery/914685",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/user/order/orderDetail/914685",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/admin/order/details/914685",
+          "passed": true
+        },
+        {
+          "scenario": "state_4_same_user_admin_SQL",
+          "passed": true
+        },
+        {
+          "scenario": "state_4_paid",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_PUT_/admin/order/complete/914685",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/user/order/orderDetail/914685",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/admin/order/details/914685",
+          "passed": true
+        },
+        {
+          "scenario": "state_5_same_user_admin_SQL",
+          "passed": true
+        },
+        {
+          "scenario": "state_5_paid",
+          "passed": true
+        },
+        {
+          "scenario": "completed_delivery_time",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/user/order/historyOrders",
+          "passed": true
+        },
+        {
+          "scenario": "same_user_completed_history21",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/user/order/historyOrders",
+          "passed": true
+        },
+        {
+          "scenario": "foreign_history_empty",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/user/order/orderDetail/914685",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/admin/order/details/914685",
+          "passed": true
+        },
+        {
+          "scenario": "history_details_images_never_written",
+          "passed": true
+        },
+        {
+          "scenario": "historical974_amount_images_never_written",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/admin/report/turnoverStatistics",
+          "passed": true
+        },
+        {
+          "scenario": "report_turnover_real_SQL",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/admin/report/ordersStatistics",
+          "passed": true
+        },
+        {
+          "scenario": "report_completed_real_SQL",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/admin/report/top10",
+          "passed": true
+        },
+        {
+          "scenario": "report_top10_connected_order",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/admin/workspace/businessData",
+          "passed": true
+        },
+        {
+          "scenario": "workspace_turnover_completed_real_SQL",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/admin/workspace/overviewOrders",
+          "passed": true
+        },
+        {
+          "scenario": "workspace_all_orders_real_SQL",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/admin/workspace/overviewDishes",
+          "passed": true
+        },
+        {
+          "scenario": "workspace_saleable_real_SQL",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/user/shop/status",
+          "passed": true
+        },
+        {
+          "scenario": "HTTP_GET_/admin/shop/status",
+          "passed": true
+        },
+        {
+          "scenario": "dev_shop_open_explicit_profile",
+          "passed": true
+        },
+        {
+          "scenario": "refused_GET_/admin/report/ordersStatistics",
+          "passed": true
+        },
+        {
+          "scenario": "original_fixture_rows_preserved",
+          "passed": true
+        },
+        {
+          "scenario": "original_redis_keys_preserved",
+          "passed": true
+        }
+      ],
+      "businessEvidence": ".scratch/issue21/joint-Au82zCu8/scenario-results.json",
+      "resourceCloseStatus": {
+        "cleanupPassed": true,
+        "resources": {
+          "catalog": "sandcastle_fixture",
+          "redis": "redis:6379/db0, owned user context keys only",
+          "files": "/home/agent/workspace/.scratch/issue21/joint-Au82zCu8",
+          "externalRequests": false,
+          "run": "i21_1208150607c8",
+          "historical974": "synthetic isolated replacement, not missing original evidence",
+          "springClosed": true,
+          "ownedRowsRemoved": true,
+          "httpClientClosed": true,
+          "fixtureIds": {
+            "employee": 900006,
+            "other": 985303531,
+            "dish": 985303529,
+            "order": 914685,
+            "category": 900015,
+            "owner": 985303530
+          }
+        }
+      }
+    }
+  ],
+  "buildChecks": {
+    "recordedAt": "2026-10-14T10:19:39.894451+00:00",
+    "records": [
+      {
+        "batch": "preparation-1",
+        "cwd": "/home/agent/workspace",
+        "command": "mvn -B compile",
+        "exit": 1,
+        "log": ".scratch/issue21/backend-compile.log",
+        "reason": "MissingProjectException; corrected cwd in same authorized iteration"
+      },
+      {
+        "batch": "build-1",
+        "cwd": "/home/agent/workspace/yuweiju-backend",
+        "command": "mvn -B compile",
+        "exit": 0,
+        "log": ".scratch/issue21/backend-compile-corrected.log",
+        "meaning": "build/test check only, business and official acceptance separate"
+      },
+      {
+        "batch": "build-1",
+        "cwd": "/home/agent/workspace/yuweiju-backend",
+        "command": "mvn -B package",
+        "exit": 0,
+        "log": ".scratch/issue21/backend-package.log",
+        "meaning": "build/test check only, business and official acceptance separate"
+      },
+      {
+        "batch": "build-1",
+        "cwd": "/home/agent/workspace/yuweiju-web-vue/yuweiju-admin",
+        "command": "npm ci",
+        "exit": 0,
+        "log": ".scratch/issue21/admin-install.log",
+        "meaning": "build/test check only, business and official acceptance separate"
+      },
+      {
+        "batch": "build-1",
+        "cwd": "/home/agent/workspace/yuweiju-web-vue/yuweiju-admin",
+        "command": "npm run lint",
+        "exit": 0,
+        "log": ".scratch/issue21/admin-lint.log",
+        "meaning": "build/test check only, business and official acceptance separate"
+      },
+      {
+        "batch": "build-1",
+        "cwd": "/home/agent/workspace/yuweiju-web-vue/yuweiju-admin",
+        "command": "npm run typecheck",
+        "exit": 0,
+        "log": ".scratch/issue21/admin-typecheck.log",
+        "meaning": "build/test check only, business and official acceptance separate"
+      },
+      {
+        "batch": "build-1",
+        "cwd": "/home/agent/workspace/yuweiju-web-vue/yuweiju-admin",
+        "command": "npm run test",
+        "exit": 0,
+        "log": ".scratch/issue21/admin-test.log",
+        "meaning": "build/test check only, business and official acceptance separate"
+      },
+      {
+        "batch": "build-1",
+        "cwd": "/home/agent/workspace/yuweiju-web-vue/yuweiju-admin",
+        "command": "npm run test:refimg",
+        "exit": 0,
+        "log": ".scratch/issue21/admin-refimg.log",
+        "meaning": "build/test check only, business and official acceptance separate"
+      },
+      {
+        "batch": "build-1",
+        "cwd": "/home/agent/workspace/yuweiju-web-vue/yuweiju-admin",
+        "command": "npm run build",
+        "exit": 0,
+        "log": ".scratch/issue21/admin-build.log",
+        "meaning": "build/test check only, business and official acceptance separate"
+      },
+      {
+        "batch": "build-1",
+        "cwd": "/home/agent/workspace/yuweiju-weixin-miniapp/checkout-source",
+        "command": "npm ci",
+        "exit": 0,
+        "log": ".scratch/issue21/checkout-install.log",
+        "meaning": "build/test check only, business and official acceptance separate"
+      },
+      {
+        "batch": "build-1",
+        "cwd": "/home/agent/workspace/yuweiju-weixin-miniapp/checkout-source",
+        "command": "npm test",
+        "exit": 0,
+        "log": ".scratch/issue21/checkout-test.log",
+        "meaning": "build/test check only, business and official acceptance separate"
+      },
+      {
+        "batch": "build-1",
+        "cwd": "/home/agent/workspace/yuweiju-weixin-miniapp/checkout-source",
+        "command": "npm run build",
+        "exit": 0,
+        "log": ".scratch/issue21/checkout-build.log",
+        "meaning": "build/test check only, business and official acceptance separate"
+      },
+      {
+        "batch": "build-1",
+        "cwd": "/home/agent/workspace/yuweiju-weixin-miniapp/history-source",
+        "command": "npm ci",
+        "exit": 0,
+        "log": ".scratch/issue21/history-install.log",
+        "meaning": "build/test check only, business and official acceptance separate"
+      },
+      {
+        "batch": "build-1",
+        "cwd": "/home/agent/workspace/yuweiju-weixin-miniapp/history-source",
+        "command": "npm test",
+        "exit": 0,
+        "log": ".scratch/issue21/history-test.log",
+        "meaning": "build/test check only, business and official acceptance separate"
+      },
+      {
+        "batch": "build-1",
+        "cwd": "/home/agent/workspace/yuweiju-weixin-miniapp/history-source",
+        "command": "npm run build",
+        "exit": 0,
+        "log": ".scratch/issue21/history-build.log",
+        "meaning": "build/test check only, business and official acceptance separate"
+      }
+    ],
+    "sourceCommit": "b50afbe396d048e566106e93b48fb67a957828b6",
+    "businessSourceDiff": false
+  },
+  "firstFailures": [
+    {
+      "batch": "runtime-1",
+      "issue": 9,
+      "command": [
+        "bash",
+        "/home/agent/workspace/.sandcastle/environment/issue9-check.sh"
+      ],
+      "cwd": "/home/agent/workspace",
+      "started": "2026-10-14T10:21:58.405351+00:00",
+      "finished": "2026-10-14T10:23:08.086248+00:00",
+      "exit": 1,
+      "log": ".scratch/issue21/issue9-batch1.log"
+    },
+    {
+      "batch": "runtime-1-correction",
+      "issue": 13,
+      "command": [
+        "bash",
+        "/home/agent/workspace/.sandcastle/environment/issue13-check.sh"
+      ],
+      "cwd": "/home/agent/workspace",
+      "started": "2026-10-14T10:30:29.347515+00:00",
+      "finished": "2026-10-14T10:31:43.290999+00:00",
+      "exit": 1,
+      "log": ".scratch/issue21/issue13-batch1-correction.log"
+    }
+  ],
+  "tenResponsibilityGroups": [
+    {
+      "group": "身份/员工",
+      "actualChain": "AdminEmployeeController→EmployeeApplicationService→EmployeeMapper.findEnabledByCredentials/pageByName/countByUsernameExcludingId；UserAuthController→UserService→UserMapper.findByOpenid；JWT/Blacklist保留",
+      "conclusion": "密码等值与启用身份兼容；#7真实密码、旧入口退休、Redis注销；#21正常密码与错误拒绝、两独立合成用户",
+      "productionDiff": "none required; representative checks passed"
+    },
+    {
+      "group": "目录",
+      "actualChain": "Admin/User Category/Dish/SetmealController→CategoryApplicationService/CategoryService、DishApplicationService、SetmealApplicationService→CategoryMapper.listEnabled/pageCatalog、DishMapper.listCatalog/pageCatalog、DishFlavorMapper.listByDish/deleteByDishes、SetmealMapper.listCatalog/countSellingInIds、SetmealDishMapper.listBySetmeal/countByDishes",
+      "conclusion": "可售与关联删除规则在用例中，主键CRUD合理薄类；#8排序/空页/停售/事务；#21公开目录18元缺图",
+      "productionDiff": "none required; representative checks passed"
+    },
+    {
+      "group": "购物车/地址",
+      "actualChain": "UserShoppingCart/UserAddressBookController→ShoppingCartService/AddressBookService→ShoppingCartMapper.findByUser/findItem/updateQuantityOwned/deleteOwned/deleteByUser；AddressBookMapper.findOwned/findDefaultByUser/clearDefaultExcept/setDefaultOwned/updateOwned/deleteOwned",
+      "conclusion": "归属与默认规则复用成立，事务真实代理；#9跨用户、回滚、数量；#21默认地址与可信购物车",
+      "productionDiff": "none required; representative checks passed"
+    },
+    {
+      "group": "订单/支付/履约",
+      "actualChain": "UserOrder/AdminOrderController→OrdersApplicationService/OrderChargingPolicy→OrdersMapper.findOwned/findByNumberOwned/findHistoryPage/payPending/transitionFrom/selectAdminConditionPage/countByStatus；OrderDetailMapper.findByOrder",
+      "conclusion": "#10可信收费、#11状态矩阵/竞态、#12历史读不写、#13核心回滚vs附加降级、#14风险查询降级；#21同一密码身份完成21元链",
+      "productionDiff": "none required; representative checks passed"
+    },
+    {
+      "group": "人工客服/WS",
+      "actualChain": "User/AdminCustomerServiceController、CustomerServiceWebSocketServer、CustomerServiceReplyLockTask→CustomerServiceApplicationService→CustomerServiceSessionMapper.findLatestOpenByUser/findByIdForUpdate/touchOpenSession/closeOpenSession；CustomerServiceMessageMapper.findHistory/findLastMessage",
+      "conclusion": "身份/会话归属在Service，WS协议/广播/锁与清理在入口；#15真实双向WS、越权/关闭/竞态/事务",
+      "productionDiff": "none required; representative checks passed"
+    },
+    {
+      "group": "AI/天气/模型",
+      "actualChain": "User/AdminAiAssistantController→AiAssistantApplicationService、AiModelService、AiWeatherService→AiAssistantSessionMapper.findOpenToday/updateReplyState、AiAssistantMessageMapper.listTodayBefore/findLast、DishMapper.listOnSaleForReply、OrdersMapper.listRecentForRecommendation、OrderDetailMapper.listDishDetailsForOrders；模型/天气HTTP独立职责",
+      "conclusion": "#16合法返回实际卡片，畸形/402/503/超时无假卡，候选停售再校验、历史/地区/热度/分群具名查询；外部全是loopback夹具",
+      "productionDiff": "none required; representative checks passed"
+    },
+    {
+      "group": "热度/分群",
+      "actualChain": "AdminAnalysisController、AnalysisTask→AnalysisApplicationService、HeatModelStore→AnalysisFeatureMapper.buildUserSnapshots/buildDishSnapshots；UserBehaviorFeatureSnapshotMapper/DishTimeseriesFeatureSnapshotMapper.findDaily/deleteDaily；DishHeatPredictionResultMapper.deleteWindow/listActiveByHeat；UserClusterResultMapper.findLatestForUser/listDaily/deleteDaily；OrdersMapper.listCompletedInWindow",
+      "conclusion": "#17实际XGBoost训练保存重载预测和Smile分群；失败/跳过/旧模型分开，不调阈值；事务、Redis和文件副作用分别陈述",
+      "productionDiff": "none required; representative checks passed"
+    },
+    {
+      "group": "风控",
+      "actualChain": "AdminOrderRiskController、OrderRiskTask、订单附加评分→OrderRiskService→OrdersMapper.findRiskWindow/findRiskBackfill/countRiskHistory/averageRiskPaidAmount；OrderRiskFeatureSnapshotMapper.findForOrders/deleteVersion；OrderRiskResultMapper.findLatest/updateDecision/deleteVersion；OrderRiskFeedbackMapper.findForOrders；OrderRiskModelMetaMapper.findActive/findVersion/archiveActive；OrderRiskStandardizerMetaMapper.deleteVersion",
+      "conclusion": "#18新真实LR/RF训练/文件/激活/评分/反馈事务；缺数据、跳过、部分失败、旧ACTIVE、标签来源分开报告",
+      "productionDiff": "none required; representative checks passed"
+    },
+    {
+      "group": "报表/工作台/店铺",
+      "actualChain": "AdminReport/AdminWorkspace/AdminShop/UserShopController→ReportApplicationService/WorkspaceApplicationService/ShopStatusService→OrdersMapper.aggregateBusinessByOrderTimeRange/countByStatusAndOrderTimeRange/sumAmountByStatusAndOrderTimeRange/countAllOrders；UserMapper.countCreatedInRange/countCreatedThrough；OrderDetailMapper.top10；Dish/SetmealMapper.countByStatus；prod店铺Redis IO",
+      "conclusion": "#19既有普通测试覆盖聚合/时间/空值/导出；#21真实当前SQL营业额/完成数/TOP10/工作台与店铺。dev店铺固定开店且set无副作用，不能称prod Redis写入验证",
+      "productionDiff": "none required; representative checks passed"
+    },
+    {
+      "group": "上传/默认图",
+      "actualChain": "AdminCommonController→UploadService/DefaultImageLibraryService→AliOssUtil真实SDK loopback IO（无业务DB查询，因此无需Mapper）",
+      "conclusion": "#20扩展/大小/路径/分页/缺省图/安全边界、流和SDK资源关闭；无真实OSS上传",
+      "productionDiff": "none required; representative checks passed"
+    }
+  ],
+  "A1-A5": {
+    "A1": {
+      "meaning": "金额一致",
+      "probes": [
+        9,
+        10,
+        21
+      ],
+      "clientChecks": [
+        "checkout-source",
+        "admin"
+      ]
+    },
+    "A2": {
+      "meaning": "模型失败语义",
+      "probes": [
+        16
+      ]
+    },
+    "A3": {
+      "meaning": "历史图片",
+      "probes": [
+        12,
+        20,
+        21
+      ],
+      "clientChecks": [
+        "history-source",
+        "admin"
+      ]
+    },
+    "A4": {
+      "meaning": "智能故障隔离",
+      "probes": [
+        13,
+        14
+      ]
+    },
+    "A5": {
+      "meaning": "分析执行状态",
+      "probes": [
+        17,
+        18
+      ]
+    }
+  },
+  "freshTraining": {
+    "17": {
+      "redisDatabase": 1,
+      "modelDirectory": ".scratch/issue17/run-FhYEnRBy/models",
+      "driver": "MySQL Connector/J mysql-connector-j-8.0.33 (Revision: 7d6b0800528b6b25c68b52dc10d6c1c8429c100c)",
+      "schemaKeys": [
+        {
+          "TABLE_NAME": "address_book",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "id"
+        },
+        {
+          "TABLE_NAME": "ai_assistant_message",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "id"
+        },
+        {
+          "TABLE_NAME": "ai_assistant_session",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "id"
+        },
+        {
+          "TABLE_NAME": "category",
+          "INDEX_NAME": "idx_category_name",
+          "columns_in_key": "name"
+        },
+        {
+          "TABLE_NAME": "category",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "id"
+        },
+        {
+          "TABLE_NAME": "customer_service_message",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "id"
+        },
+        {
+          "TABLE_NAME": "customer_service_session",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "id"
+        },
+        {
+          "TABLE_NAME": "dish",
+          "INDEX_NAME": "idx_dish_name",
+          "columns_in_key": "name"
+        },
+        {
+          "TABLE_NAME": "dish",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "id"
+        },
+        {
+          "TABLE_NAME": "dish_flavor",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "id"
+        },
+        {
+          "TABLE_NAME": "dish_heat_prediction_result",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "id"
+        },
+        {
+          "TABLE_NAME": "dish_heat_prediction_result",
+          "INDEX_NAME": "uk_heat_result",
+          "columns_in_key": "window_start,window_end,dish_id,model_version"
+        },
+        {
+          "TABLE_NAME": "dish_timeseries_feature_snapshot",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "id"
+        },
+        {
+          "TABLE_NAME": "dish_timeseries_feature_snapshot",
+          "INDEX_NAME": "uk_dish_snapshot",
+          "columns_in_key": "snapshot_date,dish_id,feature_version"
+        },
+        {
+          "TABLE_NAME": "employee",
+          "INDEX_NAME": "idx_username",
+          "columns_in_key": "username"
+        },
+        {
+          "TABLE_NAME": "employee",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "id"
+        },
+        {
+          "TABLE_NAME": "order_detail",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "id"
+        },
+        {
+          "TABLE_NAME": "order_risk_feature_snapshot",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "order_id,feature_version"
+        },
+        {
+          "TABLE_NAME": "order_risk_feedback",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "id"
+        },
+        {
+          "TABLE_NAME": "order_risk_model_meta",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "model_version"
+        },
+        {
+          "TABLE_NAME": "order_risk_result",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "order_id,model_version"
+        },
+        {
+          "TABLE_NAME": "order_risk_standardizer_meta",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "feature_version,feature_name"
+        },
+        {
+          "TABLE_NAME": "orders",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "id"
+        },
+        {
+          "TABLE_NAME": "setmeal",
+          "INDEX_NAME": "idx_setmeal_name",
+          "columns_in_key": "name"
+        },
+        {
+          "TABLE_NAME": "setmeal",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "id"
+        },
+        {
+          "TABLE_NAME": "setmeal_dish",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "id"
+        },
+        {
+          "TABLE_NAME": "shopping_cart",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "id"
+        },
+        {
+          "TABLE_NAME": "user",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "id"
+        },
+        {
+          "TABLE_NAME": "user_behavior_feature_snapshot",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "id"
+        },
+        {
+          "TABLE_NAME": "user_behavior_feature_snapshot",
+          "INDEX_NAME": "uk_user_snapshot",
+          "columns_in_key": "snapshot_date,user_id,feature_version"
+        },
+        {
+          "TABLE_NAME": "user_cluster_result",
+          "INDEX_NAME": "PRIMARY",
+          "columns_in_key": "id"
+        },
+        {
+          "TABLE_NAME": "user_cluster_result",
+          "INDEX_NAME": "uk_user_cluster",
+          "columns_in_key": "snapshot_date,user_id,model_version"
+        }
+      ],
+      "targetDate": "2040-06-29",
+      "historyWindowStart": "2040-03-01",
+      "historyWindowEndExclusive": "2040-06-29",
+      "syntheticOrders": 660,
+      "syntheticUsers": 9,
+      "syntheticDishes": 4,
+      "training": {
+        "heatModelTrained": true,
+        "userSnapshotCount": 11,
+        "clusterCount": 3,
+        "clusterModelVersion": "analysis-cluster-2040-06-29-1791974570629",
+        "snapshotDate": "2040-06-29",
+        "executed": true,
+        "executionMode": "SYNCHRONOUS",
+        "status": "COMPLETE",
+        "stages": [
+          {
+            "stage": "snapshot",
+            "status": "COMPLETE",
+            "reason": null,
+            "windowStart": "2040-05-30",
+            "windowEnd": "2040-06-28",
+            "outputs": {
+              "featureVersion": "v1",
+              "dishSnapshotCount": 5,
+              "userSnapshotCount": 11
+            }
+          },
+          {
+            "stage": "clustering",
+            "status": "COMPLETE",
+            "reason": null,
+            "windowStart": "2040-05-30",
+            "windowEnd": "2040-06-28",
+            "outputs": {
+              "silhouetteThreshold": 0.3,
+              "modelVersion": "analysis-cluster-2040-06-29-1791974570629",
+              "silhouettePassed": true,
+              "silhouette": 0.6593762018323388,
+              "clusterCount": 3,
+              "userSnapshotCount": 11,
+              "clusterRowCount": 11
+            }
+          },
+          {
+            "stage": "clusterCache",
+            "status": "COMPLETE",
+            "reason": null,
+            "windowStart": "2040-06-29",
+            "windowEnd": "2040-06-29",
+            "outputs": {
+              "cachedUserCount": 11,
+              "clusterKeyCount": 3
+            }
+          },
+          {
+            "stage": "heatTraining",
+            "status": "COMPLETE",
+            "reason": null,
+            "windowStart": "2040-03-31",
+            "windowEnd": "2040-06-22",
+            "outputs": {
+              "modelVersion": "analysis-heat-xgb-2040-06-29-1791974581231",
+              "featureVersion": "v1",
+              "trainedAt": "2026-10-14T18:43:01.231832036",
+              "snapshotDate": "2040-06-29",
+              "trainSampleCount": 347,
+              "evalSampleCount": 33,
+              "longTailSalesThreshold": 3,
+              "zeroLabelKeepRate": 0.35,
+              "enableLogLabel": true,
+              "modelFile": "analysis-heat-xgb-2040-06-29-1791974581231.json"
+            }
+          },
+          {
+            "stage": "validation",
+            "status": "COMPLETE",
+            "reason": null,
+            "windowStart": "2040-03-31",
+            "windowEnd": "2040-06-22",
+            "outputs": {
+              "snapshotDate": "2040-06-29",
+              "modelVersion": "analysis-heat-xgb-2040-06-29-1791974581231",
+              "evalWindowStart": "2040-06-16",
+              "evalWindowEnd": "2040-06-22",
+              "sampleCount": 33,
+              "averageWindowSales": 13.3939,
+              "rmse": 0.0029,
+              "mae": 0.002,
+              "rmseRatio": 0.000215,
+              "maeRatio": 0.000146,
+              "rmseThreshold": 0.3,
+              "maeThreshold": 0.2,
+              "rmsePass": true,
+              "maePass": true
+            }
+          },
+          {
+            "stage": "prediction",
+            "status": "COMPLETE",
+            "reason": null,
+            "windowStart": "2040-06-29",
+            "windowEnd": "2040-07-05",
+            "outputs": {
+              "predictionCount": 5,
+              "dishSnapshotCount": 5,
+              "modelLoaded": true,
+              "modelVersion": "analysis-heat-xgb-2040-06-29-1791974581231"
+            }
+          },
+          {
+            "stage": "predictionCache",
+            "status": "COMPLETE",
+            "reason": null,
+            "windowStart": "2040-06-29",
+            "windowEnd": "2040-07-05",
+            "outputs": {
+              "predictionCount": 5
+            }
+          }
+        ],
+        "message": "重训任务完成，请另行核对效果指标"
+      },
+      "sqlCounts": {
+        "users": 11,
+        "dishes": 5,
+        "clusters": 11,
+        "predictions": 5
+      },
+      "modelMetadata": {
+        "modelVersion": "analysis-heat-xgb-2040-06-29-1791974581231",
+        "featureVersion": "v1",
+        "trainedAt": "2026-10-14T18:43:01.231832036",
+        "snapshotDate": "2040-06-29",
+        "trainSampleCount": 347,
+        "evalSampleCount": 33,
+        "longTailSalesThreshold": 3,
+        "zeroLabelKeepRate": 0.35,
+        "enableLogLabel": true,
+        "modelFile": "analysis-heat-xgb-2040-06-29-1791974581231.json"
+      },
+      "syntheticEffectiveness": {
+        "snapshotDate": "2040-06-29",
+        "modelVersion": "analysis-heat-xgb-2040-06-29-1791974581231",
+        "evalWindowStart": "2040-06-16",
+        "evalWindowEnd": "2040-06-22",
+        "sampleCount": 33,
+        "averageWindowSales": 13.3939,
+        "rmse": 0.0029,
+        "mae": 0.002,
+        "rmseRatio": 0.000215,
+        "maeRatio": 0.000146,
+        "rmseThreshold": 0.3,
+        "maeThreshold": 0.2,
+        "rmsePass": true,
+        "maePass": true
+      },
+      "insufficientDate": "2040-11-26",
+      "retainedSyntheticData": true,
+      "noOriginalDataOrExternalCalls": true,
+      "businessPassed": true,
+      "cleanupPassed": true,
+      "failureClass": "",
+      "evidence": ".scratch/issue17/run-FhYEnRBy/scenario-results.json",
+      "limits": "Actual new synthetic training/serialization/prediction/scoring machinery only; no real-business quality claim, no threshold tuning"
+    },
+    "18": {
+      "driver": "MySQL Connector/J mysql-connector-j-8.0.33 (Revision: 7d6b0800528b6b25c68b52dc10d6c1c8429c100c)",
+      "isolatedSchema": "sandcastle_i18_1cef268b8d90427d",
+      "copiedStructureOnly": true,
+      "redisDatabase": 2,
+      "readiness": {
+        "ready": true,
+        "labelPolicy": "latest approve/reject overrides; cancelled=1, other status=0 fallback",
+        "explicitFeedbackOrders": 239,
+        "policyDerivedOrders": 2,
+        "incompleteOrMissingSnapshots": 1,
+        "blockedReason": "",
+        "featureVersion": "v1",
+        "minAnomalyLabels": 50,
+        "trainWindowStart": "2026-06-16T10:47:06.969+00:00",
+        "trainWindowEnd": "2026-09-14T10:47:06.969+00:00",
+        "holdoutWindowStart": "2026-09-14T10:47:06.969+00:00",
+        "holdoutWindowEnd": "2026-10-14T10:47:06.969+00:00",
+        "windowOrders": 241,
+        "snapshotOrders": 240,
+        "trainSamples": 181,
+        "holdoutSamples": 59,
+        "trainPositives": 90,
+        "holdoutPositives": 30
+      },
+      "training": {
+        "status": "TRAINED",
+        "reason": "no_active_model",
+        "message": "New order risk model trained and activated",
+        "trained": true,
+        "activated": true,
+        "fileSaved": true,
+        "metadataSaved": true,
+        "executionMode": "SYNCHRONOUS",
+        "ready": true,
+        "labelPolicy": "latest approve/reject overrides; cancelled=1, other status=0 fallback",
+        "explicitFeedbackOrders": 239,
+        "policyDerivedOrders": 2,
+        "incompleteOrMissingSnapshots": 1,
+        "blockedReason": "",
+        "featureVersion": "v1",
+        "minAnomalyLabels": 50,
+        "trainWindowStart": "2026-06-16T10:47:07.059+00:00",
+        "trainWindowEnd": "2026-09-14T10:47:07.059+00:00",
+        "holdoutWindowStart": "2026-09-14T10:47:07.059+00:00",
+        "holdoutWindowEnd": "2026-10-14T10:47:07.059+00:00",
+        "windowOrders": 241,
+        "snapshotOrders": 240,
+        "trainSamples": 181,
+        "holdoutSamples": 59,
+        "trainPositives": 90,
+        "holdoutPositives": 30,
+        "modelVersion": "order-risk-20261014184707-4f81ac59",
+        "artifactPath": "/home/agent/workspace/.scratch/issue18/run-l4SclHnS/models/order-risk-20261014184707-4f81ac59.ser",
+        "metrics": {
+          "prAuc": 1.0,
+          "recallTop20": 0.4,
+          "falsePositiveRate": 0.0,
+          "trainSamples": 181,
+          "holdoutSamples": 59,
+          "trainPositives": 90,
+          "holdoutPositives": 30,
+          "fusedWeights": {
+            "rfWeight": 0.6,
+            "lrWeight": 0.4
+          },
+          "trainWindowStart": "2026-06-16T18:47:07.059+08:00",
+          "trainWindowEnd": "2026-09-14T18:47:07.059+08:00",
+          "holdoutWindowStart": "2026-09-14T18:47:07.059+08:00",
+          "holdoutWindowEnd": "2026-10-14T18:47:07.059+08:00"
+        }
+      },
+      "partialFailure": {
+        "status": "PARTIAL",
+        "reason": "execution_failure",
+        "message": "Order risk training failed",
+        "trained": true,
+        "activated": false,
+        "fileSaved": true,
+        "metadataSaved": false,
+        "executionMode": "SYNCHRONOUS",
+        "ready": true,
+        "labelPolicy": "latest approve/reject overrides; cancelled=1, other status=0 fallback",
+        "explicitFeedbackOrders": 240,
+        "policyDerivedOrders": 1,
+        "incompleteOrMissingSnapshots": 1,
+        "blockedReason": "",
+        "featureVersion": "v1",
+        "minAnomalyLabels": 50,
+        "trainWindowStart": "2026-06-16T10:47:16.247+00:00",
+        "trainWindowEnd": "2026-09-14T10:47:16.247+00:00",
+        "holdoutWindowStart": "2026-09-14T10:47:16.247+00:00",
+        "holdoutWindowEnd": "2026-10-14T10:47:16.247+00:00",
+        "windowOrders": 241,
+        "snapshotOrders": 241,
+        "trainSamples": 181,
+        "holdoutSamples": 59,
+        "trainPositives": 91,
+        "holdoutPositives": 30,
+        "modelVersion": "order-risk-20261014184716-613b85a8",
+        "artifactPath": "/home/agent/workspace/.scratch/issue18/run-l4SclHnS/models/order-risk-20261014184716-613b85a8.ser",
+        "metrics": {
+          "prAuc": 1.0,
+          "recallTop20": 0.4,
+          "falsePositiveRate": 0.0,
+          "trainSamples": 181,
+          "holdoutSamples": 59,
+          "trainPositives": 91,
+          "holdoutPositives": 30,
+          "fusedWeights": {
+            "rfWeight": 0.6,
+            "lrWeight": 0.4
+          },
+          "trainWindowStart": "2026-06-16T18:47:16.247+08:00",
+          "trainWindowEnd": "2026-09-14T18:47:16.247+08:00",
+          "holdoutWindowStart": "2026-09-14T18:47:16.247+08:00",
+          "holdoutWindowEnd": "2026-10-14T18:47:16.247+08:00"
+        },
+        "artifactExists": true
+      },
+      "fileFailure": {
+        "status": "FAILED",
+        "reason": "execution_failure",
+        "message": "Order risk training failed",
+        "trained": true,
+        "activated": false,
+        "fileSaved": false,
+        "metadataSaved": false,
+        "executionMode": "SYNCHRONOUS",
+        "ready": true,
+        "labelPolicy": "latest approve/reject overrides; cancelled=1, other status=0 fallback",
+        "explicitFeedbackOrders": 240,
+        "policyDerivedOrders": 1,
+        "incompleteOrMissingSnapshots": 1,
+        "blockedReason": "",
+        "featureVersion": "v1",
+        "minAnomalyLabels": 50,
+        "trainWindowStart": "2026-06-16T10:47:18.967+00:00",
+        "trainWindowEnd": "2026-09-14T10:47:18.967+00:00",
+        "holdoutWindowStart": "2026-09-14T10:47:18.967+00:00",
+        "holdoutWindowEnd": "2026-10-14T10:47:18.967+00:00",
+        "windowOrders": 241,
+        "snapshotOrders": 241,
+        "trainSamples": 181,
+        "holdoutSamples": 59,
+        "trainPositives": 91,
+        "holdoutPositives": 30,
+        "modelVersion": "order-risk-20261014184718-6b29c696",
+        "artifactPath": "/home/agent/workspace/.scratch/issue18/run-l4SclHnS/not-a-directory/order-risk-20261014184718-6b29c696.ser",
+        "metrics": {
+          "prAuc": 1.0,
+          "recallTop20": 0.4,
+          "falsePositiveRate": 0.0,
+          "trainSamples": 181,
+          "holdoutSamples": 59,
+          "trainPositives": 91,
+          "holdoutPositives": 30,
+          "fusedWeights": {
+            "rfWeight": 0.6,
+            "lrWeight": 0.4
+          },
+          "trainWindowStart": "2026-06-16T18:47:18.967+08:00",
+          "trainWindowEnd": "2026-09-14T18:47:18.967+08:00",
+          "holdoutWindowStart": "2026-09-14T18:47:18.967+08:00",
+          "holdoutWindowEnd": "2026-10-14T18:47:18.967+08:00"
+        },
+        "artifactExists": false
+      },
+      "currentWindowEnd": "2026-10-14T10:47:19.470663522Z",
+      "modelDirectory": ".scratch/issue18/run-l4SclHnS/models",
+      "businessPassed": true,
+      "cleanupPassed": true,
+      "syntheticMachineryOnly": true,
+      "retainedDataAndFiles": true,
+      "evidence": ".scratch/issue18/run-l4SclHnS/scenario-results.json",
+      "limits": "Actual new synthetic training/serialization/prediction/scoring machinery only; no real-business quality claim, no threshold tuning"
+    }
+  },
+  "historicalEvidence": {
+    "cwd": "/home/agent/workspace",
+    "command": [
+      "rg",
+      "--files",
+      "--hidden",
+      "--no-ignore",
+      "/home/agent/workspace"
+    ],
+    "exit": 0,
+    "files": [
+      {
+        "file": "miniapp-admin-complete-observe.json",
+        "matches": []
+      },
+      {
+        "file": "miniapp-admin-customer.png",
+        "matches": []
+      },
+      {
+        "file": "miniapp-ai-reply.json",
+        "matches": []
+      },
+      {
+        "file": "harness-results.json",
+        "matches": []
+      },
+      {
+        "file": "followup-api.json",
+        "matches": []
+      },
+      {
+        "file": "risk-cases-results.json",
+        "matches": []
+      }
+    ],
+    "limits": "No raw historical evidence restored; isolated synthetic replacement only"
+  },
+  "provenanceSelfCheck": {
+    "scenario": "final exact provenance block with unavailable Git metadata and host candidate",
+    "exit": 0,
+    "candidateCommit": "b50afbe396d048e566106e93b48fb67a957828b6",
+    "sourceDirty": null,
+    "versionSource": "host-provided",
+    "passed": true,
+    "cwd": "/home/agent/workspace"
+  },
+  "independentVerification": "waiting, host exact-commit fresh checks",
+  "officialSDK": "host preparation readiness only; candidate compile/wx.login/screenshots unexecuted",
+  "humanAcceptance": "waiting; no acceptance/delivery claim",
+  "externalWorkerRequests": {
+    "realModel": 0,
+    "realWechat": 0,
+    "realOSS": 0
+  },
+  "ponytail": {
+    "scope": "full task diff/callers from b50afbe",
+    "status": "stop ponytail / normal mode",
+    "codeSimplifications": "none worthwhile; prior minimal probe assumption corrections retained",
+    "finalAffectedChecks": [
+      9,
+      13,
+      21
+    ],
+    "unchangedRequiredEvidenceReused": [
+      7,
+      8,
+      10,
+      11,
+      12,
+      14,
+      15,
+      16,
+      17,
+      18,
+      20
+    ]
+  },
+  "finalChecksPassed": true,
+  "finalJointResult": {
+    "started": "2026-10-14T10:56:02Z",
+    "finished": "2026-10-14T10:57:09.748958+00:00",
+    "exit": 0,
+    "cwd": "/home/agent/workspace",
+    "sourceCommit": "b50afbe396d048e566106e93b48fb67a957828b6",
+    "businessPassed": true,
+    "cleanupPassed": true,
+    "scenarios": [
+      {
+        "scenario": "dedicated_catalog_before_writes",
+        "passed": true
+      },
+      {
+        "scenario": "dedicated_redis_before_writes",
+        "passed": true
+      },
+      {
+        "scenario": "real_order_transaction_proxy",
+        "passed": true
+      },
+      {
+        "scenario": "actual_schema_amount_decimal_ids_bigint",
+        "passed": true
+      },
+      {
+        "scenario": "normal_password_invalid_refusal_no_token",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_POST_/admin/employee/login",
+        "passed": true
+      },
+      {
+        "scenario": "normal_password_token_issued",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_POST_/user/user/login",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_POST_/user/user/login",
+        "passed": true
+      },
+      {
+        "scenario": "synthetic_login_distinct_identities",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/user/category/list",
+        "passed": true
+      },
+      {
+        "scenario": "public_catalog_owned_category",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/user/dish/list",
+        "passed": true
+      },
+      {
+        "scenario": "public_catalog_saleable18_missing_image",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_POST_/user/shoppingCart/add",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/user/shoppingCart/list",
+        "passed": true
+      },
+      {
+        "scenario": "cart_owned_trusted18",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/user/shoppingCart/list",
+        "passed": true
+      },
+      {
+        "scenario": "other_cart_empty",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_POST_/user/addressBook",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/user/addressBook/default",
+        "passed": true
+      },
+      {
+        "scenario": "owned_default_address",
+        "passed": true
+      },
+      {
+        "scenario": "refused_GET_/user/addressBook/985303530",
+        "passed": true
+      },
+      {
+        "scenario": "historical974_stored19",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/admin/order/details/974",
+        "passed": true
+      },
+      {
+        "scenario": "historical974_admin19",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/user/order/orderDetail/974",
+        "passed": true
+      },
+      {
+        "scenario": "historical974_owner19_original_image",
+        "passed": true
+      },
+      {
+        "scenario": "refused_POST_/user/order/submit",
+        "passed": true
+      },
+      {
+        "scenario": "foreign_submit_no_write",
+        "passed": true
+      },
+      {
+        "scenario": "anonymous_submit_401",
+        "passed": true
+      },
+      {
+        "scenario": "map_fixture_boundary",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_POST_/user/order/submit",
+        "passed": true
+      },
+      {
+        "scenario": "trusted_submit21",
+        "passed": true
+      },
+      {
+        "scenario": "SQL_trusted_items_pack_delivery",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/user/shoppingCart/list",
+        "passed": true
+      },
+      {
+        "scenario": "submitted_cart_cleared",
+        "passed": true
+      },
+      {
+        "scenario": "refused_PUT_/user/order/payment",
+        "passed": true
+      },
+      {
+        "scenario": "refused_GET_/user/order/orderDetail/914685",
+        "passed": true
+      },
+      {
+        "scenario": "foreign_payment_detail_no_write",
+        "passed": true
+      },
+      {
+        "scenario": "anonymous_history_401",
+        "passed": true
+      },
+      {
+        "scenario": "user_admin_scope_401",
+        "passed": true
+      },
+      {
+        "scenario": "anonymous_admin_401",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_PUT_/user/order/payment",
+        "passed": true
+      },
+      {
+        "scenario": "mock_payment_response",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/user/order/orderDetail/914685",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/admin/order/details/914685",
+        "passed": true
+      },
+      {
+        "scenario": "state_2_same_user_admin_SQL",
+        "passed": true
+      },
+      {
+        "scenario": "state_2_paid",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_PUT_/admin/order/confirm",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/user/order/orderDetail/914685",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/admin/order/details/914685",
+        "passed": true
+      },
+      {
+        "scenario": "state_3_same_user_admin_SQL",
+        "passed": true
+      },
+      {
+        "scenario": "state_3_paid",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_PUT_/admin/order/delivery/914685",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/user/order/orderDetail/914685",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/admin/order/details/914685",
+        "passed": true
+      },
+      {
+        "scenario": "state_4_same_user_admin_SQL",
+        "passed": true
+      },
+      {
+        "scenario": "state_4_paid",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_PUT_/admin/order/complete/914685",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/user/order/orderDetail/914685",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/admin/order/details/914685",
+        "passed": true
+      },
+      {
+        "scenario": "state_5_same_user_admin_SQL",
+        "passed": true
+      },
+      {
+        "scenario": "state_5_paid",
+        "passed": true
+      },
+      {
+        "scenario": "completed_delivery_time",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/user/order/historyOrders",
+        "passed": true
+      },
+      {
+        "scenario": "same_user_completed_history21",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/user/order/historyOrders",
+        "passed": true
+      },
+      {
+        "scenario": "foreign_history_empty",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/user/order/orderDetail/914685",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/admin/order/details/914685",
+        "passed": true
+      },
+      {
+        "scenario": "history_details_images_never_written",
+        "passed": true
+      },
+      {
+        "scenario": "historical974_amount_images_never_written",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/admin/report/turnoverStatistics",
+        "passed": true
+      },
+      {
+        "scenario": "report_turnover_real_SQL",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/admin/report/ordersStatistics",
+        "passed": true
+      },
+      {
+        "scenario": "report_completed_real_SQL",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/admin/report/top10",
+        "passed": true
+      },
+      {
+        "scenario": "report_top10_connected_order",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/admin/workspace/businessData",
+        "passed": true
+      },
+      {
+        "scenario": "workspace_turnover_completed_real_SQL",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/admin/workspace/overviewOrders",
+        "passed": true
+      },
+      {
+        "scenario": "workspace_all_orders_real_SQL",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/admin/workspace/overviewDishes",
+        "passed": true
+      },
+      {
+        "scenario": "workspace_saleable_real_SQL",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/user/shop/status",
+        "passed": true
+      },
+      {
+        "scenario": "HTTP_GET_/admin/shop/status",
+        "passed": true
+      },
+      {
+        "scenario": "dev_shop_open_explicit_profile",
+        "passed": true
+      },
+      {
+        "scenario": "refused_GET_/admin/report/ordersStatistics",
+        "passed": true
+      },
+      {
+        "scenario": "original_fixture_rows_preserved",
+        "passed": true
+      },
+      {
+        "scenario": "original_redis_keys_preserved",
+        "passed": true
+      }
+    ],
+    "resources": {
+      "catalog": "sandcastle_fixture",
+      "redis": "redis:6379/db0, owned user context keys only",
+      "files": "/home/agent/workspace/.scratch/issue21/joint-Au82zCu8",
+      "externalRequests": false,
+      "run": "i21_1208150607c8",
+      "historical974": "synthetic isolated replacement, not missing original evidence",
+      "springClosed": true,
+      "ownedRowsRemoved": true,
+      "httpClientClosed": true,
+      "fixtureIds": {
+        "employee": 900006,
+        "other": 985303531,
+        "dish": 985303529,
+        "order": 914685,
+        "category": 900015,
+        "owner": 985303530
+      }
+    },
+    "sourceDirty": true,
+    "versionSource": "worktree-git",
+    "observedGitCommit": "b50afbe396d048e566106e93b48fb67a957828b6",
+    "versionMeaning": "host candidate metadata or worktree HEAD plus reported dirtiness; exact-commit verification bound to host resources"
+  },
+  "scopeInspection": "production backend/admin/miniapp source and generated page outputs unchanged; task probe/docs/result files only"
+}
