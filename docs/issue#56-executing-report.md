@@ -1,6 +1,6 @@
 # #56/F2 套餐编辑保留菜品份数
 
-本票从已交付 #55 的 main `81cd5f742d03be4422691270bdc68b395c5fb50a` 开始，只处理 F2。候选为包含本报告的正常本地任务提交；提交后完整 SHA、文件范围和 Git 状态记录在 `.scratch/issue56/candidate.json`。worker 检查与 Ponytail 已完成；宿主独立验证尚未执行。
+本票从已交付 #55 的 main `81cd5f742d03be4422691270bdc68b395c5fb50a` 开始，只处理 F2。候选为包含本报告的正常本地任务提交；提交后完整 SHA、文件范围和 Git 状态记录在 `.scratch/issue56/candidate.json`。worker 检查与 Ponytail 已完成；宿主已对精确源码候选 `5da55f0fb384b67ef201fa688b6856b4ab6996fd` 完成独立验证，最终结果见本文末尾。
 
 ## 范围与语义
 
@@ -58,3 +58,22 @@
 宿主对精确候选的独立 20 分钟验证、发布/交付仍由宿主执行，worker 不标记通过。逐票人工验收已由用户明确豁免，不再请求确认。没有原库访问、数据库服务、正式发布、GitHub 写入或凭据读取；没有新增 hash/contract/baseline/gate，也未调整迭代或预算。
 
 本票 UI 验证为真实挂载页面的 JSDOM/Element Plus 行为，未另做浏览器截图或真实登录/匿名 HTTP 检查。请求层与路由认证源码未改；已有图片上传失败测试仍通过。未调用原库或现存应用服务；本轮不新增 SQL/官方微信能力要求。未启动持久任务服务，测试进程结束后无需保留应用/数据服务。
+
+## 宿主最终独立验证与交付
+
+本票源码候选 `5da55f0fb384b67ef201fa688b6856b4ab6996fd`，从已交付 #55 的 main `81cd5f742d03be4422691270bdc68b395c5fb50a` 开始。AFK 实际第 1 轮完成；最多 2 轮/60 分钟编码与 20 分钟独立验证预算未扩大，未重启模型。
+
+统一 verifier 从精确候选新建快照，无认证挂载、无模型调用，在独立非 root 容器执行配置中的两个完整检查组：
+
+```sh
+npm --prefix yuweiju-web-vue/yuweiju-admin ci --no-audit --no-fund && npm --prefix yuweiju-web-vue/yuweiju-admin run lint && npm --prefix yuweiju-web-vue/yuweiju-admin run typecheck && npm --prefix yuweiju-web-vue/yuweiju-admin test && npm --prefix yuweiju-web-vue/yuweiju-admin run build
+mvn -B -f yuweiju-backend/pom.xml compile && mvn -B -f yuweiju-backend/pom.xml test
+```
+
+两组均 exit 0，管理端 43 项测试（含 8 项实际页面挂载份数回归）与后端 171 项测试通过；`independentVerification=passed`、`stopped=true`。本票未重跑 SQL 探针，合法 API/Service 份数保存引用前文列明且源码未变的 #8 准确版本历史证据，不能把它混成本票独立 SQL 结果。
+
+规范和需求两轴只读审查均 0 项发现，核对份数状态/类型/提交、抽屉勾选同步、移除/保留/重选/取消行为及消费者兼容性。本票只有管理端脚本状态变化，模板、样式、认证、后端生产逻辑、事务及历史订单明细均未改；无需新增小程序官方工具场景。用户已明确免除逐票人工验收，Agent 完成必要行为验证后交付。
+
+交付时在项目内独立工作树从最新 main 快进到候选，无冲突；最后仅补本报告，不修改业务/测试源码，因此引用上述精确源码的通过证据。报告差异、链接另行检查。没有启动业务数据库或验收服务，无服务/原库副作用需清理；AFK 与独立验证容器均停止。日志/首次预期失败/Ponytail/候选证据保留在项目 `.scratch/issue56-afk-20261018/` 及本票工作树的 `.scratch/issue56/`。
+
+远端 PR/head/merge/issue 最终结果由宿主交付记录和 GitHub 状态确认；下一票必须使用本票实际合并后的 main。无 Release 或部署。
