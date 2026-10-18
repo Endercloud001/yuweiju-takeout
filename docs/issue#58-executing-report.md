@@ -42,7 +42,7 @@ python3 .agents/skills/yuweiju-afk/scripts/check-doc-links.py --root /home/agent
 
 实际 POST `/user/order/submit` 分别传 legacy0、ordinary1、省略标记，legacy0带旧时间 `2001-01-01 01:01:01`，普通请求时间为null，均带错误报价；应接收，SQL新行状态1、可信40元（18×2+2打包+2配送），估时精确为 order_time+17分钟，响应按既有秒精度与SQL相符（最多1秒差），仅当前购物车清空。历史reserved0固定估时 `2020-01-02 08:30:00`，详情/分页读前后及三次新提交之后原整行/明细完全相同；他人车/历史和越权拒绝保留。finally只清理自己UUID归属行、恢复临时占用status的DUMP及剩余TTL，再比对原SQL/Redis，关闭自有Spring/HTTP客户端。无全局清理、DDL或原库；自增序列可能前进，不声称序列回退。MySQL/Redis服务本身由宿主生命周期管理。
 
-## 宿主独立验证与官方交接（待执行）
+## worker 完成时的宿主交接（历史记录，完成结果见文末）
 
 本 worker 不写宿主独立或官方通过。独立 verifier 应对精确候选新快照执行上述必需命令（ci在检查中，probe等待package，不使用worker缓存/行），检查本票API/范围和新UUID清理结果。未修改生产submit的#57营业检查，可复用 [#57执行报告](issue%2357-executing-report.md) 的精确来源 `9b3c2bff3592ee9bd468fc05f3b61b49361a3607` 及宿主独立/官方证据；本票探针仍针对关闭和状态不可读重测提交边界。
 
@@ -75,3 +75,35 @@ host independent / official / delivery 均 pending；逐票人工验收由用户
 自有Spring/HTTP客户端均已关闭；MySQL/Redis容器及官方工具项目由宿主继续执行独立/官方验证并按既定生命周期停止，worker未擅自停止共享宿主资源。无当前编码阻碍、无Git安全拒绝；host independent / official / delivery仍pending，用户免除逐票人工验收不代替这些必要检查。
 
 最终 Markdown 相对链接检查 exit0，记录在 `.scratch/issue58/final/commands.jsonl` 和 `doc-links.log`。首次显式 `git add` exit128，Git报告已有index.lock；已保存 `stage-first-failure.json`。只读检查仅见一个早先的zombie Git，不能据此确认宿主锁来源；未删除锁/终止进程/更改策略。等待后沿同一Git guard重试原14文件命令 exit0，属于正常暂存恢复，不是绕过拒绝。补记本段和进度后仅重查Markdown与暂存范围。源码/测试/探针仍是上述全部通过版本。
+
+## 宿主最终独立验证、官方验收与交付
+
+本节为最新完成状态；上文 worker 的 pending 是当时交接事实。源码候选 `f48f2742f07258d4e4d0b2a5161c39f839ee0c99`，起点为 #57 已交付 main `9674d3ad2c190956e78dd85fdb4436b86838302b`。AFK 第1轮完成、Ponytail结束；未重启或扩大每票2轮/编码60分钟/独立20分钟预算，模型 gpt-6.1-sol / medium。
+
+统一 verifier 对精确候选新快照执行以下3组，均 exit0，independentVerification=passed、stopped=true，无模型/认证挂载：
+
+```sh
+npm --prefix yuweiju-weixin-miniapp/checkout-source ci --no-audit --no-fund && npm --prefix yuweiju-weixin-miniapp/checkout-source test && npm --prefix yuweiju-weixin-miniapp/checkout-source run build
+mvn -B -f yuweiju-backend/pom.xml compile && mvn -B -f yuweiju-backend/pom.xml package
+bash .sandcastle/environment/issue58-check.sh
+```
+
+独立通过：结算18测试、后端176测试、真实SQL/Redis122断言；旧请求0/省略/1归一、可信计价、服务端17分钟估时、历史0及原ETA、认证/归属、营业边界、事务/清理均覆盖。Spec/Standards双轴只读审查各0发现。项目本地证据 `.scratch/issue58-afk-20261018/independent/task-review-1792338287839003649/` 与 `code-review.json`。
+
+官方Tool2.02.2608080/SDK3.17.4；本票项目9458、API18559、精确候选prod后端18560，真实Spring/MySQL/Redis、合成身份；地图使用明确本地7分钟seam，无真实外部地图/微信付款。用户确认重编译，并实际操作下单和模拟支付，提供三张截图；宿主随后只读核对。
+
+| 官方验收 | 实际结果 |
+| --- | --- |
+| 结算立即配送、只读服务端估时 | 用户截图立即送出/预计00:37/金额40；实际页面无预约箭头/timePopup/日期时段选择/native picker，无时间tap绑定，点击不打开选择；arrivalTime与真实估时API相等 |
+| 用户实际下单、支付 | 仅1次submit及1次payment，均code1；订单号1792340462719，新单delivery_status=1/status=2/pay_status=1/amount=40；2026-10-19 00:21:03下单，服务端00:38:03送达，精确17分钟；仅自己车清空 |
+| 历史预约兼容 | 官方history列表和details原日期/时间可见，受保护API保留deliveryStatus=0及2020-01-02 08:30:00，历史整行与明细比对完全未变 |
+
+成功页00:38与提交时重新计算ETA一致，结算00:37到提交后00:38为自然分钟推进。宿主检查前后orders/cart和历史整行/明细相同，submit/payment次数仍各1，无重复业务写入。证据 `official/user-acceptance-results.json`、`official/user-acceptance-report.md` 及 `official/user-{checkout,payment,success}.png` 均在本票本地证据目录。用户已明确免逐票人工验收，本次仍提供了实际官方工具操作反馈；不据此声称真实微信付款或原库验收。
+
+首次宿主启动等待60秒超时，后端其后启动完成，原任务按约定停止并清理；用户后续明确要求启动本票验收服务，保留 `official-attempt1/` 后改用300秒就绪期限并正常启动，没有重跑AFK或扩大编码/独立验证预算。首次首页空白由隔离项目缺登录会话导致（401、自动微信登录code0），已在核实本票API后配置后端签发的合成身份；真实首页分类1/菜品2恢复，不改认证/业务源码或原库。首次只读核对脚本误用VO字段orderNumber，实际为number，保留field-error记录；仅修正读取字段后全部通过。SDK截图存储限额不清理他票数据，使用用户本次三张截图及本票官方窗口原生就绪图，不伪称SDK截图成功。
+
+交付前恢复工具原storage/store会话，随后本票 finally 删除自有合成行、恢复原status DUMP/TTL，验证 originalSqlRowsPreserved=true、redisPreserved=true、springClosed=true；后端退出，网关按PID/命令行/创建时间核对后停止，MySQL/Redis停止且卷保留，18559/18560无监听。不删除其他任务资源，自增序列可能前进，不声称序列回退。无原库写入、Release或正式部署。
+
+交付工作树从最新main无冲突快进到候选，只补本报告；业务/测试/探针与精确候选相同，复用上述验证。范围为结算源码及生成页、后端新单标记和兼容DTO说明、API说明、回归及隔离探针；管理端继续历史展示无需改动，不增加预约调度或迁移。
+
+回退采用普通Git revert；不迁移数据，已存在新单仍保持立即配送与原ETA。PR/最终head/合并/关闭状态以GitHub及宿主final-delivery记录为准。本轮仅交付#58，依用户最新要求不启动#59—#66。
