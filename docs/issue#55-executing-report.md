@@ -1,6 +1,6 @@
 # Issue #55 执行报告
 
-候选起点：`349628aba8cdee17dc572f0ef6b48a5a83198961`。本报告对应本票候选提交（由宿主通过 `git log -1 --format=%H -- docs/issue#55-executing-report.md` 取得最终 SHA）；Worker 实现、Ponytail 和最终检查全部通过；本报告随最终候选一起提交，等待 host 独立及官方验证与交付。仅处理 Endercloud001/yuweiju-takeout #55。
+候选起点：`349628aba8cdee17dc572f0ef6b48a5a83198961`。源码候选为 `7cb7acad5c9bf6194461eeeddf814cb7a5df3e82`；Worker 实现、Ponytail、独立验证及官方四个必需业务场景均已通过。交付阶段仅更新本报告，源码与该候选一致。仅处理 Endercloud001/yuweiju-takeout #55。
 
 ## 范围、行为与兼容
 
@@ -34,27 +34,41 @@
 - 最终 SQL `.scratch/issue55/sql-YpeAQlaK/` 又以新的独有夹具通过 59 项断言，四个 business/cleanup/Spring/HttpClient 标志均 true、failure=null。与首轮不同运行目录，重新 package、提取 138 项 Boot 库、编译探针，不依赖首轮数据；再次 scoped cleanup 后完整原行快照一致。证明脚本可重复、自行播种和关闭资源。SQL JSON 只含断言/状态、schema JSON 只含列与主键信息，不记业务行或 HTTP 载荷。
 - 修复前预期失败日志保留；两轮正式检查没有失败命令。`bash -n .sandcastle/environment/issue55-check.sh`、`git diff --check` 通过。只显式暂存本票 10 个文件，scratch 日志/编译产物/构建测试临时目录不提交。最终提交后 SHA 和剩余状态另存 `.scratch/issue55/candidate.json`；候选 SHA 以本报告所属 Git 提交为准。
 
-## Host 官方验证交接（未执行，必须绑定精确候选）
+## Host 独立与官方验证（已完成）
 
-宿主保留的 Tool.getInfo 版本 2.02.2608080、SDK 3.17.4、`pages/index/index` 及截图仅为启动就绪，不代表本候选业务验收通过。Worker 不运行官方 SDK，不写 GitHub、不 push/merge/close。人类逐票验收已由用户豁免；独立检查与官方业务场景由 host 完成后再交付。
+宿主统一 verifier 对精确候选 `7cb7acad5c9bf6194461eeeddf814cb7a5df3e82` 新建快照，在无认证挂载、无模型调用的独立容器中执行以下命令（项目根、非 root、C.UTF-8）：
 
-宿主先将精确候选的生成页更新到已受信任的本票项目并真实重新编译，保留 private/project 安全配置。只可使用具名隔离后端及合成数据。独立 verifier 执行相同脚本会自行生成/清理自己的数据；官方场景应另外建立自己的可保留合成夹具，不能依赖 worker 的已清理行。
+```sh
+npm --prefix yuweiju-weixin-miniapp/history-source ci --no-audit --no-fund && npm --prefix yuweiju-weixin-miniapp/history-source test && npm --prefix yuweiju-weixin-miniapp/history-source run build
+mvn -B -f yuweiju-backend/pom.xml compile && mvn -B -f yuweiju-backend/pom.xml package
+bash .sandcastle/environment/issue55-check.sh
+```
 
-官方夹具：两名不同主键的合成用户 A/B；A 原车仅 oldDish×3；A 已完成订单仅 targetDish×2（flavor mild、历史图）和 targetSetmeal×1，B 也有自己订单/车，商品均可售。设置实际用户 A 的 authentication（勿记录 token）。精确播种 SQL 见 `Issue55Probe.seed/seedCart`：选未占用 base，owner=base、other=base+1、oldDish=base+2、targetDish=base+3、targetSetmeal=base+4、ownOrder=base+5、foreignOrder=base+7，先复用探针的 DATABASE/900001/无占用核查，再以本次 UUID marker 参数绑定写入；仅使用这次 ID，finally 复用同范围 cleanup SQL。每个入口的每个场景前都将 A 车重置为 oldDish×3、B 车为 oldDish×4；成功应仅有 targetDish×2/targetSetmeal×1，两车和历史按 id 排序核对。记录断言名和数量，不记载荷。失败场景在列表/详情完成正常加载后，只在具名隔离库删除 A 的本次测试订单主记录（并由 fixture finally 清理其明细），再点仍显示的订单按钮，以真实 missing-order 拒绝验证 UI；或将已渲染测试订单所有者改为 B，并在 finally 恢复本票夹具归属。不得对原库操作。真实 SQL rollback 已由独立脚本专门验证，官方失败场景不需要安装生产故障开关。
+三组均 exit 0，页面 61 项、后端 171 项和真实 SQL 59 条断言通过，`independentVerification=passed`、`stopped=true`。证据保存在项目 `.scratch/issue55-afk-20261018-resume3/independent/task-review-1792313745970126068/`，不包含在提交中。交付阶段只修改本报告，因此复用该精确源码验证，不把文档版本变化算作重新跑过业务测试。
 
-实际路由和选择器：
+官方开发者工具 `2.02.2608080` / SDK `3.17.4`，本票隔离项目连接候选真实 Spring/MySQL/Redis；使用独立合成身份 A/B，生产认证和归属判断继续生效。四个场景从真实 WXML 按钮触发：
 
-| 场景 | 路由/事件 | 必须核对 |
-| --- | --- | --- |
-| 历史入口成功/失败 | `pages/historyOrder/historyOrder`，当前 swiper pane `.order_lists .againBtn button.new_btn` 中正文“再来一单”，真实 tap | 仅 POST `/user/order/repetition/{A-order}`，没有 DELETE `/user/shoppingCart/clean`；失败 toast、留在当前页、A/B 原车不变；成功回到 `pages/index/index`、实际车只有两条目标明细、B 车不变 |
-| 详情入口成功/失败 | `pages/details/index?orderId={A-order}`，`.againBtn button.new_btn` 中正文“再来一单”（按正文选按钮，勿直接 call Vue 方法） | 同样请求/提示/不导航/替换断言；成功 redirect 到 `pages/index/index` |
-| 超时不确定结果 | 两个入口各以本票传输夹具丢弃 POST 响应（可在服务端成功后丢弃），不修改生产代码 | 仅一次变更请求、失败提示不声称未提交/已回滚；随后真实导航首页，GET `/user/shoppingCart/list` 与隔离 SQL 实际结果相符，不自动重发 POST |
-| 生命周期 | 请求未完成时离开/销毁两页，再放行本票响应 | 不出现迟到 toast/错误导航，详情计时器照旧清理 |
+| 场景 | 已核对结果 |
+| --- | --- |
+| 历史列表拒绝 | 一次 repetition POST、无 clean；A/B 购物车不变，失败 toast，留在历史页 |
+| 历史列表成功 | 仅目标菜品 2 份/套餐 1 份，B 购物车不变，返回首页 |
+| 订单详情拒绝 | 一次 repetition POST、无 clean；A/B 购物车不变，失败 toast，留在详情页 |
+| 订单详情成功 | 仅目标菜品 2 份/套餐 1 份，B 购物车不变，返回首页 |
 
-历史页有三个 swiper pane，按当前 tab 选择可见按钮；按钮绑定到实际渲染行 ID。详情使用相同 `.againBtn` 容器；按“再来一单”正文区分退款/取消等相邻按钮。列表 `GET /user/order/historyOrders`，详情 `GET /user/order/orderDetail/{id}`，购物车 `GET /user/shoppingCart/list`，均保留 `authentication`。匿名请求和另一个真实合成主键的归属拒绝另由 HTTP/SQL 探针验证；API 替身只证明页面联动，不能代替事务或官方渲染。
+结果 `official-resume1/business-results-resume2.json` 为 passed=true，四场景全部通过。三个截图调用发生 SDK 超时，单独记录，不能写成截图成功；每次断开旧连接再重连，不重发已经执行的变更请求。详情成功取得有效截图，首页购物车 3 件/45 元及目标菜品 2 份与 SQL 断言一致。网络超时/销毁保护引用候选实际页面自动回归，未声称在官方四场景额外重做。
 
-## 收尾与限制
+人工逐票验收由用户明确豁免；上述验证由 Agent 执行，不声称真实微信双账号/真实支付验收。
 
-Ponytail full 已在首轮全部检查通过后读取 mounted SKILL.md 和 upstream 5.1.0，复核全部起点差异、两页真实调用/编译器/旧 API/store、后端 Controller/归属 Mapper/事务 Service、配置、旧探针副作用及新增 probe/script/report/progress（含未跟踪任务文件）。采用：合并重复 runtime import；更正页面 mock 注释及 SQL GET 断言名，准确区分页面 IO 夹具、真实 API/SQL、实际导航。生产修复保持最小删除。
+## 准备失败、恢复及资源
 
-拒绝：新增通用 probe/请求框架、生产事务改写、自动重试/幂等平台、全库清理/迁移、重构相邻业务、减少归属/真实写入/清理断言，均不符合本票范围或会削弱所需证据。无其他值得实施的精简。已明确 `stop ponytail / normal mode`，随后重跑完整必需检查且全部通过。最终报告结果更新已对照 JSON 复核；该更新仅记录证据，无后续源码修改。首轮 probe 关闭状态已实测，不表示停止 host 管理的 MySQL/Redis；两项内部服务由 host 按既有生命周期管理，worker 不清卷。共享60分钟/最多2次监督器迭代、closing2分钟以内；实际截止 2026-10-18T09:30:39.274Z，host20分钟独立验证单列。不延长预算、不自动重启。`/afk-evidence/closing.json` 在工作步骤间检查，当前尚未出现。Host 独立 exact-commit 检查、官方两入口正常/失败/截图均未执行，不得标为通过。无迁移、无正式发布、无原业务数据操作。
+GitHub 连接和本地 clone 的早期失败、首次官方当前页元数据为空、首次 Windows→WSL 后端连接拒绝、SDK 截图超时均保留原证据。未将失败标为通过。官方后端仅 internal 网络时 Windows 连接失败，同时接入已授权本票出口网后恢复；MySQL/Redis 继续只在 internal 网，端口只发布至 127.0.0.1。Windows 对真实受保护 API 的正确身份通过及匿名拒绝均已核对。
+
+旧 shutdown hook 清理失败后按会话专属合成 ID 做事务化定向清理，零残留检查通过。本次正常结束先清理 fixture、对比全部原行，再关闭 Spring；`official-cleanup.json` 为 `originalRowsPreserved=true`、`springClosed=true`，后端退出 0。Windows 网关按 PID/命令行确认归属后停止；MySQL/Redis 均已停止。卷、日志、候选和截图保留，无原库写入、Release 或部署。
+
+复盘建议：服务就绪必须包含 Windows 侧实际受保护 API 请求，WSL 本地探针明确绕过代理，夹具清理安排在 Spring 关闭之前。本票恢复验证环境已采用这些必要修正；不扩展为新平台或安全门槛。
+
+## 交付范围与状态
+
+AFK 实际第 1 轮完成，未重启模型，未增加最多 2 轮/60 分钟编码及 20 分钟独立验证预算。候选已推送到 `codex/issue55-cart-preservation-20261018`，远端 SHA 已核对。交付工作树基于最新 main `349628aba8cdee17dc572f0ef6b48a5a83198961` 快进到该候选；主工作区的 AGENTS.md 修改、PLANS.md 删除、local-development.md 修改及未跟踪文件均保留。
+
+本报告的后续文档提交仅补齐实际验证状态；远端 PR/head/merge/issue 最终结果以宿主交付记录及 GitHub 状态为准。下票必须从实际已合并的 main 开始。
