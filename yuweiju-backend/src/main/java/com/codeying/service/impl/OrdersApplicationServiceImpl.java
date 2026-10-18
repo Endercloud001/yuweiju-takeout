@@ -171,7 +171,8 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
         order.setUserName(user.getName());
         order.setAddress(buildAddress(address));
         order.setEstimatedDeliveryTime(estimatedDeliveryTime);
-        order.setDeliveryStatus(body.getDeliveryStatus() == null ? 1 : body.getDeliveryStatus());
+        // Legacy reservation markers remain accepted, but every new order is immediate delivery.
+        order.setDeliveryStatus(1);
         order.setPackAmount(packAmount);
         order.setTablewareNumber(body.getTablewareNumber());
         order.setTablewareStatus(body.getTablewareStatus() == null ? 0 : body.getTablewareStatus());

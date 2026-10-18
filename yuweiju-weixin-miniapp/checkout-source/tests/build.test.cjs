@@ -59,7 +59,7 @@ test('generated JavaScript syntax, template events/refs and component/static ref
     const loaded = await env.options.components[component](); assert.equal(typeof loaded.default, 'object');
   }
   for (const target of wxml.matchAll(/src="([^"{]+)"/g)) assert.ok(fs.existsSync(path.resolve(root, 'pages/order', target[1])), 'static ' + target[1]);
-  assert.match(wxml, /data-ref="popup"/); assert.match(wxml, /data-ref="timePopup"/); assert.match(wxml, /data-ref="piker"/);
+  assert.match(wxml, /data-ref="popup"/); assert.match(wxml, /data-ref="piker"/);
   assert.match(wxml, /bind:__l="__l"/); assert.match(wxml, /slot="footer"/);
   const page = env.instance(); env.options.render.call(page);
   for (const attr of wxml.matchAll(/data-event-opts="{{(.*?)}}"/g)) {

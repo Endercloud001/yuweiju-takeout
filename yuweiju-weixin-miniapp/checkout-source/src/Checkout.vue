@@ -30,12 +30,10 @@
 </view>
 </view>
 <view class="bottom">
-<view @tap="openTimePopuo('bottom')" class="bottomTime _div">
+<view class="bottomTime _div">
 <text class="time_name_disabled">立即送出</text>
 <view class="address_image">
-<text >{{arrivalTime+"送达"}}</text>
-<view class="to_right">
-</view>
+<text >{{"预计送达："+(arrivalTime || "待选择地址")}}</text>
 </view>
 </view>
 <block v-if="address">
@@ -143,38 +141,6 @@
 </radio-group>
 </view>
 </view>
-</view>
-</uni-popup>
-<uni-popup ref="timePopup" class="popupBox" @change="change">
-<view class="popup-content">
-<view class="pickerCon">
-<view class="dayBox">
-<scroll-view scroll-x="true" :scroll-into-view="scrollinto" :scroll-with-animation="true" >
-<block v-for="(item, index) in popleft" :key="index">
-<view class="scroll-row-item" :id="'tab'+index" @tap="dateChange(index)">
-<block v-for="(val, i) in weeks" :key="i">
-<view >
-<block v-if="index===i">
-<view :class="[tabIndex==index?'scroll-row-day':'']">
-<text class="line">
-</text>{{item}}<text class="week">{{"("+val+")"}}</text>
-</view>
-</block>
-</view>
-</block>
-</view>
-</block>
-</scroll-view>
-</view>
-<view class="timeBox">
-<scroll-view class="card_order_list" scroll-y="true" scroll-top="40rpx">
-<block v-for="(val, i) in newDateData" :key="i">
-<view @tap="timeClick(val, i)" :class="['item',selectValue===i?'city-column_select':'']">{{val}}</view>
-</block>
-</scroll-view>
-</view>
-</view>
-<view @tap="onsuer" class="btns">取消</view>
 </view>
 </uni-popup>
 </view>

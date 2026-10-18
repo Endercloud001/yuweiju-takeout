@@ -82,6 +82,37 @@ class TrustedOrderChargingTest {
         assertEquals(new BigDecimal("40.00"), saved.getValue().getAmount()); assertEquals(2,saved.getValue().getPackAmount());
     }
 
+    @Test void legacyReservationAndNormalPayloadsCreateOnlyImmediateOrdersWithServerEstimate() throws Exception {
+        var json = new com.fasterxml.jackson.databind.ObjectMapper();
+        for (String marker : new String[]{"0", "1", "null"}) {
+            prepare(item("18.00",2));
+            var request = json.readValue("{\"addressBookId\":8,\"deliveryStatus\":" + marker
+                    + ",\"estimatedDeliveryTime\":\"2099-12-31 23:59:59\"}", OrdersSubmitDTO.class);
+            var response = service.submit(7L,request);
+            var saved = ArgumentCaptor.forClass(Orders.class);
+            verify(orders,atLeastOnce()).save(saved.capture());
+            var created = saved.getValue();
+            assertEquals(1,created.getDeliveryStatus());
+            // Existing policy: ten preparation minutes plus the map seam's zero driving minutes.
+            assertEquals(10 * 60_000L,created.getEstimatedDeliveryTime().getTime()-created.getOrderTime().getTime());
+            assertEquals(created.getEstimatedDeliveryTime(),response.getEstimatedDeliveryTime());
+            assertEquals("2099-12-31 23:59:59",request.getEstimatedDeliveryTime());
+            assertEquals(new BigDecimal("40.00"),response.getOrderAmount());
+        }
+    }
+
+    @Test void historicalUserAndAdminReadsKeepReservationAndOriginalEstimate() {
+        var historical = new Orders(); historical.setId(12L); historical.setDeliveryStatus(0);
+        var eta = new java.util.Date(1234567890000L); historical.setEstimatedDeliveryTime(eta);
+        when(details.listForOrder(12L)).thenReturn(List.of());
+        var user = service.buildUserOrderVO(historical);
+        var admin = service.buildAdminOrderVO(historical);
+        assertEquals(0,user.getDeliveryStatus()); assertEquals(eta,user.getEstimatedDeliveryTime());
+        assertEquals(0,admin.getDeliveryStatus()); assertEquals(eta,admin.getEstimatedDeliveryTime());
+        assertEquals(0,historical.getDeliveryStatus()); assertEquals(eta,historical.getEstimatedDeliveryTime());
+        verifyNoInteractions(orders);
+    }
+
     @Test void oneAndMixedUseQuantityPackingAndIgnoreMissingOrTamperedClientClaims() {
         prepare(item("0.01",1));
         var b = body(); b.setPackAmount(null); b.setAmount(null);
