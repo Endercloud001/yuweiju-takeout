@@ -27,13 +27,15 @@ class OrderFulfillmentRulesTest {
     ShoppingCartService carts = mock(ShoppingCartService.class);
     OrderDetailService details = mock(OrderDetailService.class);
     StringRedisTemplate redis = mock(StringRedisTemplate.class);
+    ShopStatusService shopStatus = mock(ShopStatusService.class);
     OrdersApplicationService service;
 
     @BeforeEach void setup() {
+        when(shopStatus.getStatus()).thenReturn(1);
         service = new OrdersApplicationServiceImpl(stored, details, mock(DishService.class),
                 mock(SetmealService.class), carts, mock(AddressBookService.class), users,
                 new ShopProperties(), new BaiduMapProperties(), mock(BaiduMapUtil.class),
-                redis, mock(AnalysisObservationService.class), risk, mapper);
+                redis, mock(AnalysisObservationService.class), risk, mapper, shopStatus);
     }
     Orders order(int status) {
         Orders o = new Orders(); o.setId(11L); o.setUserId(21L); o.setStatus(status);
@@ -42,6 +44,24 @@ class OrderFulfillmentRulesTest {
         when(mapper.findOwned(21L,11L)).thenReturn(o);
         when(mapper.findByNumberOwned(21L,"N11")).thenReturn(o);
         return o;
+    }
+    @Test void closedShopAllowsOldMockPaymentCancellationAndFulfilment() {
+        when(shopStatus.getStatus()).thenReturn(0);
+        order(1); User user = new User(); user.setOpenid("fixture"); when(users.getById(21L)).thenReturn(user);
+        var payment = new OrdersPaymentDTO(); payment.setOrderNumber("N11");
+        when(mapper.payPending(eq(11L),eq(21L),any())).thenReturn(1);
+        assertEquals("mock", service.paymentMock(21L,payment).getPaySign());
+        for (int status : new int[]{1,2}) {
+            order(status); when(mapper.transitionFrom(any(),eq(status),eq(21L))).thenReturn(1);
+            service.cancelByUser(21L,11L);
+        }
+        List<Consumer<Long>> entries = List.of(service::confirm,service::deliver,service::complete);
+        for (int i=0; i<entries.size(); i++) {
+            int status = i+2; order(status);
+            when(mapper.transitionFrom(any(),eq(status),isNull())).thenReturn(1);
+            entries.get(i).accept(11L);
+        }
+        verifyNoInteractions(shopStatus);
     }
     @Test void reusableEntriesRejectUnusableIdentifiers() {
         List<Consumer<Long>> entries = List.of(service::markPaid, service::confirm, service::deliver,

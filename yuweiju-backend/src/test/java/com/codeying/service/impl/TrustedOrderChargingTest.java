@@ -8,6 +8,7 @@ import com.codeying.properties.*;
 import com.codeying.service.*;
 import com.codeying.utils.BaiduMapUtil;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentCaptor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import java.math.BigDecimal;
@@ -17,6 +18,8 @@ import static org.mockito.Mockito.*;
 
 /** Ordinary service seam tests; SQL rollback is verified separately by Issue10Probe. */
 class TrustedOrderChargingTest {
+    final ShopStatusService shopStatus = mock(ShopStatusService.class);
+    @BeforeEach void openShop() { when(shopStatus.getStatus()).thenReturn(1); }
     final OrdersService orders = mock(OrdersService.class);
     final OrderDetailService details = mock(OrderDetailService.class);
     final ShoppingCartService carts = mock(ShoppingCartService.class);
@@ -27,7 +30,7 @@ class TrustedOrderChargingTest {
     final OrdersApplicationServiceImpl service = new OrdersApplicationServiceImpl(orders, details,
             dishes, meals, carts, addresses, users,
             mock(ShopProperties.class), mock(BaiduMapProperties.class), mock(BaiduMapUtil.class),
-            mock(StringRedisTemplate.class), mock(AnalysisObservationService.class), mock(OrderRiskService.class), mock(OrdersMapper.class));
+            mock(StringRedisTemplate.class), mock(AnalysisObservationService.class), mock(OrderRiskService.class), mock(OrdersMapper.class), shopStatus);
 
     ShoppingCart item(String price, Integer count) {
         var c = new ShoppingCart(); c.setId(1L); c.setUserId(7L); c.setDishId(10L);
@@ -51,6 +54,26 @@ class TrustedOrderChargingTest {
         when(orders.save(any(Orders.class))).thenAnswer(call -> { call.<Orders>getArgument(0).setId(9L); return true; });
         when(details.saveBatch(anyCollection())).thenReturn(true);
         when(carts.clearForUser(7L)).thenReturn(items.length);
+    }
+    @Test void closedShopRefusesBeforeCoreWritesAndPreservesCart() {
+        prepare(item("18.00",2));
+        when(shopStatus.getStatus()).thenReturn(0);
+        assertEquals("店铺已打烊，暂时无法下单",
+                assertThrows(OrderBusinessException.class, () -> service.submit(7L,body())).getMessage());
+        verifyNoInteractions(orders,details);
+        verify(carts,never()).clearForUser(any());
+        assertEquals(2, carts.listForUser(7L).get(0).getNumber());
+    }
+    @Test void unreadableShopRefusesWithCauseBeforeCoreWritesAndPreservesCart() {
+        prepare(item("18.00",2));
+        var failure = new IllegalStateException("isolated status dependency");
+        when(shopStatus.getStatus()).thenThrow(failure);
+        var error = assertThrows(OrderBusinessException.class, () -> service.submit(7L,body()));
+        assertEquals("店铺状态读取失败，请稍后再试", error.getMessage());
+        assertSame(failure, error.getCause());
+        verifyNoInteractions(orders,details);
+        verify(carts,never()).clearForUser(any());
+        assertEquals(2, carts.listForUser(7L).get(0).getNumber());
     }
     @Test void actualTwo18SubmitMustReturn40RatherThan38() {
         prepare(item("18.00",2));
