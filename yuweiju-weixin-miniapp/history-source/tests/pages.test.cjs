@@ -114,13 +114,14 @@ test('countdown replacement, hide/unload/destruction cleanup and expired unpaid 
   assert.equal(expired.timeout, true); assert.equal(env.requests.at(-1).method, 'PUT'); assert.match(env.requests.at(-1).url, /\/cancel\/974$/); assert.equal(env.timers.size, 0); expired.$destroy();
 });
 
-test('history navigation, reminder reload, sequential reorder and rejected cart clear retain behavior', async () => {
+test('history navigation, reminder reload, transactional reorder and refusal retain behavior', async () => {
   let denied = false;
   const env = harness('HistoryOrder', { respond: options => denied ? { code: 0, msg: '拒绝' } : { code: 1, data: options.url.includes('historyOrders') ? { records: [order(974, 2)], total: 1 } : null } });
   const page = env.instance(); await hook(page, 'onLoad'); page.goDetail(974);
   assert.equal(env.store.state.addressBackUrl, '/pages/historyOrder/historyOrder'); assert.equal(env.redirects.at(-1), '/pages/details/index?orderId=974');
   await page.handleReminder('center', 974); assert.match(env.requests.at(-2).url, /\/reminder\/974$/); assert.equal(page.recentOrdersList.length, 1); assert.match(page.textTip, /催单/);
-  await page.oneMoreOrder(974); assert.equal(env.requests.at(-2).method, 'DELETE'); assert.match(env.requests.at(-1).url, /\/repetition\/974$/); assert.equal(env.requests.at(-1).method, 'POST'); assert.equal(env.navigation.at(-1), 3);
+  const reorderStart = env.requests.length;
+  await page.oneMoreOrder(974); assert.equal(env.requests.length, reorderStart + 1); assert.match(env.requests.at(-1).url, /\/repetition\/974$/); assert.equal(env.requests.at(-1).method, 'POST'); assert.equal(env.navigation.at(-1), 3);
   const count = env.requests.length; denied = true; await page.oneMoreOrder(974); assert.equal(env.requests.length, count + 1); assert.equal(env.navigation.length, 1);
   page.closePopup(); page.goBack(); assert.equal(env.redirects.at(-1), '/pages/my/my'); page.$destroy();
 });
@@ -135,7 +136,8 @@ test('detail reminder/cancel/refund/phone/reorder actions preserve endpoints, po
   const before = env.requests.length; page.handleCancel('center', order(974, 3)); assert.equal(env.requests.length, before); assert.match(page.textTip, /联系商家/);
   page.handleRefund('center'); assert.match(page.textTip, /退款/); page.handlePhone('bottom'); assert.deepEqual(page.popups.at(-1), ['phone', 'open', 'bottom']);
   env.store.commit('setShopPhone', '10000'); page.call(); assert.deepEqual(env.phones, ['10000']); page.closePopup();
-  await page.oneMoreOrder(974); assert.equal(env.requests.at(-2).method, 'DELETE'); assert.equal(env.requests.at(-1).method, 'POST'); assert.equal(env.redirects.at(-1), '/pages/index/index');
+  const reorderStart = env.requests.length;
+  await page.oneMoreOrder(974); assert.equal(env.requests.length, reorderStart + 1); assert.match(env.requests.at(-1).url, /\/repetition\/974$/); assert.equal(env.requests.at(-1).method, 'POST'); assert.equal(env.redirects.at(-1), '/pages/index/index');
   denied = true; const count = env.redirects.length; await page.oneMoreOrder(974); await page.cancel('center', order()); await page.handleReminder('center', 974); assert.equal(env.redirects.length, count); assert.ok(env.toasts.length >= 3); page.$destroy();
 });
 

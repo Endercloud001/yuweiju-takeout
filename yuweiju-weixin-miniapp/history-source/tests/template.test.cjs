@@ -3,7 +3,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const compiler = require('vue-template-compiler');
-const { harness, order, plain, flush } = require('./runtime.cjs');
+const vm = require('node:vm');
+const { harness, order, plain, flush, root } = require('./runtime.cjs');
 
 // Compile the saved SFC as a Vue VNode tree and run it on the actual old
 // Vue/store/API/tools. This exposes row text, conditions, bindings and handlers
@@ -36,6 +37,90 @@ function timeAgo(minutes) {
   const d = new Date(Date.now() - minutes * 60000);
   const pad = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+// Exercise both the saved SFC's rendered button and the generated WeChat
+// event dispatcher, including the order ID passed by each template.
+function reorderTap(env, page, name, entry) {
+  if (entry === 'rendered') return tap(button(template(name)(page), '再来一单'));
+  page.$options.render.call(page);
+  const target = name === 'Details' ? 'pages/details/index.wxml' : 'pages/historyOrder/historyOrder.wxml';
+  const wxml = fs.readFileSync(path.join(root, target), 'utf8');
+  const tag = [...wxml.matchAll(/<button\b[^>]*>/g)].map(match => match[0]).find(tag => tag.includes('oneMoreOrder'));
+  assert.match(tag, /bindtap="__e"/);
+  const binding = tag.match(/data-event-opts="{{(.*?)}}"/)[1];
+  const eventOpts = vm.runInNewContext('(' + binding + ')', { index: 0, tabNumber: 0 });
+  return env.registrations.at(-1).methods.__e.call({ $vm: page }, {
+    type: 'tap', currentTarget: { dataset: { eventOpts } }
+  });
+}
+
+for (const name of ['HistoryOrder', 'Details']) for (const entry of ['rendered', 'generated']) {
+  for (const outcome of ['refused', 'success', 'timeout-before-commit', 'timeout-after-commit']) {
+    test(`issue55 ${name} ${entry} reorder ${outcome}: one replacement request and actual cart state`, async () => {
+      const oldCart = [{ id: 11, dishId: 21, name: '原购物车', number: 3, amount: 5 }];
+      const targetCart = [{ id: 12, dishId: 22, name: '目标订单', number: 2, amount: 18 }];
+      let cart = plain(oldCart);
+      const env = harness(name, { respond: options => {
+        if (options.url.endsWith('/shoppingCart/clean')) { cart = []; return { code: 1 }; }
+        if (options.url.endsWith('/repetition/974')) {
+          if (outcome === 'refused') return { code: 0, msg: '订单不存在' };
+          if (outcome !== 'timeout-before-commit') cart = plain(targetCart);
+          if (outcome.startsWith('timeout')) return new Error('request:fail timeout');
+          return { code: 1 };
+        }
+        if (options.url.endsWith('/shoppingCart/list')) return { code: 1, data: plain(cart) };
+        return { code: 1, data: [] }; // Homepage categories; no login/external calls.
+      } });
+      const page = env.instance();
+      try {
+        if (name === 'Details') { page.orderDetailsData = order(); page.loaded = true; }
+        else page.recentOrdersList = [order()];
+        await reorderTap(env, page, name, entry); await flush();
+        assert.deepEqual(env.requests.map(request => [request.method, request.url.replace(/^.*\/user\//, '/user/')]),
+          [['POST', '/user/order/repetition/974']], 'no independent clean or other mutation');
+        assert.equal(env.requests[0].header.authentication, 'synthetic-test-token');
+        assert.deepEqual(cart, outcome === 'success' || outcome === 'timeout-after-commit' ? targetCart : oldCart);
+        if (outcome === 'success') {
+          assert.equal(env.toasts.length, 0);
+          if (name === 'Details') assert.deepEqual(env.redirects, ['/pages/index/index']);
+          else assert.deepEqual(env.navigation, [3]);
+        } else {
+          assert.deepEqual(env.redirects, []); assert.deepEqual(env.navigation, []);
+          assert.ok(env.toasts.length, 'failure is visible');
+          if (outcome === 'refused') assert.equal(env.toasts.at(-1), '订单不存在');
+          else assert.doesNotMatch(env.toasts.join(' '), /未提交|未更改|保持不变|已回滚|exactly.once/i);
+        }
+        // The actual homepage onShow/init/API/store chain reads the IO fixture's
+        // current cart state, including a commit whose response was lost.
+        env.capture('pages/index/index.js');
+        const home = env.instance(env.load(16).default);
+        try {
+          env.store.commit('initdishListMut', plain(oldCart));
+          home.$options.onShow[0].call(home); await flush();
+          assert.ok(env.requests.some(request => request.url.endsWith('/shoppingCart/list') && request.method === 'GET'));
+          assert.deepEqual(plain(env.store.state.orderListData), cart);
+          assert.equal(env.requests.filter(request => request.url.includes('/repetition/')).length, 1, 'refresh never retries mutation');
+        } finally { home.$destroy(); }
+      } finally { page.$destroy(); }
+    });
+  }
+  for (const accepted of [true, false]) {
+    test(`issue55 ${name} ${entry} disposed late ${accepted ? 'success' : 'refusal'} has no UI side effects`, async () => {
+      let pending;
+      const env = harness(name, { respond: () => ({ pending: options => { pending = options; } }) });
+      const page = env.instance();
+      if (name === 'Details') { page.orderDetailsData = order(); page.loaded = true; }
+      else page.recentOrdersList = [order()];
+      const result = reorderTap(env, page, name, entry);
+      page.$destroy();
+      pending.success({ data: accepted ? { code: 1 } : { code: 0, msg: '拒绝' }, statusCode: 200 });
+      await result; await flush();
+      assert.equal(env.requests.length, 1);
+      assert.match(env.requests[0].url, /\/repetition\/974$/);
+      assert.deepEqual(env.redirects, []); assert.deepEqual(env.navigation, []); assert.deepEqual(env.toasts, []);
+    });
+  }
 }
 
 for (const [age, label, canPay] of [[1, '待付款', true], [20, '已取消', false]]) {

@@ -69,7 +69,6 @@ export default {
     },
     async oneMoreOrder(id) {
       try {
-        accepted(await api.delShoppingCart()); if (this.disposed) return;
         accepted(await api.repetitionOrder(id)); if (this.disposed) return;
         uni.redirectTo({ url: '/pages/index/index' });
       } catch (error) { if (!this.disposed) failure(uni, error); }

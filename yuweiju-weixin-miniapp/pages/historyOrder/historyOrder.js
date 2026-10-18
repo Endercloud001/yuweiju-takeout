@@ -266,8 +266,6 @@ var history_default = {
     oneMoreOrder(id) {
       return __async(this, null, function* () {
         try {
-          accepted(yield api.delShoppingCart());
-          if (this.disposed) return;
           accepted(yield api.repetitionOrder(id));
           if (this.disposed) return;
           const pages = getCurrentPages();
