@@ -37,17 +37,39 @@
 
 清理只删除新归属用户的订单/明细/车、自己的地址/菜品/用户并恢复状态/TTL，比对原 SQL/Redis；不做全局 cleanup、宿主服务停止、表重命名或 DDL；仅关闭探针自有 Spring context 与 HttpClient。自增序列可能前进，不将行快照声称为序列回退。每次全新 sql-XXXXXXXX 目录保留失败及最终 check-result/scenario-results，不覆盖历史成功/失败。
 
-## 宿主独立与官方验证：尚待完成
+## 宿主精确候选独立验证与官方场景（已完成）
 
-官方 readiness `Tool2.02.2608080 / SDK3.17.4`、实际首页路由/图片、隔离 API18557 / automation9457 仅是宿主准备证据，本 worker 未运行官方场景；独立20min verifier 必须对最终精确候选 SHA 运行上述入口。维护者已豁免逐票人工接受，不能替代必需的独立/官方业务检查。worker 不推送、不写 GitHub，不停止宿主服务。
+源码候选 `9b3c2bff3592ee9bd468fc05f3b61b49361a3607`；起点为已交付 #56 的 main `e07d5e8a52ef4b25bc6f15b8da852c4c2cf7ccc0`。AFK 第1轮完成、Ponytail 已结束，最多2轮/60分钟编码与20分钟独立验证预算未扩大，没有重启模型。
 
-官方场景使用隔离 API prod+afk、上述 Fixtures 本地 map seam，不能启用 dev 后误称打烊受限。fixture 边界为 `inspectSchema`、`seed`、`cleanup`、`RedisValue.read/restore`，复用前同样执行 DATABASE/900001/新 ID/归属范围检查；`owner/other/dish/oldOrder/cancelPending/cancelPaid/adminCancel/foreignOrder` 必须用本次全新 UUID 数字范围。所有 seed 字段/SQL已在 probe 明列，勿复用历史固定任务 ID。创建 user(id/openid/name)、address_book(id=userId,user_id,consignee,phone,detail含RUN,is_default=1)、dish(id,category_id900001,price18,status1)、owner购物车(该dish,number2,amount0.01故意旧价)、另一用户车、OLD订单(status1/pay_status0/amount40/pack_amount2，order_time显式Asia/Shanghai墙时间提前2min，保留原15min支付窗口并核对SQL/API时间与客户端剩余时长)与历史图片明细；额外取消订单状态1/2/3。owner authentication 由本隔离 JWT user secret签发，仅驻留内存，不入日志；管理员 token scope=admin、合成管理员900001，不使用原库账号。生产接口无需新增 fixture endpoint。
+统一 verifier 在精确提交的新快照执行以下3组完整命令，均 exit0、independentVerification=passed、stopped=true，无认证挂载、无模型调用：
 
-宿主使用 readiness 的独立 miniapp 副本；仓库 common/vendor.js 的 env baseUrl 默认 localhost:8080，宿主须仅在该隔离副本接到已授权 API18557（或其已准备的专属代理），不能连接原 API。使用实际 `/pages/order/index`（app.json route），在加载前准备隔离 owner store 的 token/baseUserInfo/orderListData，避免调用 prod 微信 codeToOpenid 外网；fixture token仍经过真实认证，不能跳过拦截器。后端 `/user/addressBook/default`、`/user/addressBook/list`、`/user/shoppingCart/list`、`/user/order/estimatedDeliveryTime?addressBookId=<owner>` 读取本次合成地址/车并返回估时；初始刷新显示40.00和2份。结算“去支付”选择器 `view.order_but_rit`，选择带 `payOrderHandle` data-event-opts 的可点击节点（同类另有禁用展示节点）。依次验证：
+```sh
+npm --prefix yuweiju-weixin-miniapp/checkout-source ci --no-audit --no-fund && npm --prefix yuweiju-weixin-miniapp/checkout-source test && npm --prefix yuweiju-weixin-miniapp/checkout-source run build
+mvn -B -f yuweiju-backend/pom.xml compile && mvn -B -f yuweiju-backend/pom.xml package
+bash .sandcastle/environment/issue57-check.sh
+```
 
-- 已进入结算后通过现有 `PUT /admin/shop/0` 关店（header token），点击去支付：toast“店铺已打烊，暂时无法下单”，仍在本页、提交按钮可重试，地址/备注/餐具保留；SQL无新增订单明细、GET cart原样。
-- 在受控隔离 Redis将同一 status key 暂置WRONGTYPE（备份/恢复原DUMP/TTL），再次提交：toast“店铺状态读取失败，请稍后再试”，相同保留断言，不向原 Redis操作；之后恢复string。
-- `PUT /admin/shop/1` 后同页重试成功，新订单可信40.00与正确明细、仅自己车被清空，跳 `/pages/pay/index?orderId=<new>`。模拟支付仍是 `/user/order/payment` PUT，body `{orderNumber,payMethod:1}`；不调用真实支付。
-- 在关闭状态对另一个 OLD owned待支付订单进 `/pages/details/index?orderId=<old>`，使用实际“立即支付”节点（`button.new_btn.btn`，data-event-opts 含 `handlePay`）进入旧pay页（旧金额），支付页“确认支付”按钮（`button.add_btn`，data-event-opts 含 `handleSave`）调用 `handleSave`；核对后端旧单2/paid，随后管理员原接口 PUT `/admin/order/confirm` body{id}、`/admin/order/delivery/{id}`、`/admin/order/complete/{id}`，看到3→4→5。另验证可取消OLD状态1/2和管理员状态3；跨用户/匿名保护仍拒绝。已核对 `history-source/src/details.js` onLoad读取`options.orderId`，pay页onLoad亦读取`options.orderId`；不能把 readiness 当这些步骤通过。
+独立结果：结算页面16项、后端174项测试、真实SQL/Redis112条断言通过。证据在项目 `.scratch/issue57-afk-20261018/independent/task-review-1792320430582423116/`；规范与需求双轴只读审查各0发现。
 
-结束只清理本次新 ID并恢复status/TTL，保留截图/断言与候选SHA。以上是待执行步骤，不宣称宿主已完成。
+官方工具2.02.2608080/SDK3.17.4，同一隔离项目9457，候选真实prod Spring/MySQL/Redis及自有合成身份，生产认证和归属继续校验。Windows受保护API/代理正确身份通过、匿名拒绝；数据服务只在本票internal网络，后端另接具名出口网以发布127.0.0.1端口，不连接原库。
+
+| 官方场景 | 实际结果 |
+| --- | --- |
+| 结算后管理员关店，点击去支付 | 打烊toast、表单保留/可重试；无新订单明细，购物车和SQL不变 |
+| 实际prod状态key WRONGTYPE，点击去支付 | 状态读取失败toast；相同表单/购物车/SQL保留 |
+| 恢复营业，同页重试 | 可信40元新订单及明细、仅自己车清空，进入支付页 |
+| 关店OLD订单从详情立即支付→确认支付 | 真实WXML按钮；仅一次受保护payment PUT/code1，SQL待接单/已支付；原管理员接口3→4→5，购物车不变 |
+
+前三项保留原 `official/business-results.json` 逐项通过证据；其原overall=false表示当时第四项SDK超时未完成，不覆盖失败记录。第四项恢复批次 `sdk-recovery1/official/old-pay-result.json` passed=true/exit0；综合 `final-verification-summary.json` 绑定同一候选并列四项通过。
+
+SDK恢复前只读连接发现已在pay页，完整data16ms成功；新夹具使用新UUID和正确+08墙时间、处于15分钟支付窗口。本次重建连接及Page对象并逐步骤有界记录，详情data33ms成功，真实支付只点击一次。不存在源码改动或AFK重跑。旧超时未稳定复现，不将可能的旧Page/跳转回执失效当作已确定的SDK底层原因。
+
+一次截图saveFile限额失败仍保留，未清理其他任务存储，恢复批次没有在支付前重试该截图。复用同一项目前端未变的官方就绪图像；业务结果由真实按钮、路由、受保护HTTP和SQL证明，不声称新增支付成功截图或真实微信双账号/真实付款。用户明确免除逐票人工验收，以上均由Agent验证。
+
+## 最终清理、复盘与交付边界
+
+恢复批次先清理自有UUID行、恢复原status DUMP/TTL，比较完整原SQL/无关Redis，再关闭Spring：originalSqlRowsPreserved=true、redisPreserved=true、springClosed=true，后端退出0。Windows网关按PID和命令行核实后停止；MySQL/Redis停止，卷和全部首次失败/恢复证据保留。自增序列可能前进，不声称序列回滚。无原库、外部模型、实际付款或生产配置变更。
+
+复盘采用：Windows受保护API实际就绪探针、Fresh Page读取、支付事件只发送一次并查持久结果、清理先于Spring关闭。截图额度与业务证据分开记录。未引入共享框架、安全门槛或SDK库补丁。
+
+交付工作树从最新main快进到候选，无冲突；后续仅补本报告，业务/测试/探针源码与上述精确提交一致，故复用其验证结果。PR/最终head/merge/issue状态以宿主交付记录和GitHub读取为准。下一票以实际已合并main开始。
