@@ -12,14 +12,7 @@ export function createCheckout({ store, api, uni, tools, components }) {
         remark: '', arrivalTime: '', scrollH: 0, addressList: [], isHandlePy: false,
         tablewareData: '无需餐具', tableware: '', activeRadio: '无需餐具',
         baseData: ['无需餐具', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
-        radioGroup: ['依据餐量提供', '无需餐具'], status: 0, num: 0,
-        tabIndex: 0, scrollinto: 'tab0', popleft: ['今天', '明天'], weeks: [],
-        popright: ['立即派送', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-          '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30',
-          '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30',
-          '20:00', '20:30', '21:00', '21:30', '22:00', '22:30', '23:00'],
-        newDateData: [], selectValue: 0, isTomorrow: false,
-        toDate: null, tomorrowStart: null, newDate: null
+        radioGroup: ['依据餐量提供', '无需餐具'], status: 0, num: 0
       };
     },
     computed: {
@@ -27,12 +20,6 @@ export function createCheckout({ store, api, uni, tools, components }) {
       orderDataes() { if (!this.pricingReady) return []; return this.showDisplay ? this.orderListDataes : this.orderListDataes.slice(0, 3); }
     },
     created() {
-      const now = new Date();
-      this.toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-      this.tomorrowStart = this.toDate + 24 * 3600 * 1000;
-      this.newDate = now.getHours() * 3600 + now.getMinutes() * 60;
-      this.getDateDate();
-      this.weeks = [this.toDate, this.tomorrowStart].map(tools.getWeekDate);
       this.getAddressList();
     },
     async onLoad() {
@@ -146,7 +133,7 @@ export function createCheckout({ store, api, uni, tools, components }) {
         this.isHandlePy = true;
         const params = {
           payMethod: 1, addressBookId: this.addressBookId, remark: this.remark,
-          estimatedDeliveryTime: null, deliveryStatus: this.arrivalTime === '立即派送' ? 1 : 0,
+          estimatedDeliveryTime: null, deliveryStatus: 1,
           tablewareStatus: this.status, tablewareNumber: this.num,
           packAmount: this.orderDishNumber, amount: this.orderDishPrice
         };
@@ -166,8 +153,6 @@ export function createCheckout({ store, api, uni, tools, components }) {
       },
       openPopuos(type) { this.$refs.popup.open(type); },
       closePopup() { this.$refs.popup.close(); },
-      openTimePopuo(type) { this.$refs.timePopup.open(type); },
-      onsuer() { this.$refs.timePopup.close(); },
       change() {},
       touchstart() {},
       changeCont(value) { this.tableware = value; },
@@ -186,27 +171,6 @@ export function createCheckout({ store, api, uni, tools, components }) {
           this.status = this.activeRadio === '依据餐量提供' ? 1 : 0;
           this.num = this.status ? this.orderDishNumber : 0;
         }
-      },
-      getDateDate() {
-        this.newDateData = this.popright.filter(item => {
-          const parts = item.split(':');
-          return this.newDate < Number(parts[0]) * 3600 + Number(parts[1]) * 60;
-        });
-        this.newDateData.splice(0, 2);
-        this.newDateData.unshift('立即派送');
-      },
-      dateChange(index) {
-        this.isTomorrow = index === 1;
-        if (this.isTomorrow) this.newDateData = this.popright.slice(1);
-        else this.getDateDate();
-        this.tabIndex = index;
-      },
-      timeClick(value, index) { this.selectValue = index; return this.setTime(value); },
-      setTime(value) {
-        if (value === '立即派送') this.getHarfAnOur(this.addressBookId);
-        else this.arrivalTime = value;
-        commit('setArrivalTime', this.arrivalTime);
-        this.onsuer();
       }
     }
   };

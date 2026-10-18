@@ -15,9 +15,9 @@ public class OrdersSubmitDTO {
     private Long addressBookId;
     /** 金额（前端可传，后端以计算为准） */
     private BigDecimal amount;
-    /** 配送状态：1-立即送出（项目约定） */
+    /** 兼容旧配送标记（含 0-预约）；新单统一保存 1-立即送出 */
     private Integer deliveryStatus;
-    /** 预计送达时间（客户端展示用，后端重新计算） */
+    /** 兼容旧客户端时间字符串；忽略其值，预计送达由服务端重新计算 */
     private String estimatedDeliveryTime;
     /** 客户端打包费声明（忽略；服务端按有效总份数计算） */
     private Integer packAmount;

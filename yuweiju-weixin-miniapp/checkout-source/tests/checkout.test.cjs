@@ -1,4 +1,6 @@
 const test = require('node:test');
+// The required test-before-build sequence must execute this task's current generated page.
+test.before(async () => { await require('../build.cjs').compileCheckout(); });
 const assert = require('node:assert/strict');
 const { harness, plain, root } = require('./legacy-harness.cjs');
 const address = { id: 41, provinceName: '测试省', cityName: '测试市', districtName: '测试区', detail: '合成路1号', phone: '15200000001', consignee: '合成收件人', sex: '1', label: '1' };
@@ -73,7 +75,7 @@ test('default/selected address and actual old address/remark return handlers sha
   returned.addressList = []; returned.goAddress(); assert.equal(env.redirects.at(-1), '/pages/addOrEditAddress/addOrEditAddress');
   page.$destroy(); returned.$destroy();
 });
-test('tableware confirmation/cancel and delivery date/time popups keep existing behavior', async () => {
+test('tableware confirmation/cancel keeps existing behavior', async () => {
   const env = harness({ respond: response }); const page = await checkout(env);
   page.openPopuos('bottom'); assert.equal(page.popupMode, 'bottom');
   page.changeCont('3'); page.handlePiker();
@@ -82,11 +84,6 @@ test('tableware confirmation/cancel and delivery date/time popups keep existing 
   page.tableware = ''; page.handleRadio({ detail: { value: '依据餐量提供' } }); page.handlePiker();
   assert.equal(page.status, 1); assert.equal(page.num, 7);
   page.openPopuos('bottom'); page.changeCont('5'); page.closePopup(); assert.equal(page.num, 7);
-  page.openTimePopuo('bottom'); assert.equal(page.timeMode, 'bottom');
-  page.dateChange(1); assert.equal(page.newDateData[0], '09:00'); assert.equal(page.isTomorrow, true);
-  page.timeClick('11:30', 5); assert.equal(page.arrivalTime, '11:30'); assert.equal(env.store.state.arrivals, '11:30'); assert.equal(page.timeMode, '');
-  page.newDate = 9 * 3600; page.dateChange(0); assert.equal(page.newDateData[0], '立即派送'); assert.equal(page.newDateData[1], '10:30');
-  page.setTime('立即派送'); await Promise.resolve(); assert.equal(page.arrivalTime, '12:30');
   page.$destroy();
 });
 test('submit sends public fields and current authentication, hands order to unchanged simulated payment', async () => {
@@ -105,7 +102,7 @@ test('submit sends public fields and current authentication, hands order to unch
   assert.equal(submit.header.authentication, 'synthetic-new-token');
   assert.equal(submit.header['Content-Type'], 'application/json');
   assert.deepEqual(submit.data, { payMethod: 1, addressBookId: 41, remark: '测试备注', estimatedDeliveryTime: null,
-    deliveryStatus: 0, tablewareStatus: 1, tablewareNumber: 7, packAmount: 7, amount: 72 });
+    deliveryStatus: 1, tablewareStatus: 1, tablewareNumber: 7, packAmount: 7, amount: 72 });
   assert.deepEqual(plain(env.store.state.orderData), order); assert.equal(env.store.state.remarkData, '');
   assert.equal(env.store.state.arrivals, '12:35'); assert.equal(env.redirects.at(-1), '/pages/pay/index?orderId=501');
   env.capture('pages/pay/index.js'); const payScript = env.load(61).default;
@@ -257,6 +254,53 @@ for (const message of ['店铺已打烊，暂时无法下单', '店铺状态读�
     open = true; await tapSubmit();
     assert.equal(env.requests.filter(r => r.url.endsWith('/submit')).length, 2);
     assert.equal(env.redirects.at(-1), '/pages/pay/index?orderId=5701');
+    page.$destroy();
+  });
+}
+
+for (const estimate of ['23:59', '明天 00:15']) {
+  test(`issue58 compiled checkout displays server ETA ${estimate} read-only and submits immediate`, async () => {
+    const fs = require('node:fs'), path = require('node:path'), vm = require('node:vm');
+    const compiler = require('vue-template-compiler');
+    const env = harness({ respond: options => {
+      if (options.url.endsWith('/estimatedDeliveryTime')) return { code: 1, data: estimate };
+      if (options.url.endsWith('/submit')) return { code: 1, data: { id: 5801, orderAmount: 72 } };
+      return response(options);
+    } });
+    const page = await checkout(env);
+    // Render the editable template through the existing Vue compiler against the real generated page instance.
+    const source = compiler.parseComponent(fs.readFileSync(path.join(root, 'checkout-source/src/Checkout.vue'), 'utf8'));
+    const compiled = compiler.compileToFunctions(source.template.content);
+    const tree = compiled.render.call(page);
+    function nodes(node) { return [node].concat(...(node.children || []).map(nodes)); }
+    const all = nodes(tree);
+    const row = all.find(node => node.data && node.data.staticClass === 'bottomTime _div');
+    assert.ok(row, 'delivery row renders');
+    const deliveryNodes = nodes(row);
+    assert.ok(deliveryNodes.some(node => node.text === '立即送出'));
+    assert.ok(deliveryNodes.some(node => node.text === '预计送达：' + estimate));
+    assert.ok(deliveryNodes.every(node => !node.data || !node.data.on || !Object.keys(node.data.on).length));
+    assert.ok(all.every(node => !node.data || node.data.ref !== 'timePopup'));
+    assert.ok(deliveryNodes.every(node => !node.data || node.data.staticClass !== 'to_right'));
+    // Inspect the actual uni compiled WXML as a tree, including all emitted event/ref attributes.
+    const wxml = fs.readFileSync(path.join(root, 'pages/order/index.wxml'), 'utf8');
+    const ast = compiler.compile(wxml).ast;
+    function elements(node) { return [node].concat(...(node.children || []).filter(child => child.type === 1).map(elements)); }
+    const elementsAll = elements(ast);
+    const emittedRow = elementsAll.find(node => (node.attrsMap.class || '').split(' ').includes('bottomTime'));
+    assert.ok(emittedRow);
+    assert.ok(elements(emittedRow).every(node => Object.keys(node.attrsMap).every(name => !name.startsWith('bind') && !name.startsWith('catch') && name !== 'data-event-opts')));
+    assert.ok(elementsAll.every(node => node.attrsMap['data-ref'] !== 'timePopup' && node.tag !== 'picker'));
+    const button = elementsAll.find(node => (node.attrsMap['data-event-opts'] || '').includes('payOrderHandle'));
+    assert.ok(button);
+    const eventOpts = vm.runInNewContext('(' + button.attrsMap['data-event-opts'].slice(2, -2) + ')');
+    env.registrations[0].methods.__e.call({ $vm: page }, { type: 'tap', currentTarget: { dataset: { eventOpts } } });
+    await new Promise(resolve => setImmediate(resolve));
+    const submitted = env.requests.find(request => request.url.endsWith('/submit'));
+    assert.equal(submitted.data.deliveryStatus, 1);
+    assert.equal(submitted.data.estimatedDeliveryTime, null);
+    assert.equal(env.redirects.at(-1), '/pages/pay/index?orderId=5801');
+    assert.equal(page.timeMode, undefined);
     page.$destroy();
   });
 }

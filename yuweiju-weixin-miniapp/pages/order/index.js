@@ -76,49 +76,7 @@ function createCheckout({ store, api, uni, tools, components }) {
         baseData: ["\u65E0\u9700\u9910\u5177", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
         radioGroup: ["\u4F9D\u636E\u9910\u91CF\u63D0\u4F9B", "\u65E0\u9700\u9910\u5177"],
         status: 0,
-        num: 0,
-        tabIndex: 0,
-        scrollinto: "tab0",
-        popleft: ["\u4ECA\u5929", "\u660E\u5929"],
-        weeks: [],
-        popright: [
-          "\u7ACB\u5373\u6D3E\u9001",
-          "09:00",
-          "09:30",
-          "10:00",
-          "10:30",
-          "11:00",
-          "11:30",
-          "12:00",
-          "12:30",
-          "13:00",
-          "13:30",
-          "14:00",
-          "14:30",
-          "15:00",
-          "15:30",
-          "16:00",
-          "16:30",
-          "17:00",
-          "17:30",
-          "18:00",
-          "18:30",
-          "19:00",
-          "19:30",
-          "20:00",
-          "20:30",
-          "21:00",
-          "21:30",
-          "22:00",
-          "22:30",
-          "23:00"
-        ],
-        newDateData: [],
-        selectValue: 0,
-        isTomorrow: false,
-        toDate: null,
-        tomorrowStart: null,
-        newDate: null
+        num: 0
       };
     },
     computed: {
@@ -131,12 +89,6 @@ function createCheckout({ store, api, uni, tools, components }) {
       }
     },
     created() {
-      const now = /* @__PURE__ */ new Date();
-      this.toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-      this.tomorrowStart = this.toDate + 24 * 3600 * 1e3;
-      this.newDate = now.getHours() * 3600 + now.getMinutes() * 60;
-      this.getDateDate();
-      this.weeks = [this.toDate, this.tomorrowStart].map(tools.getWeekDate);
       this.getAddressList();
     },
     onLoad() {
@@ -277,7 +229,7 @@ function createCheckout({ store, api, uni, tools, components }) {
             addressBookId: this.addressBookId,
             remark: this.remark,
             estimatedDeliveryTime: null,
-            deliveryStatus: this.arrivalTime === "\u7ACB\u5373\u6D3E\u9001" ? 1 : 0,
+            deliveryStatus: 1,
             tablewareStatus: this.status,
             tablewareNumber: this.num,
             packAmount: this.orderDishNumber,
@@ -310,12 +262,6 @@ function createCheckout({ store, api, uni, tools, components }) {
       closePopup() {
         this.$refs.popup.close();
       },
-      openTimePopuo(type) {
-        this.$refs.timePopup.open(type);
-      },
-      onsuer() {
-        this.$refs.timePopup.close();
-      },
       change() {
       },
       touchstart() {
@@ -342,30 +288,6 @@ function createCheckout({ store, api, uni, tools, components }) {
           this.status = this.activeRadio === "\u4F9D\u636E\u9910\u91CF\u63D0\u4F9B" ? 1 : 0;
           this.num = this.status ? this.orderDishNumber : 0;
         }
-      },
-      getDateDate() {
-        this.newDateData = this.popright.filter((item) => {
-          const parts = item.split(":");
-          return this.newDate < Number(parts[0]) * 3600 + Number(parts[1]) * 60;
-        });
-        this.newDateData.splice(0, 2);
-        this.newDateData.unshift("\u7ACB\u5373\u6D3E\u9001");
-      },
-      dateChange(index) {
-        this.isTomorrow = index === 1;
-        if (this.isTomorrow) this.newDateData = this.popright.slice(1);
-        else this.getDateDate();
-        this.tabIndex = index;
-      },
-      timeClick(value, index) {
-        this.selectValue = index;
-        return this.setTime(value);
-      },
-      setTime(value) {
-        if (value === "\u7ACB\u5373\u6D3E\u9001") this.getHarfAnOur(this.addressBookId);
-        else this.arrivalTime = value;
-        commit("setArrivalTime", this.arrivalTime);
-        this.onsuer();
       }
     }
   };
