@@ -54,7 +54,7 @@ const form = reactive<SetmealFormModel>({
   description: '',
 })
 
-type SelectedDish = { id: number; name: string; price: number }
+type SelectedDish = { id: number; name: string; price: number; copies: number }
 
 const selectedDishes = ref<SelectedDish[]>([])
 
@@ -164,7 +164,7 @@ async function submit() {
       price: priceNumber,
       image: form.image || undefined,
       description: form.description?.trim() || undefined,
-      setmealDishes: selectedDishes.value.map((d) => ({ dishId: d.id, copies: 1 })),
+      setmealDishes: selectedDishes.value.map((d) => ({ dishId: d.id, copies: d.copies })),
     }
 
     if (setmealId.value) {
@@ -208,6 +208,7 @@ async function fetchDetail() {
         id: d.dishId,
         name: d.name || `菜品#${d.dishId}`,
         price: d.price ?? 0,
+        copies: d.copies,
       })) ?? []
   } catch (e) {
     const message = e instanceof Error ? e.message : '获取详情失败'
@@ -234,6 +235,8 @@ function toggleDishSelection(row: DishItem, selected: boolean) {
 async function syncSelectionForCurrentData() {
   syncingSelection = true
   await nextTick()
+  // Rebuild checkboxes without treating programmatic changes as new selections.
+  clearDishSelection()
   dishPickerSelected.value.forEach((_, id) => {
     const row = dishRecords.value.find((r) => r.id === id)
     if (row) {
@@ -248,7 +251,8 @@ function handleDishSelectionChange(rows: DishItem[]) {
   const selectedSet = new Set(rows.map((r) => r.id))
   for (const row of dishRecords.value) {
     if (selectedSet.has(row.id)) {
-      dishPickerSelected.value.set(row.id, { id: row.id, name: row.name, price: row.price })
+      const copies = dishPickerSelected.value.get(row.id)?.copies ?? 1
+      dishPickerSelected.value.set(row.id, { id: row.id, name: row.name, price: row.price, copies })
     } else {
       dishPickerSelected.value.delete(row.id)
     }
@@ -293,7 +297,6 @@ async function openDishPicker() {
   dishPickerSelected.value = new Map(selectedDishes.value.map((d) => [d.id, d]))
   dishPickerVisible.value = true
   await nextTick()
-  clearDishSelection()
   if (dishCategories.value.length === 0) {
     await fetchDishCategories()
   }
