@@ -67,8 +67,6 @@ export default {
     onChangeSwiperTab(event) { return this.changeTab(event.detail.current); },
     async oneMoreOrder(id) {
       try {
-        accepted(await api.delShoppingCart());
-        if (this.disposed) return;
         accepted(await api.repetitionOrder(id));
         if (this.disposed) return;
         const pages = getCurrentPages(); const routeIndex = pages.findIndex(page => page.route === 'pages/index/index');
