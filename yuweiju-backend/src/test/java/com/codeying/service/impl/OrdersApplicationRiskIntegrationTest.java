@@ -17,6 +17,7 @@ import com.codeying.service.OrdersService;
 import com.codeying.service.SetmealService;
 import com.codeying.service.ShoppingCartService;
 import com.codeying.service.UserService;
+import com.codeying.service.ShopStatusService;
 import com.codeying.vo.admin.order.OrderVO;
 import com.codeying.utils.BaiduMapUtil;
 import org.junit.jupiter.api.Assertions;
@@ -50,10 +51,12 @@ class OrdersApplicationRiskIntegrationTest {
     private final OrderRiskService orderRiskService = Mockito.mock(OrderRiskService.class);
 
     private final OrdersMapper ordersMapper = Mockito.mock(OrdersMapper.class);
+    private final ShopStatusService shopStatus = Mockito.mock(ShopStatusService.class);
     private OrdersApplicationServiceImpl service;
 
     @BeforeEach
     void setUp() {
+        Mockito.when(shopStatus.getStatus()).thenReturn(1);
         service = new OrdersApplicationServiceImpl(
                 ordersService,
                 orderDetailService,
@@ -67,7 +70,7 @@ class OrdersApplicationRiskIntegrationTest {
                 baiduMapUtil,
                 stringRedisTemplate,
                 analysisObservationService,
-                orderRiskService, ordersMapper
+                orderRiskService, ordersMapper, shopStatus
         );
     }
 

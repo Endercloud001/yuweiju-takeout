@@ -30,6 +30,7 @@ import com.codeying.service.OrdersApplicationService;
 import com.codeying.service.OrdersService;
 import com.codeying.service.SetmealService;
 import com.codeying.service.ShoppingCartService;
+import com.codeying.service.ShopStatusService;
 import com.codeying.service.DishService;
 import com.codeying.service.UserService;
 import com.codeying.utils.BaiduMapUtil;
@@ -71,6 +72,7 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
     private final StringRedisTemplate stringRedisTemplate;
     private final AnalysisObservationService analysisObservationService;
     private final OrderRiskService orderRiskService;
+    private final ShopStatusService shopStatusService;
 
     public OrdersApplicationServiceImpl(
             OrdersService ordersService,
@@ -86,7 +88,8 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
             StringRedisTemplate stringRedisTemplate,
             AnalysisObservationService analysisObservationService,
             OrderRiskService orderRiskService,
-            OrdersMapper ordersMapper
+            OrdersMapper ordersMapper,
+            ShopStatusService shopStatusService
     ) {
         this.charging = new OrderChargingPolicy(dishService, setmealService);
         this.ordersMapper = ordersMapper;
@@ -101,6 +104,7 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
         this.stringRedisTemplate = stringRedisTemplate;
         this.analysisObservationService = analysisObservationService;
         this.orderRiskService = orderRiskService;
+        this.shopStatusService = shopStatusService;
     }
 
     @Override
@@ -125,6 +129,15 @@ public class OrdersApplicationServiceImpl implements OrdersApplicationService {
         if (userId == null || userId <= 0 || body == null || body.getAddressBookId() == null || body.getAddressBookId() <= 0) {
             throw new OrderBusinessException("参数错误");
         }
+
+        // Submit-time read only: a later Redis switch is not atomic with this SQL transaction.
+        int shopStatus;
+        try {
+            shopStatus = shopStatusService.getStatus();
+        } catch (RuntimeException e) {
+            throw new OrderBusinessException("店铺状态读取失败，请稍后再试", e);
+        }
+        if (shopStatus == 0) throw new OrderBusinessException("店铺已打烊，暂时无法下单");
 
         List<ShoppingCart> carts = shoppingCartService.listForUser(userId);
         if (carts == null || carts.isEmpty()) throw new OrderBusinessException("购物车为空");

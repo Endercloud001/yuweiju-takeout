@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { harness, plain } = require('./legacy-harness.cjs');
+const { harness, plain, root } = require('./legacy-harness.cjs');
 const address = { id: 41, provinceName: '测试省', cityName: '测试市', districtName: '测试区', detail: '合成路1号', phone: '15200000001', consignee: '合成收件人', sex: '1', label: '1' };
 const cart = [
   { id: 1, name: '测试菜品', number: 2, amount: 12.5, image: '/static/test.png', dishFlavor: '少盐' },
@@ -222,3 +222,41 @@ test('old detail and payment reuse stored amounts even when current checkout pol
   assert.equal(env.redirects.at(-1), '/pages/pay/index?orderId=974');
   page.$destroy();
 });
+
+for (const message of ['店铺已打烊，暂时无法下单', '店铺状态读取失败，请稍后再试']) {
+  test(`issue57 generated checkout button displays ${message}, preserves form/cart and retries open`, async () => {
+    const fs = require('node:fs'), path = require('node:path'), vm = require('node:vm');
+    let open = false;
+    const env = harness({ respond: options => {
+      if (options.url.endsWith('/submit')) return open
+        ? { code: 1, success: true, data: { id: 5701, orderNumber: 'I57', orderAmount: 72 } }
+        : { code: 0, success: false, message, msg: message, data: null };
+      return response(options);
+    } });
+    const page = await checkout(env);
+    page.remark = '保留打烊备注'; env.store.commit('setRemark', page.remark);
+    page.status = 0; page.num = 3; page.tablewareData = '3份';
+    const beforeCart = plain(env.store.state.orderListData);
+    const beforeAddress = page.address;
+    const wxml = fs.readFileSync(path.join(root, 'pages/order/index.wxml'), 'utf8');
+    const tag = wxml.match(/<view[^>]*data-event-opts="[^"\n]*payOrderHandle[^"\n]*"[^>]*>/)[0];
+    const eventOpts = vm.runInNewContext('(' + tag.match(/data-event-opts="{{(.*?)}}"/)[1] + ')');
+    async function tapSubmit() {
+      env.registrations[0].methods.__e.call({ $vm: page }, { type: 'tap', currentTarget: { dataset: { eventOpts } } });
+      await new Promise(resolve => setImmediate(resolve));
+    }
+    await tapSubmit();
+    assert.equal(env.toasts.at(-1), message); assert.equal(page.isHandlePy, false);
+    assert.equal(page.address, beforeAddress); assert.equal(page.addressBookId, 41);
+    assert.equal(page.remark, '保留打烊备注'); assert.equal(env.store.state.remarkData, page.remark);
+    assert.equal(page.num, 3); assert.equal(page.status, 0); assert.equal(page.tablewareData, '3份');
+    assert.deepEqual(plain(env.store.state.orderListData), beforeCart);
+    assert.equal(page.orderDishPrice, 72); assert.equal(page.orderDishNumber, 7);
+    assert.deepEqual(plain(env.store.state.orderData), {}); assert.equal(env.redirects.length, 0);
+    assert.equal(env.requests.some(r => r.url.endsWith('/shoppingCart/clean') || r.url.endsWith('/payment')), false);
+    open = true; await tapSubmit();
+    assert.equal(env.requests.filter(r => r.url.endsWith('/submit')).length, 2);
+    assert.equal(env.redirects.at(-1), '/pages/pay/index?orderId=5701');
+    page.$destroy();
+  });
+}

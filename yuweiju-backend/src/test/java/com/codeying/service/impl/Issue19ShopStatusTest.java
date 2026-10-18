@@ -35,6 +35,16 @@ class Issue19ShopStatusTest {
     }
 
     @Test void devStatusStillStaysOpen() {
-        var dev = new ShopStatusServiceDevImpl(); dev.setStatus(0); assertEquals(1, dev.getStatus());
+        try (var context = new org.springframework.context.annotation.AnnotationConfigApplicationContext()) {
+            context.getEnvironment().setActiveProfiles("dev");
+            context.register(ShopStatusServiceDevImpl.class, ShopStatusServiceImpl.class);
+            context.refresh();
+            var dev = context.getBean(com.codeying.service.ShopStatusService.class);
+            assertInstanceOf(ShopStatusServiceDevImpl.class, dev);
+            assertEquals(1, context.getBeansOfType(com.codeying.service.ShopStatusService.class).size());
+            assertTrue(context.getBeansOfType(StringRedisTemplate.class).isEmpty());
+            dev.setStatus(0); assertEquals(1, dev.getStatus());
+            verifyNoInteractions(redis);
+        }
     }
 }
