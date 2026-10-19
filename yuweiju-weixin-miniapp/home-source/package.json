@@ -1,0 +1,16 @@
+{
+  "name": "yuweiju-home-source",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.cjs",
+    "test": "node --test tests/*.test.cjs"
+  },
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "devDependencies": {
+    "vue-template-compiler": "2.6.10",
+    "esbuild": "0.25.12"
+  }
+}

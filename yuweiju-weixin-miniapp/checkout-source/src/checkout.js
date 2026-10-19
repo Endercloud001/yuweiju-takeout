@@ -6,7 +6,7 @@ export function createCheckout({ store, api, uni, tools, components }) {
     components,
     data() {
       return {
-        platform: 'ios', pricingReady: false, orderDishPrice: 0, orderDishNumber: 0, showDisplay: false,
+        platform: 'ios', cartProblem: '', pricingReady: false, orderDishPrice: 0, orderDishNumber: 0, showDisplay: false,
         psersonUrl: '../../static/btn_waiter_sel.png', nickName: '', gender: '0',
         phoneNumber: '', address: '', addressBookId: '', addressLabel: '', tagLabel: '',
         remark: '', arrivalTime: '', scrollH: 0, addressList: [], isHandlePy: false,
@@ -17,7 +17,7 @@ export function createCheckout({ store, api, uni, tools, components }) {
     },
     computed: {
       orderListDataes() { return store.state.orderListData; },
-      orderDataes() { if (!this.pricingReady) return []; return this.showDisplay ? this.orderListDataes : this.orderListDataes.slice(0, 3); }
+      orderDataes() { return this.showDisplay ? this.orderListDataes : this.orderListDataes.slice(0, 3); }
     },
     created() {
       this.getAddressList();
@@ -38,10 +38,12 @@ export function createCheckout({ store, api, uni, tools, components }) {
       uni.getSystemInfo({ success: res => { this.scrollH = res.windowHeight - uni.upx2px(100); } });
     },
     methods: {
+      formatCartAmount(item) { return item.available === false || item.amount == null ? '--' : Number(item.amount).toFixed(2); },
       computOrderInfo() {
         let count = 0;
         let cents = 0;
         this.orderListDataes.forEach(item => {
+          if (item.available === false || item.amount == null) throw { msg: '存在失效商品，请返回购物车逐项移除' };
           const price = String(item.amount);
           if (!Number.isInteger(item.number) || item.number <= 0 || !/^\d+(\.\d{1,2})?$/.test(price)) {
             throw { msg: '商品数量或金额无效' };
@@ -59,6 +61,7 @@ export function createCheckout({ store, api, uni, tools, components }) {
       },
       async refreshCart() {
         this.pricingReady = false;
+        this.cartProblem = '';
         try {
           const res = await api.getShoppingCartList();
           if (res.code !== 1 || !Array.isArray(res.data)) throw res;
@@ -70,6 +73,7 @@ export function createCheckout({ store, api, uni, tools, components }) {
         } catch (error) {
           this.orderDishPrice = 0;
           this.orderDishNumber = 0;
+          this.cartProblem = error && error.msg || '购物车读取失败，请重试';
           toast(error);
           return false;
         }

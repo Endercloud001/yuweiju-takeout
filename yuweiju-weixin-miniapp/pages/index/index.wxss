@@ -887,3 +887,5 @@
 }
 
 
+
+.cart-invalid-reason,.cart-recovery-hint { color: #b32929; font-size: 24rpx; }

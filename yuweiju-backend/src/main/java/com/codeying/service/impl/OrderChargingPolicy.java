@@ -4,13 +4,14 @@ import com.codeying.entity.ShoppingCart;
 import com.codeying.exception.OrderBusinessException;
 import com.codeying.service.DishService;
 import com.codeying.service.SetmealService;
+import com.codeying.vo.user.ShoppingCartItemVO;
 import org.springframework.beans.BeanUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Shared new-order pricing used by cart reads and order submission; never writes cart snapshots. */
+/** Trusted new-order pricing and tolerant cart inspection; neither writes stored snapshots. */
 final class OrderChargingPolicy {
     private static final BigDecimal MAX_MONEY = new BigDecimal("99999999.99");
     private static final BigDecimal DELIVERY = new BigDecimal("2.00");
@@ -42,11 +43,13 @@ final class OrderChargingPolicy {
             BigDecimal rawPrice;
             if (dishId != null) {
                 var dish = dishes.getById(dishId);
-                if (dish == null || !Integer.valueOf(1).equals(dish.getStatus())) throw new OrderBusinessException("商品不可售");
+                if (dish == null) throw new OrderBusinessException("商品已删除");
+                if (!Integer.valueOf(1).equals(dish.getStatus())) throw new OrderBusinessException("商品已停售");
                 rawPrice = dish.getPrice();
             } else {
                 var setmeal = setmeals.getById(setmealId);
-                if (setmeal == null || !Integer.valueOf(1).equals(setmeal.getStatus())) throw new OrderBusinessException("商品不可售");
+                if (setmeal == null) throw new OrderBusinessException("商品已删除");
+                if (!Integer.valueOf(1).equals(setmeal.getStatus())) throw new OrderBusinessException("商品已停售");
                 rawPrice = setmeal.getPrice();
             }
             BigDecimal unit = money(rawPrice);
@@ -58,6 +61,28 @@ final class OrderChargingPolicy {
         }
         BigDecimal total = items.isEmpty() ? goods : money(goods.add(BigDecimal.valueOf(quantity)).add(DELIVERY));
         return new Charge(items, (int) quantity, total);
+    }
+
+    List<ShoppingCart> inspect(Long userId, List<ShoppingCart> carts) {
+        if (userId == null || userId <= 0) throw new OrderBusinessException("用户信息异常");
+        if (carts == null) throw new OrderBusinessException("购物车异常");
+        List<ShoppingCart> items = new ArrayList<>(carts.size());
+        for (ShoppingCart cart : carts) {
+            // Ownership failures are never converted into recoverable merchandise errors.
+            if (cart == null || !userId.equals(cart.getUserId())) throw new OrderBusinessException("购物车归属异常");
+            var item = new ShoppingCartItemVO();
+            BeanUtils.copyProperties(cart, item);
+            try {
+                item.setAmount(price(userId, List.of(cart)).items().get(0).getAmount());
+                item.setAvailable(true);
+            } catch (OrderBusinessException unavailable) {
+                item.setAvailable(false);
+                item.setUnavailableReason(unavailable.getMessage());
+                item.setAmount(null);
+            }
+            items.add(item);
+        }
+        return items;
     }
 
     private BigDecimal money(BigDecimal value) {

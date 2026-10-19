@@ -1267,6 +1267,18 @@ body > pre {
 <p></p>
 <h3 id="-67">基本信息</h3>
 <p><strong>Path</strong> /user/shoppingCart/list</p>
+<div id="issue59-cart-recovery">
+<p><strong>#59 兼容扩展（2026-10-19）</strong>：保留路径、认证头 authentication、ApiResult、data 数组及原字段。仅返回当前认证用户的全部购物车行；查询参数 userId 不改变归属。GET 不修改购物车、商品或历史订单。</p>
+<table><thead><tr><th>字段</th><th>类型</th><th>语义</th></tr></thead><tbody>
+<tr><td>available</td><td>boolean</td><td>新增。当前商品存在、在售且数量/金额合法时 true；否则 false。</td></tr>
+<tr><td>unavailableReason</td><td>string/null</td><td>新增。失效时明确说明商品已停售、商品已删除、数量/身份或金额无效；可购买时 null。</td></tr>
+<tr><td>amount</td><td>number/null</td><td>可购买时为服务端当前目录可信单价（元）；失效时 null，绝不能用历史快照价、0 或有效项小计表示可结算金额。</td></tr>
+</tbody></table>
+<p>失效行保留 id、dishId/setmealId、number、dishFlavor、历史 name/image 及 createTime。存在任何失效项时客户端展示原因并阻止结算；不得静默忽略、自动清理或部分提交。用户通过现有 POST /user/shoppingCart/sub 按 dishId/setmealId 与原 dishFlavor 逐次减一，减至零才移除，始终受认证用户范围约束。无需商品仍存在/在售才能减项。</p>
+<p>POST /user/order/submit 仍逐项重读当前商品状态、价格和归属，使用服务端打包费/配送费计价；页面读后再停售同样拒单，无订单、无明细、无清车。套餐自身可售独立于组成菜状态。GET 的可用信息不构成价格锁定或并发承诺。</p>
+<p>消费者：小程序首页 legacy module 20 + home-source 局部适配、共享 API module 24/store module 12、checkout-source；旧 module 39 已被可编辑结算页替代。history-source 的订单详情只使用历史明细/再来一单，返回首页重新读取；管理端不消费此 GET，仅提供原停售入口，无需新增功能。旧客户端字段缺失按原有效金额处理，但 null 金额必须视为不可结算；新旧服务端/客户端应协调发布。</p>
+<p>回退：同时撤回读取扩展与首页/结算适配，保留严格提交、认证、归属与事务保护；GET 将恢复失效整车拒绝。无 schema 迁移、无原数据修复；不得仅撤提交保护。</p>
+</div>
 <p><strong>Method</strong> GET</p>
 <p><strong>接口描述</strong></p>
 <h3 id="-68">请求参数</h3>
