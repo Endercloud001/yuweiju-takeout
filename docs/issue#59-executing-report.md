@@ -120,3 +120,26 @@ Ponytail 停止后只补充首页测试的源重建 before hook（复用 checkou
 精确暂存 28 文件后，`git diff --cached --check` 发现新跟踪的原生 WXML 来源末尾额外空行（退出 2）；此前普通 diff 不包含未跟踪文件。失败命令/退出保留于 `.scratch/issue59/final/staged-diff-before-fix.json`/log。仅删除源码末尾空行，通过 build 重建对应产物，审查确认无逻辑/事件/布局变化；重新暂存后 cached check 退出 0。
 
 该修正后完整重跑 `bash .sandcastle/environment/issue59-check.sh`，退出 0，最终证据 `.scratch/issue59/sql-mlY93yyi/`：首页锁定安装/重建/12 测试、后端 package/178 测试、javac、真实 SQL/HTTP 235 断言全部通过，cleanup/Spring/HTTP 关闭为 true。其他端与后端业务文件完全未变，保留上表其精确最终检查证据；本报告/progress 封存文字再次审查并复查链接与暂存空白。失败已修复复验，没有绕过检查或追加预算；本次 worker 无剩余实施阻塞，独立/官方验收与交付仍待宿主。
+
+
+## 宿主精确候选独立验证与官方验收（2026-10-19）
+
+业务候选 `7218e8ec18dae7dd3d8e1ae2e8513c2f92435263`，AFK supervisor 第 1 轮完成，Ponytail 已退出；最终 host/result/resource 记录均正常结束、stopped=true。保留 worktree 的未提交项仅为三个 `.scratch` 测试证据目录，tracked diff 为空。没有将这些证据作为业务源码提交。
+
+统一 `.sandcastle/verify-task.ps1` 针对精确候选创建新独立快照，4 组检查全部 exit0，independentVerification=passed、stopped=true，无认证挂载、无模型。依次运行 checkout ci/test21/build、history ci/test61/build、Maven compile/package178、`issue59-check.sh`（home ci/build/test12、Maven178、真实 SQL/HTTP235 断言），均通过；完整资源与日志 `.scratch/issue59-afk-20261019/independent/task-review-1792386008176672506/`。规范与需求双路只读审查分别为 0 项可执行发现；审查不替代测试。
+
+官方项目端口9459，Tool2.02.2608080 / SDK3.17.4。将候选首页、结算页各4个产物逐字节复制核对后，由官方工具重新编译；隔离副本只调整本机API/socket地址。使用候选真实prod后端、真实认证及独立合成用户会话，SDK访问实际渲染页面、点击既有购物车/减号/结算/支付事件，不通过setData构造金额或绕过业务。真实首页数据已在 launch 前核对。
+
+官方 `official-business.cjs` 退出0，5项全部通过（`official/business-results.json`）：
+
+1. 菜品停售：A+B可读，B原因“商品已停售”、amount=null、实际行无价格、总额“待恢复”；结算点击留在首页、无SQL变更；主动减项2→1→移除后，仅A结算并创建可信40元订单，只有本人车清空。
+2. 菜品删除：相同全链通过，原因“商品已删除”。
+3. 套餐停售：相同全链通过，真实既有管理员状态API触发停售。
+4. 套餐删除：相同全链通过，删除只操作本票自有合成目录ID。
+5. 读后再停售：结算真实读取A可购买后点击一次“去支付”，网关在转发实际submit前先调用真实管理员停售API，随后转发原请求；严格服务端拒单，实际页面仍在结算页、无新订单且旧车逐行不变。没有替换订单响应/Mapper/事务。该场景模拟刷新与提交之间的实际状态变化。
+
+每次实际提交后先核对持久结果，不因Page/截图响应重复下单；四次合法提交分别按各独立场景执行。所有场景保留他人购物车。场景之间仅重建本票具名用户/商品/购物车夹具，不修改原库或历史订单。身份/密钥仅保留任务本地会话，日志不输出令牌。
+
+官方 finally 恢复本项目SDK会话，宿主触发服务正常finally清理，结果 originalSqlRowsPreserved/redisPreserved/springClosed 全true；网关停止，MySQL/Redis停止，本票运行容器0，官方项目关闭，卷和证据保留。记录 `.scratch/issue59-afk-20261019/cleanup-result.json`。未执行原库、真实付款、Release或正式部署。
+
+用户已免除逐票人工验收；必需的Agent独立/真实业务/官方验收均已满足。本交付追加仅为报告文字，业务/测试/构建/探针代码与已验证候选相同，验证证据按其精确候选复用。PR/合并/关闭的最终远端状态由宿主交付记录追加，不在本节预写成功。
