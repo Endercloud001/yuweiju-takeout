@@ -35,9 +35,8 @@ test('real generated page registers with old adapter; cart quantities, fees and 
   assert.equal(page.orderDataes.length, 3);
   assert.equal(page.orderDataes[0].number, 2);
   env.options.render.call(page);
-  assert.equal(page.$mp.data.$root.l0[0].g0, '12.50');
-  assert.equal(page.$mp.data.$root.g1, '72.00');
-  assert.equal(page.$mp.data.$root.g2, '72.00');
+  assert.ok(Object.values(page.$mp.data.$root.l0[0]).includes('12.50'));
+  assert.equal(Object.values(page.$mp.data.$root).filter(value => value === '72.00').length, 2);
   page.showDisplay = true;
   env.options.render.call(page);
   assert.equal(page.$mp.data.$root.l0.length, 4);
@@ -302,5 +301,41 @@ for (const estimate of ['23:59', '明天 00:15']) {
     assert.equal(env.redirects.at(-1), '/pages/pay/index?orderId=5801');
     assert.equal(page.timeMode, undefined);
     page.$destroy();
+  });
+}
+
+for (const reason of ['商品已停售', '商品已删除', '商品或订单金额无效或超出范围']) {
+  test(`issue59 real checkout template retains invalid ${reason}, hides trusted total, blocks generated submit then returns to cart`, async () => {
+    const fs = require('node:fs'), path = require('node:path'), vm = require('node:vm');
+    const compiler = require('vue-template-compiler');
+    const invalid = { id: 59, setmealId: 5901, name: '停售历史套餐', image: '/static/old.png', dishFlavor: '微辣', number: 2, available: false, unavailableReason: reason, amount: null };
+    const env = harness({ respond: options => options.url.endsWith('/shoppingCart/list') ? { code: 1, data: [plain(cart[0]), invalid] } : response(options) });
+    const page = await checkout(env);
+    try {
+      assert.equal(page.pricingReady, false);
+      const before = plain(env.store.state.orderListData);
+      const source = compiler.parseComponent(fs.readFileSync(path.join(root, 'checkout-source/src/Checkout.vue'), 'utf8'));
+      const render = compiler.compileToFunctions(source.template.content).render;
+      const tree = render.call(page);
+      function nodes(node) { return [node].concat(...(node.children || []).map(nodes)); }
+      const all = nodes(tree); const text = all.map(n => n.text || '').join('');
+      assert.match(text, /停售历史套餐/); assert.match(text, new RegExp(reason)); assert.match(text, /微辣/);
+      const totals = all.filter(n => n.data && ['totalMoney', 'order_price'].includes(n.data.staticClass));
+      assert.equal(totals.length, 2);
+      for (const total of totals) { const text = nodes(total).map(n => n.text || '').join(''); assert.match(text, /--/); assert.doesNotMatch(text, /25|NaN|null/); }
+      // Also execute the actual MP render, which must never dereference null.toFixed.
+      env.options.render.call(page);
+      const wxml = fs.readFileSync(path.join(root,'pages/order/index.wxml'),'utf8');
+      const tag = [...wxml.matchAll(/<view\b[^>]*>/g)].map(m=>m[0]).find(t=>t.includes('payOrderHandle'));
+      const eventOpts = vm.runInNewContext('('+tag.match(/data-event-opts="{{(.*?)}}"/)[1]+')');
+      env.registrations[0].methods.__e.call({ $vm: page }, { type:'tap',currentTarget:{dataset:{eventOpts}} });
+      await new Promise(resolve=>setImmediate(resolve));
+      assert.ok(!env.requests.some(r=>/submit|clean/.test(r.url)));
+      assert.deepEqual(plain(env.store.state.orderListData),before);
+      assert.deepEqual(env.redirects,[]);
+      const recovery = all.find(n=>n.data?.staticClass==='cart-problem'); assert.ok(recovery);
+      recovery.data.on.tap({type:'tap'});
+      assert.equal(env.redirects.at(-1),'/pages/index/index');
+    } finally { page.$destroy(); }
   });
 }

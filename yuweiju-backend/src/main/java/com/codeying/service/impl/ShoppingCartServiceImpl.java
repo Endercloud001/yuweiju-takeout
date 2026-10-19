@@ -83,7 +83,7 @@ public class ShoppingCartServiceImpl extends ServiceImpl<ShoppingCartMapper, Sho
     }
 
     @Override
-    public List<ShoppingCart> listForUser(Long userId) { requireUser(userId); return charging.price(userId, baseMapper.findByUser(userId)).items(); }
+    public List<ShoppingCart> listForUser(Long userId) { requireUser(userId); return charging.inspect(userId, baseMapper.findByUser(userId)); }
 
     @Override @Transactional
     public int clearForUser(Long userId) { requireUser(userId); return baseMapper.deleteByUser(userId); }

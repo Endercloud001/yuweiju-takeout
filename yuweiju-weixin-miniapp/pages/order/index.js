@@ -53,6 +53,7 @@ function createCheckout({ store, api, uni, tools, components }) {
     data() {
       return {
         platform: "ios",
+        cartProblem: "",
         pricingReady: false,
         orderDishPrice: 0,
         orderDishNumber: 0,
@@ -84,7 +85,6 @@ function createCheckout({ store, api, uni, tools, components }) {
         return store.state.orderListData;
       },
       orderDataes() {
-        if (!this.pricingReady) return [];
         return this.showDisplay ? this.orderListDataes : this.orderListDataes.slice(0, 3);
       }
     },
@@ -111,10 +111,14 @@ function createCheckout({ store, api, uni, tools, components }) {
       } });
     },
     methods: {
+      formatCartAmount(item) {
+        return item.available === false || item.amount == null ? "--" : Number(item.amount).toFixed(2);
+      },
       computOrderInfo() {
         let count = 0;
         let cents = 0;
         this.orderListDataes.forEach((item) => {
+          if (item.available === false || item.amount == null) throw { msg: "\u5B58\u5728\u5931\u6548\u5546\u54C1\uFF0C\u8BF7\u8FD4\u56DE\u8D2D\u7269\u8F66\u9010\u9879\u79FB\u9664" };
           const price = String(item.amount);
           if (!Number.isInteger(item.number) || item.number <= 0 || !/^\d+(\.\d{1,2})?$/.test(price)) {
             throw { msg: "\u5546\u54C1\u6570\u91CF\u6216\u91D1\u989D\u65E0\u6548" };
@@ -133,6 +137,7 @@ function createCheckout({ store, api, uni, tools, components }) {
       refreshCart() {
         return __async(this, null, function* () {
           this.pricingReady = false;
+          this.cartProblem = "";
           try {
             const res = yield api.getShoppingCartList();
             if (res.code !== 1 || !Array.isArray(res.data)) throw res;
@@ -144,6 +149,7 @@ function createCheckout({ store, api, uni, tools, components }) {
           } catch (error) {
             this.orderDishPrice = 0;
             this.orderDishNumber = 0;
+            this.cartProblem = error && error.msg || "\u8D2D\u7269\u8F66\u8BFB\u53D6\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5";
             toast(error);
             return false;
           }
@@ -317,14 +323,14 @@ var Checkout_default = createCheckout(legacyDependencies());
 
 var render = function() {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;
   var l0 = _vm.__map(_vm.orderDataes, function (obj, index) {
-    var g0 = obj.amount.toFixed(2);
+    var m0 = _vm.formatCartAmount(obj);
     return {
       $orig: _vm.__get_orig(obj),
-      g0: g0
+      m0: m0
     };
   });
+  var g0 = _vm.orderDishPrice.toFixed(2);
   var g1 = _vm.orderDishPrice.toFixed(2);
-  var g2 = _vm.orderDishPrice.toFixed(2);
   if (!_vm._isMounted) {
     _vm.e0 = function ($event) {
       _vm.showDisplay = !_vm.showDisplay;
@@ -333,8 +339,8 @@ var render = function() {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self
   _vm.$mp.data = Object.assign({}, {
     $root: {
       l0: l0,
-      g1: g1,
-      g2: g2
+      g0: g0,
+      g1: g1
     }
   });
 }; var staticRenderFns = [];

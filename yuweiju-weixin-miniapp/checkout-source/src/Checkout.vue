@@ -47,6 +47,7 @@
 <text class="word_style">苍穹餐厅</text>
 </view>
 <view class="order-type">
+<view v-if="cartProblem" class="cart-problem" @tap="goBack">{{cartProblem}}，返回购物车</view>
 <block v-for="(obj, index) in orderDataes" :key="index">
 <view class="type_item">
 <view class="dish_img">
@@ -63,7 +64,7 @@
 </block>
 </view>
 <view class="dish_active">
-<text >￥</text>{{''+obj.amount.toFixed(2)+''}}</view>
+<block v-if="obj.available===false || obj.amount==null"><text class="cart-invalid-reason">{{obj.unavailableReason || '商品不可购买，请移除'}}</text></block><block v-else><text>￥</text>{{formatCartAmount(obj)}}</block></view>
 </view>
 </view>
 </block>
