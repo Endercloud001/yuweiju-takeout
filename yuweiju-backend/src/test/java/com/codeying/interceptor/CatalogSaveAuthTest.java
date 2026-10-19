@@ -1,6 +1,10 @@
 package com.codeying.interceptor;
 
 import com.codeying.properties.SkyProperties;
+import com.codeying.controller.admin.AdminDishController;
+import com.codeying.controller.admin.AdminSetmealController;
+import org.springframework.web.method.HandlerMethod;
+import java.util.Arrays;
 import com.codeying.security.TokenBlacklistService;
 import com.codeying.utils.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,7 +30,9 @@ class CatalogSaveAuthTest {
                     credential.equals("wrong-key") ? "synthetic-only-user-key-32-characters" : key,
                     60000,1L,"fixture",credential.equals("admin") ? "admin" : "user"));
             var response = new MockHttpServletResponse();
-            assertEquals(credential.equals("admin"),interceptor.preHandle(request,response,new Object()));
+            assertEquals(credential.equals("admin"),interceptor.preHandle(request,response,new HandlerMethod(mock(path.contains("setmeal") ? AdminSetmealController.class : AdminDishController.class),
+                    Arrays.stream((path.contains("setmeal") ? AdminSetmealController.class : AdminDishController.class).getMethods())
+                            .filter(m -> m.getName().equals(method.equals("POST") ? "create" : "update")).findFirst().orElseThrow())));
             if (credential.equals("admin")) assertEquals(1L,request.getAttribute(JwtAuthInterceptor.ATTR_ADMIN_ID));
             else {
                 assertEquals(401,response.getStatus());

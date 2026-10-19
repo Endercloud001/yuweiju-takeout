@@ -409,6 +409,21 @@ public class Issue60Probe {
                         check("wrong_scope_"+method+path+"_refused",!success(request(client,method,path,wrongScope,catalogBody(isMeal))));
                         check("normal_user_credential_"+method+path+"_refused",!success(request(client,method,path,token,catalogBody(isMeal))));
                     }
+                    for(boolean isMeal:List.of(false,true)) for(String method:List.of("POST","PUT")) {
+                        String path="/admin/"+(isMeal?"setmeal":"dish")+";x=1";
+                        for(String credential:List.of("anonymous","user","wrong-scope","admin")) {
+                            String auth=switch(credential) { case "anonymous" -> null; case "user" -> token;
+                                case "wrong-scope" -> wrongScope; default -> adminToken; };
+                            var builder=HttpRequest.newBuilder(URI.create(base+path)).timeout(Duration.ofSeconds(15))
+                                    .header("Content-Type","application/json");
+                            if(auth!=null) builder.header("token",auth);
+                            var response=client.send(builder.method(method,HttpRequest.BodyPublishers.ofString("{\"price\":-1}"))
+                                    .build(),HttpResponse.BodyHandlers.ofString());
+                            check("matrix_"+credential+"_"+method+path,
+                                    credential.equals("admin") ? response.statusCode()==200 && !success(JSON.readTree(response.body()))
+                                            : response.statusCode()==401);
+                        }
+                    }
                     check("auth_refusals_no_SQL_writes",initial.equals(snapshot()));
                     invalidInputs(client);
                     retainedInvalidInputs(client);
