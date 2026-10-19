@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -53,7 +54,8 @@ public class SetmealApplicationServiceImpl implements SetmealApplicationService 
     public void create(Long adminId, SetmealDTO body) {
         if (adminId == null || body == null) throw new SetmealBusinessException("参数错误");
         if (!StringUtils.hasText(body.getName()) || body.getCategoryId() == null || body.getPrice() == null) throw new SetmealBusinessException("参数错误");
-        if (body.getSetmealDishes() == null || body.getSetmealDishes().isEmpty()) throw new SetmealBusinessException("套餐菜品不能为空");
+        validateCatalog(body.getCategoryId(), body.getPrice());
+        validateDetails(body.getSetmealDishes());
 
         Date now = new Date();
         Setmeal entity = new Setmeal();
@@ -81,6 +83,16 @@ public class SetmealApplicationServiceImpl implements SetmealApplicationService 
         if (adminId == null || body == null || body.getId() == null) throw new SetmealBusinessException("参数错误");
         Setmeal exists = setmealService.getById(body.getId());
         if (exists == null) throw new SetmealBusinessException("套餐不存在");
+        validateCatalog(body.getCategoryId() == null ? exists.getCategoryId() : body.getCategoryId(),
+                body.getPrice() == null ? exists.getPrice() : body.getPrice());
+        if (body.getSetmealDishes() != null) {
+            validateDetails(body.getSetmealDishes());
+        } else {
+            // Partial edits retain composition, but must not save an invalid effective catalog.
+            List<SetmealDish> retained = setmealDishService.listBySetmeal(body.getId());
+            if (retained.isEmpty()) throw new SetmealBusinessException("套餐菜品不能为空");
+            for (SetmealDish item : retained) validateDetail(item.getDishId(), item.getCopies());
+        }
 
         Setmeal entity = new Setmeal();
         entity.setId(body.getId());
@@ -203,19 +215,44 @@ public class SetmealApplicationServiceImpl implements SetmealApplicationService 
         return result;
     }
 
+    private void validateCatalog(Long categoryId, BigDecimal price) {
+        if (price == null || price.signum() < 0 || price.compareTo(new BigDecimal("99999999.99")) > 0
+                || price.stripTrailingZeros().scale() > 2) {
+            throw new SetmealBusinessException("金额必须为0到99999999.99且最多两位有效小数");
+        }
+        Category category = categoryId == null ? null : categoryService.getById(categoryId);
+        if (category == null || !Integer.valueOf(2).equals(category.getType())) {
+            throw new SetmealBusinessException("请选择有效的套餐分类");
+        }
+    }
+
+    private void validateDetails(List<SetmealDishDTO> dishes) {
+        if (dishes == null || dishes.isEmpty()) throw new SetmealBusinessException("套餐菜品不能为空");
+        for (SetmealDishDTO dto : dishes) {
+            if (dto == null) throw new SetmealBusinessException("套餐菜品和正整数份数不能为空");
+            validateDetail(dto.getDishId(), dto.getCopies());
+        }
+    }
+
+    private void validateDetail(Long dishId, Integer copies) {
+        if (dishId == null || copies == null || copies <= 0) {
+            throw new SetmealBusinessException("套餐菜品和正整数份数不能为空");
+        }
+        // A stopped dish still exists: independent setmeal saleability is intentional.
+        if (dishService.getById(dishId) == null) throw new SetmealBusinessException("组成菜品不存在");
+    }
+
     private void saveSetmealDishes(Long setmealId, List<SetmealDishDTO> dishes) {
         setmealDishService.deleteBySetmeals(List.of(setmealId));
-        if (dishes == null || dishes.isEmpty()) return;
         List<SetmealDish> entities = new ArrayList<>();
         for (SetmealDishDTO dto : dishes) {
-            if (dto == null || dto.getDishId() == null || dto.getCopies() == null) continue;
             SetmealDish e = new SetmealDish();
             e.setSetmealId(setmealId);
             e.setDishId(dto.getDishId());
             e.setCopies(dto.getCopies());
             entities.add(e);
         }
-        if (!entities.isEmpty()) setmealDishService.saveBatch(entities);
+        setmealDishService.saveBatch(entities);
     }
 
     private List<Long> parseIds(String ids) {

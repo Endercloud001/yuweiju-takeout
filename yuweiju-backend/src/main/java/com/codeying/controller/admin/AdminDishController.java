@@ -45,7 +45,7 @@ public class AdminDishController {
      * @return 操作结果
      */
     @PostMapping
-    public ApiResult<Object> create(@RequestBody DishDTO body, HttpServletRequest request) {
+    public ApiResult<Object> create(@Valid @RequestBody DishDTO body, HttpServletRequest request) {
         Long adminId = getAdminId(request);
         if (adminId == null) return ApiResult.unauthorized("未登录");
         dishApplicationService.create(adminId, body);
@@ -60,7 +60,7 @@ public class AdminDishController {
      * @return 操作结果
      */
     @PutMapping
-    public ApiResult<Object> update(@RequestBody DishDTO body, HttpServletRequest request) {
+    public ApiResult<Object> update(@Valid @RequestBody DishDTO body, HttpServletRequest request) {
         Long adminId = getAdminId(request);
         if (adminId == null) return ApiResult.unauthorized("未登录");
         dishApplicationService.update(adminId, body);

@@ -339,3 +339,25 @@ for (const reason of ['商品已停售', '商品已删除', '商品或订单金�
     } finally { page.$destroy(); }
   });
 }
+
+for (const meal of [false,true]) test(`#60 real zero-price ${meal?'setmeal':'dish'} checkout keeps trusted fees and submits`,async()=>{
+  const zero=[{id:601,[meal?'setmealId':'dishId']:602,name:'零价目录',number:1,amount:'0.00',available:true}];
+  const env=harness({respond:options=>{
+    if(options.url.endsWith('/shoppingCart/list'))return {code:1,data:plain(zero)};
+    if(options.url.endsWith('/submit'))return {code:1,data:{id:603,orderAmount:3,orderNumber:'synthetic-60-zero'}};
+    return response(options);
+  }});
+  env.store.commit('initdishListMut',plain(zero));
+  const page=env.instance();
+  try{
+    await env.options.onLoad.call(page);
+    assert.equal(page.pricingReady,true);assert.equal(page.orderDishNumber,1);assert.equal(page.orderDishPrice,3);
+    env.options.render.call(page);
+    assert.ok(Object.values(page.$mp.data.$root).includes('3.00'));
+    await page.payOrderHandle();
+    const submitted=env.requests.filter(r=>r.url.endsWith('/submit'));
+    assert.equal(submitted.length,1);assert.equal(submitted[0].data.amount,3);assert.equal(submitted[0].data.packAmount,1);
+    assert.equal(env.store.state.orderData.orderAmount,3);
+    assert.equal(env.redirects.at(-1),'/pages/pay/index?orderId=603');
+  }finally{page.$destroy();}
+});

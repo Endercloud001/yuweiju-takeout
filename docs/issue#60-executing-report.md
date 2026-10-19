@@ -1,0 +1,87 @@
+# Issue #60 / F4 执行报告
+
+本票仅实施目录保存校验。起点 `538c9144cd1d6757b7b1b1348a807eea1c061f43`（#59 已交付），初始工作区干净；挂载 issue 为 OPEN、无评论/阻塞。全部必需检查已通过，Ponytail full 已完成并明确停止；本报告随最终本地候选提交封存，结果与资源状态见文末。独立验证、官方工具和发布结果由宿主记录。
+
+## 范围与兼容
+
+后端 `AdminDishController/AdminSetmealController` 的 POST/PUT 激活 `@Valid`；DTO 校验非负/上限和组成数量，局部份数反序列化拒绝 Jackson 浮点截断；原 `GlobalExceptionHandler` 返回友好的现有错误结构。`DishApplicationServiceImpl/SetmealApplicationServiceImpl` 在任何写入前检查有效价格、分类存在与 kind、每个组成菜存在、正整数份数、有效明细非空。保留原 Service/Mapper 路径及 Spring 事务，未改 schema、所有权、历史图片、可信计费和关联菜品删除保护。实际探针发现目录保存原先只验管理员签名而未验 subject，按本票 wrong-scope 要求仅补四个 POST/PUT 的 subject=admin 检查；现有管理员登录签发的 admin subject 兼容。原签名、黑名单与其他既有 scope 防护保留。
+
+现有文档描述完整 PUT；实际管理端也发送完整主要字段与套餐明细。但原服务同时支持部分更新，故保留 null/省略价格和分类沿用原值、null/省略套餐组成沿用原组成；校验生效后的值。显式空数组和任一坏项拒绝，无静默过滤。菜品口味原先 null/省略会清空的替换语义不变。零价、精确可存储的尾零（1.000）允许；SQL DECIMAL(10,2) 范围 0..99999999.99；拒绝 0.001 等精度丢失。组成菜只要求存在，不要求在售。没有 F5 分类改类型修复、级联停售或原数据清理。细节及回退见 [API 补充](../yuweiju-document/api/issue60-catalog-save.md)。
+
+管理端仅将两处现有表单的价格条件改为允许零，保留外观。新 Vitest 挂载真实 dish/setmeal 创建和编辑页，沿实际 API 模块、http.request/ApiError、axios 拦截器，只有 HTTP transport 是合成的；检查错误结构的单次 ElMessage、无成功/导航、输入/份数保留及零价纠正重提。无全局请求重写。使用项目 yuweiju-java-backend、yuweiju-ui 技能；stack 仅核对链路，无 API/router/store 改动。
+
+小程序没有行为源码改动；新增 2 个主页零价目录/购物车和 2 个结算页零价可信费用用例，原 home/checkout/history 页面运行时与生成链已在本候选运行。新 SQL 探针覆盖合法目录、零价购物车、停售组成套餐及可信单份 3 元收费，另在候选上重跑 #59 探针。Node 运行时通过不等于官方工具通过。
+
+## 命令、证据与失败
+
+以下命令 cwd 均为 `/home/agent/workspace`，非 login bash。所有重复执行是 check batch，未增加 supervisor iteration 或重置预算。初始确认 `command -v java` 为 `/opt/java/openjdk/bin/java`，`command -v mvn` 为 `/usr/share/maven/bin/mvn`。任务总编码 3600000ms、supervisor 最多 2 轮、独立验证 1200000ms，原截止 `2026-10-19T10:45:25.214Z` 不变；本 worker 为第 1 轮，无此前 F4 提交。安装、检查、Ponytail 和收尾均计入原编码总预算，不能续额。
+
+宿主提供的专属网络为 `yuweiju-issue60-data`（INTERNAL）及 `yuweiju-issue60-egress`；worker 强制连接 `mysql:3306/sandcastle_fixture` 与 `redis:6379/db0`，核查实际数据库和合成 marker。没有新建或更改网络/安全策略；共享服务生命周期归宿主。
+
+- 初始读取本地 spec/closing.json 发现不存在（读取组合命令 exit 1），改读挂载 spec；后续按可选文件检查 closing.json。只读搜索一个假定的 charging 文件名失败，实际为 `OrderChargingPolicy`，已读取真实实现。未制造业务数据。
+- `mvn -B -f yuweiju-backend/pom.xml -Dtest=CatalogSaveValidationTest,CatalogRulesTest test` 首批 exit 1：22 项中 8 个测试夹具主键错误，详见后续修复记录；日志 `.scratch/issue60/backend-focused-batch1.log`。
+- `npm --prefix yuweiju-web-vue/yuweiju-admin ci --no-audit --no-fund` 首批 exit 0，340 包；日志 `.scratch/issue60/admin-install-batch1.log`。
+- 首次定向 `npm --prefix yuweiju-web-vue/yuweiju-admin test -- --run src/views/catalog-save.test.ts` 过早启动，exit 127（Vitest 尚未安装）。保留 `.scratch/issue60/admin-focused-batch1.log`；安装完成后重跑，未跳过业务检查。
+- `bash -n .sandcastle/environment/issue60-check.sh`、`git diff --check` 首批 exit 0。后续批次的命令、cwd、exit、耗时及日志在 `.scratch/issue60/commands.jsonl`；自包含脚本每次另建 `sql-*` 目录，保留失败及修复证据。
+
+指定最终验收入口：显式 `mvn -B -f yuweiju-backend/pom.xml compile && mvn -B -f yuweiju-backend/pom.xml package`；管理端 ci、lint、typecheck、test、test:refimg、build；`bash .sandcastle/environment/issue60-check.sh`；文档链接检查。初检实际结果及失败修复如下，最终结果另在封存段记录。
+
+初检与修复的实际结果（所有旧日志保留）：
+
+| 检查批次 | exit / 实际结果 |
+| --- | --- |
+| backend-focused-batch1 → batch2 | 1（22 项，8 个错误：Mockito 未赋生成主键）→ 0，22/22；仅修复夹具 save answer，没有生产绕过 |
+| admin-focused-batch1 → batch2 → batch3 | 127（未安装）→ 1（3/4，合成菜 status0 被原选择器禁选）→ 0，4/4；修正可选夹具并断言实际选中，未改选择器 |
+| backend-required-batch1 | compile/package exit0，196/196；发生在后续 4 个防御测试与 4 个认证测试加入前，不冒充最终数量 |
+| admin 初检 | ci/lint/typecheck/test/refimg/build 全 exit0；47/47 Vitest（含真实页4与#56份数8），4/4 refimg；原有 chunk-size 警告 |
+| selfcontained-batch1 / sql-K0eUoTb6 | exit1：小程序14/23/61、package200、JDBC138、javac 均过；有效 admin 签名 + user subject 保存被误放行。cleanup/Spring/HTTP 全 true，原 SQL/Redis/TTL 保留 |
+| selfcontained-batch2 / sql-ZMKkDiu2 | exit0：修复四个保存入口 scope，保留同一失败用例并增加普通用户凭据拒绝、真实合成管理员登录；package204/204，JDBC138，F4 SQL/HTTP293，当前候选 #59 SQL/cart235；三组小程序14/23/61，均无跳过 |
+| docs-batch1/batch2 | exit0；文档链接检查 |
+
+Scope 失败按真实原因修复，未改为仅测试错误签名，也未扩大到其他管理端路由。两次真实探针均清理完成、Spring/HTTP 关闭；失败记录 `.scratch/issue60/sql-K0eUoTb6/`，成功记录 `.scratch/issue60/sql-ZMKkDiu2/`。不会将 #59 过去成功当作当前候选证据。日志扫描未检出 JWT 或 SQL 行快照，身份凭据和 token 仅在内存。
+
+`issue60-check.sh` 包含新快照所需三组小程序锁定依赖准备与 build/test、成功 Maven package 后提取 Boot/JDBC 依赖、编译并运行真实 HTTP/Spring/MySQL 探针。实际检查 PK、约束、索引、列精度和存储引擎，再用独立 UUID 数字 ID 与唯一名称前缀建自己的夹具；900001/900002 只读 marker 核查。快照所有已有 SQL 行及 Redis DUMP/过期时间仅在内存；不记录业务快照、token 或请求正文。故障在主表和首条子表已真实写入后，用同一事务连接向已有子表主键插入重复行，引发实际 MySQL 持久化失败；验证创建/更新的主表和原有子表完整回滚。只清理本次自有行，恢复原 shop status/剩余 TTL，关闭 Spring 和 HTTP；不触碰宿主官方基线行。
+
+## 宿主独立与官方工具交接
+
+独立 verifier 需对最终 HEAD 运行四组指定入口，不复用 worker 旧 success。官方工具预备信息由宿主提供：Tool2.02.2608080 / SDK3.17.4、认证合成用户和隔离后端已就绪。worker 未执行也不宣称官方/独立验收通过。
+
+官方后续可用宿主已拥有的夹具，或在独立 fixture DB 另建自己的 UUID 前缀：
+
+1. 以合成管理员 token，`POST /admin/category` 分别建 `{name:"H60-<uuid>-D",type:1,sort:1,status:1}` 与 type 2 的 M 分类；用 `/admin/category/list?type=1/2` 按精确唯一名称取得 ID。
+2. `POST /admin/dish` 建 `{name:"H60-<uuid>-dish",categoryId:<D>,price:0,status:0,image:"/static/logo_yuweiju.png",flavors:[]}`；通过 `/admin/dish/page?page=1&pageSize=10&name=<unique>` 精确名称取得 dish ID。
+3. `POST /admin/setmeal` 建 `{name:"H60-<uuid>-meal",categoryId:<M>,price:0,status:1,setmealDishes:[{dishId:<dish>,copies:3}]}`。`GET /user/setmeal/list?categoryId=<M>` 应包含起售零价套餐，`GET /user/setmeal/dish/<mealId>` 包含停售菜及 copies=3。不要更新或清理 worker/其他宿主已有 UUID 行。
+4. 用精确候选后端、独立 standalone afk 配置（个人配置不加载、任务禁用、地图只本地 seam），正式重新编译实际项目，进入 `pages/index/index`。选择 `.type_list .type_item` 中唯一 M 分类，确认 `.dish_name`/`.dish_price`，点击套餐详情 `.dish_name` 后 `.dish_items .title` 显示 X3；`.dish_card_add` 或列表 `.dish_add` 加车，`.order_but` 进入既有结算页。检查一份零价套餐为原规则总额 3.00（包装1+配送2），保留真实截图/交互证据；不会因组成菜停售而消失或不可购。
+5. `POST /user/shoppingCart/add`（authentication，setmealId）和 `/user/shoppingCart/list` 也可检查 available=true、amount=0；最终 `/user/order/submit` 必须服务端重读金额。不要清空共享用户原车；官方运行使用宿主自有合成用户及地址，记录自有 IDs 后按依赖顺序清理。宿主负责停止其候选/官方服务；共享 MySQL/Redis 保留给宿主。
+
+## Ponytail、候选与回退
+
+初检通过后于 10:16 UTC 读取挂载的 `/home/agent/task-input/.agents/skills/yuweiju-ponytail/SKILL.md` 与完整 upstream（Ponytail 5.1.0），执行 full 收尾。复核起点以来全部 tracked/unstaged 和任务自有 untracked 文件，包括探针、脚本、反序列化器、Service/认证/页面测试、API 补充与报告；没有此前 F4 提交。连接调用方包括 DTO/Controller/Service/具名 Mapper、真实管理员登录/JWT、管理端 API/http/cookie/ElementPlus/copies 选择、小程序原生 WXML/store/legacy 请求及 checkout/history、standalone afk 配置和 #59 探针；既有配置/计费/历史图片/分类变更规则不改。
+
+采用：套餐部分编辑直接遍历原明细、复用本服务的单项校验，删除临时 DTO 分配；两服务使用 BigDecimal import；删除新探针未用 import/helper/预先生成的 admin token（实际登录提供 token）；中间输出改为 CATALOG_RESULT，完整通过只在 #59 重跑后输出；页面错误消息与实际 18.375 精度错误对齐。规则、业务错误、scope 和事务不变。
+
+拒绝：全局 Jackson 改写、共享校验平台/校验组框架、强制完整 PUT、停售组成限制、坏明细过滤、F5/新 schema/原数据清理、广泛认证改造、UI/请求框架重写、小程序源码恢复，以及删除真实 SQL/所有权/历史/TTL 检查。小型局部份数 parser 是为防止默认截断所必需，无法存储的防御分支留普通测试验证。
+
+已明确停止：`stop ponytail / normal mode`。之后重跑全部四组指定入口，保持原预算；最终检查完成后仅显式暂存任务文件并做普通本地提交。无待决业务规则；官方与独立验收仍待宿主。
+
+候选为本报告所在的最终本地 `HEAD`，提交主题 `fix(catalog): validate catalog saves without losing partial updates (#60)`；精确 SHA 在提交后写入 `.scratch/issue60/candidate.json` 并由监督器/最终回复记录。使用普通本地显式 task-only staging/commit，不 push、发布、GitHub 写入、强制切换或覆盖用户修改。若 Git 拒绝，保留工作区并记录类别/原因/下一步，不绕过。目录规则回退采用经过审查的普通反向变更，保留本票补齐的 JwtAuthInterceptor 保存 scope 检查及 CatalogSaveAuthTest，不直接撤销整个提交中的认证修复；无数据库迁移、原数据清理或历史订单重写。
+
+
+## 最终检查封存（Ponytail 停止后）
+
+以下实际命令 cwd 均为 `/home/agent/workspace`、非 login bash，完整命令/exit/耗时在 `.scratch/issue60/commands.jsonl`；每批独立日志保留。没有后续业务源码变更。
+
+| 最终批次 / 命令 | exit / 结果 |
+| --- | --- |
+| final-backend：`mvn -B -f yuweiju-backend/pom.xml compile && mvn -B -f yuweiju-backend/pom.xml package` | 0；204/204，失败0、跳过0 |
+| final-admin-ci：`npm --prefix yuweiju-web-vue/yuweiju-admin ci --no-audit --no-fund` | 0；锁定340包 |
+| final-admin-lint / typecheck：同 prefix `run lint` / `run typecheck` | 各0 |
+| final-admin-test：同 prefix `test` | 0；9文件47/47，含四个真实创建/编辑页与#56份数8项，跳过0 |
+| final-admin-refimg：同 prefix `run test:refimg` | 0；4/4，跳过0，Linux UID1000真实权限用例 |
+| final-admin-build：同 prefix `run build` | 0；保留既有包体积警告，没有改阈值 |
+| final-selfcontained：`bash .sandcastle/environment/issue60-check.sh` | 0；新批次 `sql-EeaNyAGu`：三组锁定ci/build/test全0（home14、checkout23、history61），package204、Boot/JDBC138、javac0；F4真实SQL/HTTP293，当前#59 SQL/cart235 |
+| final-doc-links：`python3 .agents/skills/yuweiju-afk/scripts/check-doc-links.py --root . .sandcastle/task-progress.md 'docs/issue#60-executing-report.md'` | 0；最终报告/进度链接有效 |
+
+F4 与 #59 的 `businessPassed/cleanupPassed/springClosed/httpClientClosed` 最终全部 true、failure=null；全库原行及无关 Redis、原 shop status/剩余 TTL 均保留，所有本次 UUID 夹具已按自有范围清理。SQL/Redis快照只在内存，日志扫描 JWT 与 SQL 行快照命中均0（`final-log-scan.json`）。worker 所有 Spring/HTTP 资源已关闭，未启动常驻服务；宿主基线服务、专属 MySQL/Redis/网络由宿主管理，未停止或改动。
+
+最终报告/进度已复核，随后执行指定 doc-links 命令、`git diff --check`、显式26个任务文件暂存、staged scope/whitespace 检查及普通本地 commit；实际 Git 命令/候选 SHA 在任务证据中保留。排除全部 `.scratch/`、依赖、构建产物和凭据；无 GitHub/推送/部署/原库操作，无策略修改或拒绝绕过。未完成项仅为宿主独立验证和官方工具验收/后续交付，worker 不宣称其通过。监督轮次仍1/2，编码总预算3600000ms及截止10:45:25.214Z、独立预算1200000ms不变；没有续时或重启。

@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -57,6 +58,7 @@ public class DishApplicationServiceImpl implements DishApplicationService {
         if (!StringUtils.hasText(body.getName()) || body.getCategoryId() == null || body.getPrice() == null) {
             throw new DishBusinessException("参数错误");
         }
+        validateCatalog(body.getCategoryId(), body.getPrice());
         Dish entity = new Dish();
         entity.setName(body.getName().trim());
         entity.setCategoryId(body.getCategoryId());
@@ -82,6 +84,8 @@ public class DishApplicationServiceImpl implements DishApplicationService {
         if (adminId == null || body == null || body.getId() == null) throw new DishBusinessException("参数错误");
         Dish exists = dishService.getById(body.getId());
         if (exists == null) throw new DishBusinessException("菜品不存在");
+        validateCatalog(body.getCategoryId() == null ? exists.getCategoryId() : body.getCategoryId(),
+                body.getPrice() == null ? exists.getPrice() : body.getPrice());
 
         Dish entity = new Dish();
         entity.setId(body.getId());
@@ -188,6 +192,17 @@ public class DishApplicationServiceImpl implements DishApplicationService {
             result.add(DishAssembler.toUserVO(d, flavors));
         }
         return result;
+    }
+
+    private void validateCatalog(Long categoryId, BigDecimal price) {
+        if (price == null || price.signum() < 0 || price.compareTo(new BigDecimal("99999999.99")) > 0
+                || price.stripTrailingZeros().scale() > 2) {
+            throw new DishBusinessException("金额必须为0到99999999.99且最多两位有效小数");
+        }
+        Category category = categoryId == null ? null : categoryService.getById(categoryId);
+        if (category == null || !Integer.valueOf(1).equals(category.getType())) {
+            throw new DishBusinessException("请选择有效的菜品分类");
+        }
     }
 
     private void saveFlavors(Long dishId, List<DishFlavorDTO> flavors) {

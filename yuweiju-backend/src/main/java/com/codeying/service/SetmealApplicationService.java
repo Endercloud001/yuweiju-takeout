@@ -14,14 +14,14 @@ import java.util.List;
  */
 public interface SetmealApplicationService {
     /**
-     * Create resource.
+     * 新建目录并校验可精确存储的非负金额、匹配分类及非空有效组成；组成菜允许停售。
      *
      * @param adminId business identifier
      * @param body request payload
      */
     void create(Long adminId, SetmealDTO body);
     /**
-     * Update resource.
+     * 更新目录并校验有效值；省略金额、分类及组成沿用原值，非法输入或持久化失败整体回滚。
      *
      * @param adminId business identifier
      * @param body request payload
