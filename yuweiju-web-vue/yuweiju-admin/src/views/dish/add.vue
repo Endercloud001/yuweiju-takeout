@@ -70,7 +70,7 @@ const rules: FormRules<DishFormModel> = {
       validator: (_rule, value: string, callback) => {
         const trimmed = String(value ?? '').trim()
         const numberValue = Number(trimmed)
-        if (!trimmed || !Number.isFinite(numberValue) || numberValue <= 0) {
+        if (!trimmed || !Number.isFinite(numberValue) || numberValue < 0) {
           callback(new Error('请输入正确的菜品价格'))
           return
         }

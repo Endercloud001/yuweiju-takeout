@@ -33,6 +33,19 @@ public class GlobalExceptionHandler {
         return ApiResult.badRequest(e.getMessage());
     }
 
+    @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
+    public ApiResult<Object> handleValidation(org.springframework.web.bind.MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getAllErrors().stream()
+                .map(org.springframework.context.support.DefaultMessageSourceResolvable::getDefaultMessage)
+                .findFirst().orElse("参数错误");
+        return ApiResult.badRequest(message);
+    }
+
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ApiResult<Object> handleUnreadableBody(org.springframework.http.converter.HttpMessageNotReadableException e) {
+        return ApiResult.badRequest("请求格式错误，请检查数值和份数");
+    }
+
     /**
      * 兜底异常处理，避免堆栈直接暴露给前端。
      *

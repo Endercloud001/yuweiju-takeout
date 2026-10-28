@@ -1,6 +1,8 @@
 package com.codeying.interceptor;
 
 import com.codeying.result.ApiResult;
+import com.codeying.controller.admin.AdminDishController;
+import com.codeying.controller.admin.AdminSetmealController;
 import com.codeying.properties.SkyProperties;
 import com.codeying.security.TokenBlacklistService;
 import com.codeying.utils.JwtUtil;
@@ -12,6 +14,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.method.HandlerMethod;
 
 import java.nio.charset.StandardCharsets;
 
@@ -79,11 +82,15 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        // Issues #17/#18: model operations require administrator scope as well as signature.
+        // Issues #17/#18/#60: these administrative operations require scope as well as signature.
         boolean analysisPath = "/admin/analysis".equals(path) || path.startsWith("/admin/analysis/");
         boolean riskPath = "/admin/order-risk".equals(path) || path.startsWith("/admin/order-risk/");
-        if (isAdmin && (analysisPath || riskPath) && !"admin".equals(claims.getSubject())) {
-            writeUnauthorized(response, riskPath ? "无管理员风控权限" : "无管理员分析权限");
+        // MVC has already resolved matrix parameters and other supported path forms.
+        boolean catalogSave = handler instanceof HandlerMethod method
+                && (method.getBeanType() == AdminDishController.class || method.getBeanType() == AdminSetmealController.class)
+                && (method.getMethod().getName().equals("create") || method.getMethod().getName().equals("update"));
+        if (isAdmin && (analysisPath || riskPath || catalogSave) && !"admin".equals(claims.getSubject())) {
+            writeUnauthorized(response, catalogSave ? "无管理员目录权限" : riskPath ? "无管理员风控权限" : "无管理员分析权限");
             return false;
         }
 

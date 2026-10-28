@@ -44,7 +44,7 @@ public class AdminSetmealController {
      * @return 操作结果
      */
     @PostMapping
-    public ApiResult<Object> create(@RequestBody SetmealDTO body, HttpServletRequest request) {
+    public ApiResult<Object> create(@Valid @RequestBody SetmealDTO body, HttpServletRequest request) {
         Long adminId = getAdminId(request);
         if (adminId == null) return ApiResult.unauthorized("未登录");
         setmealApplicationService.create(adminId, body);
@@ -59,7 +59,7 @@ public class AdminSetmealController {
      * @return 操作结果
      */
     @PutMapping
-    public ApiResult<Object> update(@RequestBody SetmealDTO body, HttpServletRequest request) {
+    public ApiResult<Object> update(@Valid @RequestBody SetmealDTO body, HttpServletRequest request) {
         Long adminId = getAdminId(request);
         if (adminId == null) return ApiResult.unauthorized("未登录");
         setmealApplicationService.update(adminId, body);

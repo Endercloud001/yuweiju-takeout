@@ -1,6 +1,8 @@
 package com.codeying.dto.admin.dish;
 
 import lombok.Data;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.DecimalMax;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -19,6 +21,8 @@ public class DishDTO {
     /** categoryId  */
     private Long categoryId;
     /** price  */
+    @DecimalMin(value = "0", message = "金额不能为负数")
+    @DecimalMax(value = "99999999.99", message = "金额超出存储范围")
     private BigDecimal price;
     /** image  */
     private String image;

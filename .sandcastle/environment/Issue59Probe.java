@@ -307,7 +307,7 @@ public class Issue59Probe {
 
     public static void main(String[] args) throws Exception {
         Path root = Path.of(args[0]).toAbsolutePath(), run = Path.of(args[1]).toAbsolutePath();
-        check("outputs_in_project", run.startsWith(root.resolve(".scratch/issue59")));
+        check("outputs_in_project", (run.startsWith(root.resolve(".scratch/issue59")) || run.startsWith(root.resolve(".scratch/issue60"))));
         long id = 5_900_000_000_000L + Math.floorMod(UUID.randomUUID().getMostSignificantBits(), 1_000_000_000_000L);
         owner=id; other=id+1; dish=id+2; badDish=id+3; badMeal=id+4; oldOrder=id+10; foreignOrder=id+14;
         org.springframework.context.ConfigurableApplicationContext context = null;

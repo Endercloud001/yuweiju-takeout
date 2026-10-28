@@ -184,3 +184,34 @@ for (const meal of [false,true]) test(`native ${meal?'setmeal':'dish'} detail po
     assert.ok(!env.requests.some(r=>/clean|submit/.test(r.url)));
   }finally{page.$destroy();}
 });
+
+for (const meal of [false,true]) test(`#60 native zero-price ${meal?'independent setmeal':'dish'} catalog and cart allow checkout`,async()=>{
+  const item={id:meal?602:601,name:'零价目录',image:'/static/imgDefault.png',price:0,flavors:[]};
+  let cart=[];
+  const {env,page,tree}=home({respond:options=>{
+    if(options.url.endsWith('/category/list'))return {code:1,data:[{id:600,name:'零价分类',type:meal?2:1}]};
+    if(/\/(dish|setmeal)\/list$/.test(options.url))return {code:1,data:[item]};
+    if(options.url.includes('/setmeal/dish/'))return {code:1,data:[{id:603,name:'存在的停售组成菜',copies:3,image:'/static/imgDefault.png'}]};
+    if(options.url.endsWith('/shoppingCart/add')){
+      assert.equal(options.data[meal?'setmealId':'dishId'],item.id);
+      cart=[{id:604,[meal?'setmealId':'dishId']:item.id,name:item.name,number:1,amount:0,available:true}];
+    }
+    return {code:1,data:plain(cart)};
+  }});
+  try{
+    page.$options.onShow[0].call(page);await flush();await flush();
+    assert.equal(page.dishListItems[0].price,0);
+    assert.match(text(byClass(tree(),'dish_price')),/￥\s*0/);
+    tap(env,page,byClass(tree(),'dish_name')[0]);await flush();
+    if(meal){assert.match(text(byClass(tree(),'dish_items')),/存在的停售组成菜\s*X3/);}
+    const popup=byClass(tree(),'dish_detail_pop')[0];
+    tap(env,page,byClass(popup,'dish_card_add')[0]);await flush();await flush();
+    assert.equal(env.store.state.orderListData[0].amount,0);
+    assert.equal(env.store.state.orderListData[0].available,true);
+    assert.equal(byClass(tree(),'cart-invalid-reason').length,0);
+    assert.doesNotMatch(text(byClass(tree(),'order_price')),/待恢复/);
+    tap(env,page,byClass(tree(),'order_but').at(-1));await flush();
+    assert.deepEqual(env.redirects,['/pages/order/index']);
+    assert.ok(env.requests.every(r=>r.header.authentication==='synthetic-test-token'));
+  }finally{page.$destroy();}
+});
