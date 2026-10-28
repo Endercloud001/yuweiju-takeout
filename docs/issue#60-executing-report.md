@@ -1,5 +1,54 @@
 # Issue #60 / F4 执行报告
 
+## 当前续跑状态（2026-10-28）
+
+当前恢复起点为 `b614a32c837d811df51cb00654adb234a968eb67`，原始任务范围起点仍为 `538c9144cd1d6757b7b1b1348a807eea1c061f43`。b614a32 是未完成验证的 WIP，cb7acea 的历史检查不能验证其 HandlerMethod 修复。下方保留此前执行/失败/超时记录；旧“全部通过”仅描述当时父候选，不表示当前候选通过。
+
+维护者于 2026-10-28 明确新增最多2个监督轮次、总编码4800000ms（安装、检查、Ponytail、收尾均在内）、独立验证1200000ms；此前2轮/60分钟耗尽历史不重置。本 worker 是新增授权的监督 iteration1/2，截止 `2026-10-28T09:45:37.528Z`，使用既定 gpt-6.1-sol/medium，不 relaunch supervisor 或委派。当前专属网络为 `yuweiju-issue60-r20261028-data`（INTERNAL）与 `yuweiju-issue60-r20261028-egress`，隔离 MySQL/Redis 和 host 官方 UUID 行保留。
+
+准备：cwd `/home/agent/workspace`，初始工作区干净；命名挂载输入先读，mounted/current AGENTS、workflow、三端规范、现有 API/数据库设计、调用者和测试复核。非 login bash 确认 Java `/opt/java/openjdk/bin/java`、Maven `/usr/share/maven/bin/mvn`。closing.json 在准备时不存在，后续按步骤检查。只读发现本地规格不存在，使用命名 mounted 规格；一次 charging 文件路径假设搜索 exit2 后通过 rg --files 找到 service/impl/OrderChargingPolicy.java 并读取，不算业务失败。
+
+当前 worker 必需检查全部通过，Ponytail full 已完成并明确停止，最终受影响重查通过；本报告对应按下文范围封存的普通本地任务候选，实际提交结果由候选记录和监督器记录。证据为本轮 `.scratch/issue60/resume-batch*`、`resume-final` 与新鲜 `sql-*` 目录；不以 cb7acea 的旧检查验证本候选。四个普通与四个矩阵 POST/PUT 的错误 subject 均拒绝，四个合法管理员矩阵保存真实持久化。独立验证、官方 Tool2.02.2608080/SDK3.17.4 重编译验收与交付继续由 host 执行，worker 不声明通过。
+
+### 本轮检查与修复（持续追加）
+
+所有命令 cwd `/home/agent/workspace`，非 login bash；重复命令均为 check batch。
+
+- resume-batch1：`mvn -B -f yuweiju-backend/pom.xml compile && mvn -B -f yuweiju-backend/pom.xml package`，compile exit0（08:32:34 UTC），package exit1（08:34:58 UTC），204项、0断言失败、4错误、0跳过。错误均为 WIP CatalogSaveAuthTest 的 Mockito 条件 Class 表达式误选 varargs 重载，断言尚未执行。保留 package.log 和 CatalogSaveAuthTest-failure.txt；改用真实 Controller（依赖 ApplicationService mock）构造真实 HandlerMethod，保留全部签名/scope/身份断言；生产校验未改。resume-batch2 完整 compile/package 各exit0（package08:38:53 UTC），204/204、失败/错误/跳过均0，包含修复后权限4项；未降低检查。
+- resume-batch1 管理端指定完整命令：`npm --prefix yuweiju-web-vue/yuweiju-admin ci --no-audit --no-fund`，继而相同 prefix 的 `run lint`、`run typecheck`、`test`、`run test:refimg`、`run build`，全部 exit0。Vitest9文件47/47（含真实目录页4与既有#56份数用例），refimg4/4、跳过0，UID1000；build 46.01秒，只有既有 chunk-size 警告。没有 lock/dependency/UI额外变更。
+- resume-batch1：`bash -n .sandcastle/environment/issue60-check.sh`、必需 `python3 .agents/skills/yuweiju-afk/scripts/check-doc-links.py --root . .sandcastle/task-progress.md 'docs/issue#60-executing-report.md'` 和 `git diff --check` 均 exit0；报告继续追加后最终再查链接。
+
+- selfcontained resume-batch2：`bash .sandcastle/environment/issue60-check.sh` exit1，证据 `sql-N33bEJcQ`。三组 miniapp ci/build/test 全0（14/23/61）、package204/204、138个Boot/JDBC库和javac通过。SQL/HTTP前103个断言通过，包括实际管理员登录、普通/矩阵错误身份拒绝及零写入。新增合法矩阵POST用例的名称长33/36字符，超实查两表 `name varchar(32)`，并非业务校验失败。仅将合成名称缩为26字符；不改 schema/断言/生产代码。失败证据保留，cleanupPassed/springClosed/httpClientClosed均true，原SQL/Redis/status/TTL保留；完整自包含入口在resume-batch3重跑。
+
+- selfcontained resume-batch3：exit1，证据 `sql-MG0osgx5`，home14/14、checkout22/23；后续history/package/SQL未执行，不冒充通过。新失败为现有并行测试共享生成文件的读写竞态：build.test.cjs 与 checkout.test.cjs 两个进程都会 compileCheckout，写入 pages/order/index.js 时另一进程的真实 runtime harness 可能读到空文件；表现为 #58 ETA 一例的 options/onLoad 未定义。前批同套23/23，F4两例仍过。最小修复为 checkout-source/package.json 的 Node test `--test-concurrency=1`，保留全部23项与生成/隔离源码编辑断言，无业务源码或依赖改动；完整入口resume-batch4重查，修复后仍失败则停止，不无限重试。
+
+- selfcontained resume-batch4：exit0，证据 `sql-Z8oRWQoJ`；home14/14、checkout23/23、history61/61，全部锁定ci/build/test0、0跳过；package204/204、JDBC138、javac0；F4真实SQL/HTTP313、当前候选#59 SQL/cart235，均通过。两个探针 businessPassed/cleanupPassed/springClosed/httpClientClosed全true、failure=null。四个合法管理员矩阵保存真实落库，普通/矩阵错误subject均拒绝，非法保存无SQL变化，真实主表+子表写后失败完整回滚；零价与停售组成可信计费保持。所有自有夹具清理，原SQL/Redis/status/剩余TTL保留。
+
+### 本轮 Ponytail（2026-10-28）
+
+08:51 UTC初检全通过后，读取挂载技能及完整Ponytail5.1.0 upstream，按full复核原始538c914以来全部27文件（含此前任务提交、当前5个修改文件、此前新文件和所有任务自有untracked；untracked均为.scratch日志/依赖/隔离源码生成夹具，排除提交）。完整复核探针/脚本、DTO/Controller/Service/Mapper/认证、真实管理端页/API/http/ElMessage/copies、小程序原生页/生成构建/运行时、standalone配置、API兼容/回退与历史报告。
+
+采用并保留三处已证实必要的最小修复：真实Controller夹具避免Mockito重载、26字符合成名兼容实查varchar32、标准Node串行参数消除共享生成页竞态且不删测试。现有局部解析器、部分更新单项校验及既有错误展示链均已足够，没有新增值得采用的业务精简。拒绝共享校验平台/全局Jackson改写/强制完整PUT/F5/schema/级联停售/请求框架/广泛认证重构，拒绝削弱SQL、身份、历史图片或TTL断言。回退继续保留新增subject保护。
+
+已明确停止Ponytail：`stop ponytail / normal mode`。本轮closeout没有修改业务/测试代码；管理端resume-batch1完整六项（47+4）与后端resume-batch2显式compile/package204的受检代码完全相同，可复用精确证据。最终再跑完整自包含入口确认受影响回归，并完成链接/范围/普通task-only提交；结果在本节续记。宿主独立、官方重编译与后续交付仍未执行，worker不声明通过。
+
+### 本轮最终封存（2026-10-28，Ponytail 停止后）
+
+| 必需入口 / 本轮证据 | cwd / exit / 实际结果 |
+| --- | --- |
+| 显式 Maven compile && package：resume-batch2 | `/home/agent/workspace`、非 login bash，各0；204/204，0失败/错误/跳过 |
+| 管理端 ci、lint、typecheck、test、test:refimg、build：resume-batch1 | 同cwd/shell，六项各0；Vitest47/47、refimg4/4，0跳过。Ponytail及续跑没有改变这些受检文件，可复用本轮相同代码证据 |
+| `bash .sandcastle/environment/issue60-check.sh`：resume-final | 同cwd/shell，exit0；新鲜 `sql-xmzQs4zW`，三组锁定ci/build/test全0，home14/checkout23/history61、package204、Boot/JDBC138、javac0、F4真实SQL/HTTP313、当前#59 SQL/cart235 |
+| 必需文档链接及范围/空白检查 | 本轮最终doc-links与git diff --check均exit0；暂存/提交后再核对精确5文件，结果记录于resume-final与candidate.json |
+
+最终两个探针 businessPassed/cleanupPassed/springClosed/httpClientClosed 全true、failure=null。四个创建/更新用例均真实写入主表及子表后触发MySQL持久化失败，完整原行回滚；非法输入零写入、关联删除保护、份数3、停售组成独立起售、零价原可信收费和#59购物车恢复均保持。最终所有自有UUID行已清理，所有原SQL行/无关Redis/原店铺状态及剩余TTL保持；SQL与Redis快照仅在内存。日志扫描JWT与SQL行快照命中均0（resume-final/log-scan.json）。没有改 schema、个人配置、策略、原库、外部服务或历史订单，没有遗留worker Spring/HTTP常驻资源；host基线服务/MySQL/Redis/网络继续由host管理。
+
+本轮最终候选为本报告所在本地任务 `HEAD`，普通提交主题 `test(catalog): complete F4 validation acceptance (#60)`；提交后精确SHA记录于 `.scratch/issue60/candidate.json`、监督器及最终回复，避免文档自引用SHA。此次只暂存5个续跑任务文件：Issue60Probe、CatalogSaveAuthTest、checkout-source/package.json、进度与本报告；全部原始27文件范围已复核。保留所有失败/耗尽历史，不提交.scratch/依赖/构建产物/凭据，不删除用户变更或锁文件。实际正常提交及提交后范围复查结果见candidate.json和监督器记录；如Git安全拒绝，保存工作区、记录类别/原因/下一步并停止，不绕过。
+
+host交接更正：下方步骤的 `<uuid>` 使用本次随机UUID的前12个十六进制字符（先去连字符，再取前12位），所有合成名称均不超过现有32字符；创建前确认该前缀未占用，不直接展开36字符完整UUID。host交接继续使用下方已核实的独立UUID分类/零价菜品/起售套餐(copies3)设置、`pages/index/index`、真实WXML选择器与目录/购物车/订单端点；图片static/logo_yuweiju.png存在。host必须切换到精确最终候选后端、重新官方编译实际项目，验收合法目录、零价和停售组成套餐；使用host自有合成用户/地址/车与UUID行，保护已有官方基线行。worker没有执行或声称独立/官方验收通过。预算仍为新增最多2轮/4800000ms编码（本轮1/2），独立1200000ms；原先2轮/60分钟耗尽历史保留，截止09:45:37.528Z未改，无重启、增额或发布。
+
+## 历史执行记录（2026-10-19，保留）
+
 本票仅实施目录保存校验。起点 `538c9144cd1d6757b7b1b1348a807eea1c061f43`（#59 已交付），初始工作区干净；挂载 issue 为 OPEN、无评论/阻塞。全部必需检查已通过，Ponytail full 已完成并明确停止；本报告随最终本地候选提交封存，结果与资源状态见文末。独立验证、官方工具和发布结果由宿主记录。
 
 ## 范围与兼容

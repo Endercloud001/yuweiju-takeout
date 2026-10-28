@@ -417,7 +417,8 @@ public class Issue60Probe {
                             var builder=HttpRequest.newBuilder(URI.create(base+path)).timeout(Duration.ofSeconds(15))
                                     .header("Content-Type","application/json");
                             if(auth!=null) builder.header("token",auth);
-                            var response=client.send(builder.method(method,HttpRequest.BodyPublishers.ofString("{\"price\":-1}"))
+                            var response=client.send(builder.method(method,HttpRequest.BodyPublishers.ofString(credential.equals("admin")
+                                            ? "{\"price\":-1}" : JSON.writeValueAsString(catalogBody(isMeal))))
                                     .build(),HttpResponse.BodyHandlers.ofString());
                             check("matrix_"+credential+"_"+method+path,
                                     credential.equals("admin") ? response.statusCode()==200 && !success(JSON.readTree(response.body()))
@@ -425,6 +426,17 @@ public class Issue60Probe {
                         }
                     }
                     check("auth_refusals_no_SQL_writes",initial.equals(snapshot()));
+                    // A legitimate administrator must also persist valid payloads on MVC-equivalent matrix URLs.
+                    for(boolean isMeal:List.of(false,true)) for(String method:List.of("POST","PUT")) {
+                        String table=isMeal?"setmeal":"dish";
+                        var body=catalogBody(isMeal);
+                        String name=RUN+"-mx-"+table.charAt(0)+"-"+method;
+                        body.put("name",name);
+                        if(!isMeal) body.put("status",0);
+                        check("matrix_admin_valid_"+method+"_"+table+"_persists",
+                                success(request(client,method,"/admin/"+table+";x=1",adminToken,body))
+                                && count("SELECT COUNT(*) FROM "+table+" WHERE name=? AND price=18.00",name)==1);
+                    }
                     invalidInputs(client);
                     retainedInvalidInputs(client);
                     rollback(client);
