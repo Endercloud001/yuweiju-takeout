@@ -159,7 +159,7 @@ Final blocker: normal local commit retries also exit128 on existing index.lock. 
 
 用户追加2轮共80分钟编码及20分钟独立验证，历史额度未重置。新增首轮完成，业务候选f9333c21b47fe8389bca3396f2656e6b54332677，Ponytail结束。统一verifier对该精确候选新快照三组全部exit0、stopped=true：后端204，管理端47/refimg4及lint/typecheck/build，mini14/23/61，F4真实HTTP/SQL313和购物车235。规范/需求双路审查各0项，先前矩阵URI权限发现已关闭。详见本票20261028 independent与coding证据，未继承旧WIP通过状态。
 
-官方Tool2.02.2608080/SDK3.17.4，项目编译产物index/order各4文件与精确独立快照逐字节相同（只在隔离vendor设置本地API）。真实候选prod后端、合成用户身份与数据、实际页面分类选择/加号/结算/去支付事件通过3项：零价目录保存且负价拒绝无写入；停售组成菜copies3的起售套餐在真实菜单可见且零价；实际加购一份套餐、结算3元、仅点击一次提交后SQL订单数1/amount3.00且车清空。真实认证、Mapper/事务/计价均保留，地图只用本地合成地址seam。普通页面挂载已覆盖管理端拒绝反馈/输入保留，未冒充真实微信账号支付。
+官方Tool2.02.2608080/SDK3.17.4，项目编译产物index/order各4文件与精确独立快照统一LF后文本相同（Windows检出CRLF与Linux快照LF的换行差异保留）（只在隔离vendor设置本地API）。真实候选prod后端、合成用户身份与数据、实际页面分类选择/加号/结算/去支付事件通过3项：零价目录保存且负价拒绝无写入；停售组成菜copies3的起售套餐在真实菜单可见且零价；实际加购一份套餐、结算3元、仅点击一次提交后SQL订单数1/amount3.00且车清空。真实认证、Mapper/事务/计价均保留，地图只用本地合成地址seam。普通页面挂载已覆盖管理端拒绝反馈/输入保留，未冒充真实微信账号支付。
 
 准备阶段官方窗口重开恢复、网关旧容器名修复均留失败证据；官方候选首次连接失败因internal-only网络未发布端口，增加本票既有egress连接后端口生效，保留attempt1，不重置/重复提交。官方最终复验exit0，结果official/business-results.json。服务finally清理sqlPreserved/redisPreserved/springClosed全true，网关和MySQL/Redis停止、卷保留、官方项目关闭；不访问原库/Release/部署。逐票人工验收已获豁免，必需真实与官方检查未省略。
 
